@@ -29,18 +29,18 @@ from pyvisa.constants import Parity, StopBits
 
 
 class TopticaIBeamLaser(Base, SimpleLaserInterface):
-    """ Spectra Physics Millennia diode pumped solid state laser.
+    """ Toptica iBeam Smart laser.
 
     Example config for copy-paste:
 
     millennia_laser:
-        module.Class: 'laser.millennia_ev_laser.MillenniaeVLaser'
+        module.Class: 'laser.toptica_ibeam_laser.TopticaIBeamLaser'
         interface: 'ASRL1::INSTR'
-        maxpower: 25 # in Watt
-
+        maxpower: 100 # in mW
+        maxcurrent: 200.0 # in mA
     """
 
-    serial_interface = ConfigOption('interface', 'ASRL1::INSTR', missing='error')
+    interface = ConfigOption('interface', 'ASRL1::INSTR', missing='error')
     maxpower = ConfigOption('maxpower', 100.0, missing='warn')
     maxcurrent = ConfigOption('maxcurrent', 200.0, missing='warn')
     current = 1
@@ -57,7 +57,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         try:
             self.rm = visa.ResourceManager()
             self.inst = self.rm.open_resource(
-                self.serial_interface,
+                self.interface,
                 baud_rate=115200,
                 data_bits=8,
                 parity=Parity.none,
