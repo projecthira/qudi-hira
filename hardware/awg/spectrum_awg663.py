@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 """
-Modified Leora Schein
 This file contains the Qudi hardware module for Spectrum AWG.
 
 Qudi is free software: you can redistribute it and/or modify
@@ -21,17 +20,15 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import os
 import numpy as np
 import pickle
-import json
 from hardware.awg import SpectrumAWG35 as SpectrumAWG35
 from hardware.awg.pyspcm import *
 from core.util.modules import get_home_dir
-from core.module import Base, ConfigOption
+from core.configoption import ConfigOption
+from core.module import Base
 from collections import OrderedDict
 from interface.pulser_interface import PulserInterface, PulserConstraints
-from matplotlib import pyplot as plt
 
 
 class AWG663(Base, PulserInterface):
@@ -51,8 +48,6 @@ class AWG663(Base, PulserInterface):
         # ftp_passwd: 'anonymous@' # optional, the password for ftp login
 
     """
-
-    #_modclass = 'awg_sp'
     _modclass = 'awg663'
     _modtype = 'hardware'
 
@@ -60,15 +55,12 @@ class AWG663(Base, PulserInterface):
     _tmp_work_dir = ConfigOption(name='tmp_work_dir',
                                  default=os.path.join(get_home_dir(), 'pulsed_files'),
                                  missing='warn')
-    ip = ConfigOption(name='awg_ip_address', missing='error')
+    awg_ip_address = ConfigOption(name='awg_ip_address', missing='error')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 
-        # self.ip = '192.168.150.11'
-        # self.ip = '/dev/spcm0'
         self.cards = [0, 1]
-        # [0.1]
         self.hub = 0
         self.channel_setup = [
             {
@@ -144,17 +136,17 @@ class AWG663(Base, PulserInterface):
                 'freq2': 0.0
             }
         ]
-        self.channels = [[0, 0, 0b1], [0, 1, 0b10], [1, 0, 0b100],
-                         [1, 1, 0b1000]]  # [card, channel, binary channel for later use]
+        # [card, channel, binary channel for later use]
+        self.channels = [[0, 0, 0b1], [0, 1, 0b10], [1, 0, 0b100], [1, 1, 0b1000]]
         self.loaded_assets = {}
-        self.WaveformFolder = os.path.join(os.getcwd(), 'hardware','awg', 'waveform')
+        self.WaveformFolder = os.path.join(os.getcwd(), 'hardware', 'awg', 'waveform')
         self.SequenceFolder = os.path.join(os.getcwd(), 'hardware', 'awg', 'sequence')
         self.CurrentUpload = os.path.join(os.getcwd(),  'hardware', 'awg', 'CurrentUpload.pkl')
         self.typeloaded = None
 
     def on_activate(self):
         print('activate')
-        self.instance = SpectrumAWG35.AWG(self.ip, self.cards, self.hub, self.channel_setup)
+        self.instance = SpectrumAWG35.AWG(self.awg_ip_address, self.cards, self.hub, self.channel_setup)
         self.instance.init_all_channels()
         self.instance.cards[0].set_amplitude(0, 500)
         self.instance.cards[0].set_amplitude(1, 500)

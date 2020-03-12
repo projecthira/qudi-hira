@@ -16,6 +16,7 @@ import copy
 import pickle
 from ctypes import *
 
+
 # from multiprocessing import Process
 # import gc
 # import pdb
@@ -103,7 +104,6 @@ from ctypes import *
 
 
 class AWG:
-
     """ atm this class assumes only 2 channels per card """
 
     def __init__(self, _ip: object, _card_ids: object, _hub_id: object, _channel_setup: object) -> object:
@@ -159,7 +159,8 @@ class AWG:
     #     print 'Process finished.'
 
     def run_sequence_from_list(self, seq):
-        fix_seq = [([], 64)]  # upload an empty sequence to fix a problem that occurs when the same sequence is uploaded multiple times
+        fix_seq = [([],
+                    64)]  # upload an empty sequence to fix a problem that occurs when the same sequence is uploaded multiple times
         self._run_sequence_from_list(fix_seq)
         self._run_sequence_from_list(seq)
 
@@ -211,7 +212,7 @@ class AWG:
         # the number of samples with appended zeros to have it be a multiple of 32
         total_samples = 0
         for step in seq:
-            total_samples += int(step[1]*1e-9 * sample_rate)
+            total_samples += int(step[1] * 1e-9 * sample_rate)
         total_new_samples = total_samples
         while not total_new_samples % 32 == 0:
             total_new_samples += 1
@@ -227,7 +228,8 @@ class AWG:
         # for chunk in chunks:
 
         current_position = 0
-        current_phase_positions = np.zeros(4)  # variable for setting the phase=0 position in a waveform for seperate channels
+        current_phase_positions = np.zeros(
+            4)  # variable for setting the phase=0 position in a waveform for seperate channels
         memory_position = 0
         current_chunk_size = 0
         step_counter = 0
@@ -249,9 +251,9 @@ class AWG:
         data_list = list()
         # this looks like 4 analog channels and 6 digital
         for i in range(4):
-            data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.int16))
+            data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.int16))
         for i in range(6):
-            data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.bool))
+            data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.bool))
 
         # go through single steps in the given chunk sequence
         for step in seq:
@@ -275,7 +277,8 @@ class AWG:
                         if i < 4:
                             if step_channel['reset_phase']:
                                 current_phase_positions[i] = 0
-                            ch_data = self.get_data_from_channel(step_channel, duration, sample_rate, current_phase_positions[i])
+                            ch_data = self.get_data_from_channel(step_channel, duration, sample_rate,
+                                                                 current_phase_positions[i])
                         else:
                             ch_data = self.get_marker_data(step_channel, duration, sample_rate, current_position)
                         ch_id = step_channel['ch']
@@ -286,7 +289,7 @@ class AWG:
                     ch_data = self._get_data_Idle(duration, sample_rate)
 
                 # print '{0}, {1}, {2}, {3}'.format(i, current_position, len(ch_data), len(data_list[i]))
-                data_list[i][current_chunk_size:current_chunk_size+len(ch_data)] = ch_data
+                data_list[i][current_chunk_size:current_chunk_size + len(ch_data)] = ch_data
 
                 data_length = len(ch_data)
                 del ch_data
@@ -323,9 +326,11 @@ class AWG:
                                     step_channel = self.ch(step_channel)
                                 if step_channel['ch'] == i:
                                     if i < 4:
-                                        ch_data = self.get_data_from_channel(step_channel, duration, sample_rate, current_phase_positions[i])
+                                        ch_data = self.get_data_from_channel(step_channel, duration, sample_rate,
+                                                                             current_phase_positions[i])
                                     else:
-                                        ch_data = self.get_marker_data(step_channel, duration, sample_rate, current_position)
+                                        ch_data = self.get_marker_data(step_channel, duration, sample_rate,
+                                                                       current_position)
                                     ch_id = step_channel['ch']
                                     break
 
@@ -334,13 +339,14 @@ class AWG:
                             ch_data = self._get_data_Idle(duration, sample_rate)
 
                         # print '{0}, {1}, {2}, {3}'.format(i, current_position, len(ch_data), len(data_list[i]))
-                        data_list[i][current_chunk_size:current_chunk_size+len(ch_data)] = ch_data
+                        data_list[i][current_chunk_size:current_chunk_size + len(ch_data)] = ch_data
 
                 # print 'Uploading chunk: size {0}, pos {1}'.format(current_chunk_size, memory_position)
                 if is_sequence_mode_segment:
                     for card in self.cards:
                         card.set_current_segment(segment_number)
-                    self.upload(data_list, current_chunk_size, 0, is_buffered=False, is_sequence_segment=is_sequence_mode_segment)
+                    self.upload(data_list, current_chunk_size, 0, is_buffered=False,
+                                is_sequence_segment=is_sequence_mode_segment)
                 else:
                     self.upload(data_list, current_chunk_size, memory_position, is_buffered=True)
 
@@ -353,9 +359,9 @@ class AWG:
                 if not step_counter == seq_length:
                     data_list = list()
                     for i in range(4):
-                        data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.int16))
+                        data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.int16))
                     for i in range(6):
-                        data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.bool))
+                        data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.bool))
 
         # if not current_chunk_size == 0:
         #     total_samples = current_position
@@ -387,7 +393,7 @@ class AWG:
         self.stop()
         sample_rate = self.get_samplerate()
 
-        path = os.path.join(os.getcwd(), 'awg','WaveFormDict.pkl')
+        path = os.path.join(os.getcwd(), 'awg', 'WaveFormDict.pkl')
         pkl_file = open(path, 'rb')
         wave_dict = pickle.load(pkl_file)
         pkl_file.close()
@@ -395,7 +401,7 @@ class AWG:
         total_samples = 0
 
         for step in seq:
-            total_samples += int(step[1]*1e-9 * sample_rate)
+            total_samples += int(step[1] * 1e-9 * sample_rate)
         total_new_samples = total_samples
         while not total_new_samples % 32 == 0:
             total_new_samples += 1
@@ -415,9 +421,9 @@ class AWG:
         data_list = list()
         # this looks like 4 analog channels and 6 digital
         for i in range(4):
-            data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.int16))
+            data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.int16))
         for i in range(6):
-            data_list.append(np.zeros(int(self.max_chunk_size*self.empty_chunk_array_factor), np.bool))
+            data_list.append(np.zeros(int(self.max_chunk_size * self.empty_chunk_array_factor), np.bool))
 
         # go through single steps in the given chunk sequence
         for step in seq:
@@ -436,7 +442,8 @@ class AWG:
                         if i < 4:
                             if step_channel['reset_phase']:
                                 current_phase_positions[i] = 0
-                            ch_data = self.get_data_from_channel(step_channel, duration, sample_rate, current_phase_positions[i])
+                            ch_data = self.get_data_from_channel(step_channel, duration, sample_rate,
+                                                                 current_phase_positions[i])
                             pre = 'a'
                         else:
                             ch_data = self.get_marker_data(step_channel, duration, sample_rate, current_position)
@@ -452,14 +459,15 @@ class AWG:
                 wave_dict[full_name] = ch_data
 
                 # print '{0}, {1}, {2}, {3}'.format(i, current_position, len(ch_data), len(data_list[i]))
-                data_list[i][current_chunk_size:current_chunk_size+len(ch_data)] = ch_data
+                data_list[i][current_chunk_size:current_chunk_size + len(ch_data)] = ch_data
 
                 data_length = len(ch_data)
 
         return data_length, data_list, wave_dict
 
     def run_triggered_multi_from_list(self, seq, awg_mode=''):
-        fix_seq = [([], 64)]  # upload an empty sequence to fix a problem that occurs when the same sequence is uploaded multiple times
+        fix_seq = [([],
+                    64)]  # upload an empty sequence to fix a problem that occurs when the same sequence is uploaded multiple times
         self._run_sequence_from_list(fix_seq)
         self._run_triggered_multi_from_list(seq, awg_mode)
 
@@ -494,13 +502,13 @@ class AWG:
         segment_size = 0
 
         for step in max_seq:
-            segment_size += int(step[1]*1e-9 * sample_rate)
+            segment_size += int(step[1] * 1e-9 * sample_rate)
             # print segment_size
         while not segment_size % 32 == 0:
             segment_size += 1
 
         self.set_segment_size(segment_size)
-        self.set_memory_size(segment_size*len(seqs))
+        self.set_memory_size(segment_size * len(seqs))
         # pylab.figure()
         for iseq, seq in enumerate(seqs):
 
@@ -544,17 +552,16 @@ class AWG:
                         ch_data = self._get_data_Idle(duration, sample_rate)
 
                     # print '{0}, {1}, {2}, {3}'.format(i, current_position, len(ch_data), len(data_list[i]))
-                    data_list[i][position:position+len(ch_data)] = ch_data
+                    data_list[i][position:position + len(ch_data)] = ch_data
 
                     data_length = len(ch_data)
                     del ch_data
 
                 position += duration
 
-
             # pylab.plot(data_list[0])
 
-            self.upload(data_list, segment_size, segment_size*iseq)
+            self.upload(data_list, segment_size, segment_size * iseq)
             # print 'Uploaded sequence ' + str(iseq+1) + ' of ' + str(len(seqs))
 
         # pylab.show()
@@ -564,14 +571,14 @@ class AWG:
 
         self.uploading = False
 
-
-    def run_triggered_pulsed(self, taus, mwsequence, imwsequence="", dict_values=dict(), LaserOn=2000, LaserWait=2000, pre_laser_sequence='', pre_laser_sequence_i='', awg_mode = '', laser_prewait=500):
+    def run_triggered_pulsed(self, taus, mwsequence, imwsequence="", dict_values=dict(), LaserOn=2000, LaserWait=2000,
+                             pre_laser_sequence='', pre_laser_sequence_i='', awg_mode='', laser_prewait=500):
         self.uploading = True
         self.stop()
         self.start_time = time.time()
         # convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
         for key in dict_values.keys():
-            exec ('{0} = {1}'.format(key, dict_values[key]))
+            exec('{0} = {1}'.format(key, dict_values[key]))
 
         ch = self.ch
 
@@ -582,7 +589,7 @@ class AWG:
         sequence.append(([ch('trig')], 200))
         sequence.append(([], 200))
         sequence.append(([ch('laser'), ch('aom')], 200))
-        sequence.append(([], LaserOn) ) # fake Laser Pulse to avoid counting the next flash as double flashes
+        sequence.append(([], LaserOn))  # fake Laser Pulse to avoid counting the next flash as double flashes
 
         seqs.append(sequence)
 
@@ -622,9 +629,10 @@ class AWG:
 
         self.run_triggered_multi_from_list(seqs, awg_mode)
 
-
-    def run_pulsed(self, taus, mwsequence, imwsequence="", dict_values=dict(), LaserOn=2000, LaserWait=2000, pre_laser_sequence='', laser_prewait=500,
-                   pre_laser_sequence_i='', clocking=0, run_cw='', detect_laser_channels="[ch('laser'), ch('aom')]", sync_channels="[ch('trig')]",
+    def run_pulsed(self, taus, mwsequence, imwsequence="", dict_values=dict(), LaserOn=2000, LaserWait=2000,
+                   pre_laser_sequence='', laser_prewait=500,
+                   pre_laser_sequence_i='', clocking=0, run_cw='', detect_laser_channels="[ch('laser'), ch('aom')]",
+                   sync_channels="[ch('trig')]",
                    init_laser_channels="[ch('aom')]"):
 
         # clocking => make the length of each measurement a multiple of clocking
@@ -634,7 +642,7 @@ class AWG:
         self.start_time = time.time()
         # convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
         for key in dict_values.keys():
-            exec ('{0} = {1}'.format(key, dict_values[key]))
+            exec('{0} = {1}'.format(key, dict_values[key]))
 
         ch = self.ch
 
@@ -650,13 +658,13 @@ class AWG:
             subseq = []
             if pre_laser_sequence != '':
                 for pulse in eval(pre_laser_sequence):
-                    subseq.append( pulse )
-                subseq.append(  (eval(init_laser_channels), LaserOn))
+                    subseq.append(pulse)
+                subseq.append((eval(init_laser_channels), LaserOn))
                 # subseq.append(  ([ch('aom')], LaserOn)        )
 
             subseq.append(([], LaserWait))
             for pulse in eval(mwsequence):
-                subseq.append( pulse )
+                subseq.append(pulse)
             subseq.append(([], laser_prewait))
             subseq.append((eval(detect_laser_channels), LaserOn))
             # subseq.append(  ([ch('laser'), ch('aom')], LaserOn)        )
@@ -668,15 +676,15 @@ class AWG:
                 if pre_laser_sequence != '':
                     if pre_laser_sequence_i != '':
                         for pulse in eval(pre_laser_sequence_i):
-                            isubseq.append( pulse )
+                            isubseq.append(pulse)
                     else:
                         for pulse in eval(pre_laser_sequence):
-                            isubseq.append( pulse )
-                    isubseq.append(  (eval(init_laser_channels), LaserOn))
+                            isubseq.append(pulse)
+                    isubseq.append((eval(init_laser_channels), LaserOn))
                     # isubseq.append(  ([ch('aom')], LaserOn)        )
                 isubseq.append(([], LaserWait))
                 for pulse in eval(imwsequence):
-                    isubseq.append( pulse )
+                    isubseq.append(pulse)
                 isubseq.append(([], laser_prewait))
                 isubseq.append((eval(detect_laser_channels), LaserOn))
                 # isubseq.append(  ([ch('laser'), ch('aom')], LaserOn)        )
@@ -691,19 +699,21 @@ class AWG:
         # return sequence
         return self.run_sequence_from_list(sequence)
 
-    def run_freq_sweep_pulsed(self, freqs, mwsequence, imwsequence="", run_cw="", repetitions=1, dict_values=dict(), LaserOn=2000, LaserWait=2000, pre_laser_sequence='', pre_laser_sequence_i='', laser_prewait=500, trig_seq="[([ch('trig')], 300), ([], 500)]", sweep_params=[]):
+    def run_freq_sweep_pulsed(self, freqs, mwsequence, imwsequence="", run_cw="", repetitions=1, dict_values=dict(),
+                              LaserOn=2000, LaserWait=2000, pre_laser_sequence='', pre_laser_sequence_i='',
+                              laser_prewait=500, trig_seq="[([ch('trig')], 300), ([], 500)]", sweep_params=[]):
         self.uploading = True
         self.stop()
         self.start_time = time.time()
         # convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
         for key in dict_values.keys():
-            exec ('{0} = {1}'.format(key, dict_values[key]))
+            exec('{0} = {1}'.format(key, dict_values[key]))
 
         ch = self.ch
 
         # samplerate = self.get_samplerate()
 
-        self.init_sequence_mode(len(freqs)+1)
+        self.init_sequence_mode(len(freqs) + 1)
         trig_seq = eval(trig_seq)
         # if run_cw:
         #     trig_seq[0][0].append(eval(run_cw))
@@ -711,7 +721,7 @@ class AWG:
         segment = []
 
         for i, f in enumerate(freqs):
-            period = 1/float(f)*1e9
+            period = 1 / float(f) * 1e9
             if sweep_params:
                 p = sweep_params[i]
             segment = []
@@ -746,23 +756,23 @@ class AWG:
                 for j in range(len(segment)):
                     segment[j][0].extend(eval(run_cw))
 
-            self.upload_wave_from_list(segment, segment_number=i+1)
+            self.upload_wave_from_list(segment, segment_number=i + 1)
             del segment
 
         for i in range(len(freqs)):
             # print 'l: ' + str(len(freqs))
             # print 'i: ' + str(i)
-            self.write_sequence_step(2*i, 0, 1, 2*i+1, 'always')
+            self.write_sequence_step(2 * i, 0, 1, 2 * i + 1, 'always')
             if i == len(freqs) - 1:
-                self.write_sequence_step(2*i+1, i+1, repetitions, 0, 'always')
+                self.write_sequence_step(2 * i + 1, i + 1, repetitions, 0, 'always')
             else:
-                self.write_sequence_step(2*i+1, i+1, repetitions, 2*i+2, 'always')
+                self.write_sequence_step(2 * i + 1, i + 1, repetitions, 2 * i + 2, 'always')
 
         tmp = self.start()
         return tmp
 
-
-    def run_freq_sweep(self, freqs, mwsequences, run_cw='', repetitions=1, sync_seq="[([ch('trig')], 100)]", trig_seq="[([ch('laser')], 100)]", sweep_params=[]):
+    def run_freq_sweep(self, freqs, mwsequences, run_cw='', repetitions=1, sync_seq="[([ch('trig')], 100)]",
+                       trig_seq="[([ch('laser')], 100)]", sweep_params=[]):
         self.uploading = True
         self.stop()
         self.start_time = time.time()
@@ -771,7 +781,7 @@ class AWG:
 
         # samplerate = self.get_samplerate()
 
-        self.init_sequence_mode(len(freqs)*len(mwsequences)+2)
+        self.init_sequence_mode(len(freqs) * len(mwsequences) + 2)
 
         sync_seq = eval(sync_seq)
         self.upload_wave_from_list(sync_seq, segment_number=0)
@@ -780,30 +790,30 @@ class AWG:
         segment = []
 
         for i, f in enumerate(freqs):
-            period = 1/float(f)*1e9
+            period = 1 / float(f) * 1e9
             if sweep_params:
                 p = sweep_params[i]
 
             for k, seq in enumerate(mwsequences):
                 segment = []
                 for pulse in eval(seq):
-                    segment.append( pulse )
+                    segment.append(pulse)
                 segment = self.fill_sequence(segment, period, fill_chans=[])
 
                 if run_cw:
                     for j in range(len(segment)):
                         segment[j][0].extend(eval(run_cw))
 
-                self.upload_wave_from_list(segment, segment_number=i*len(mwsequences)+k+2)
+                self.upload_wave_from_list(segment, segment_number=i * len(mwsequences) + k + 2)
                 del segment
 
         self.write_sequence_step(0, 0, 1, 1, 'always')
-        for i in range(len(freqs)*len(mwsequences)):
-            self.write_sequence_step(2*i+1, 1, 1, 2*i+2, 'always')
-            if i == len(freqs)*len(mwsequences) - 1:
-                self.write_sequence_step(2*i+2, i+2, repetitions, 0, 'always')
+        for i in range(len(freqs) * len(mwsequences)):
+            self.write_sequence_step(2 * i + 1, 1, 1, 2 * i + 2, 'always')
+            if i == len(freqs) * len(mwsequences) - 1:
+                self.write_sequence_step(2 * i + 2, i + 2, repetitions, 0, 'always')
             else:
-                self.write_sequence_step(2*i+2, i+2, repetitions, 2*i+3, 'always')
+                self.write_sequence_step(2 * i + 2, i + 2, repetitions, 2 * i + 3, 'always')
 
         tmp = self.start()
         return tmp
@@ -825,7 +835,7 @@ class AWG:
             if i == len(seq) - 1:
                 self.write_sequence_step(i, i, s[1], 0, 'always')
             else:
-                self.write_sequence_step(i, i, s[1], i+1, 'always')
+                self.write_sequence_step(i, i, s[1], i + 1, 'always')
 
         return self.start()
 
@@ -839,7 +849,7 @@ class AWG:
         seq_length = 0
         for i, s in enumerate(seq):
             seq_length += s[1]
-        add_length = (int(seq_length)/int(fill_to) + 1)*fill_to - seq_length
+        add_length = (int(seq_length) / int(fill_to) + 1) * fill_to - seq_length
         tmp_seq = (fill_chans, add_length)
         seq.append(tmp_seq)
         # print 'filling'
@@ -903,9 +913,9 @@ class AWG:
         self.uploading = True
         self.stop()
         self.start_time = time.time()
-        #convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
+        # convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
         for key in dict_values.keys():
-            exec ('{0} = {1}'.format(key, dict_values[key]))
+            exec('{0} = {1}'.format(key, dict_values[key]))
         ch = self.ch
         sequence = []
         sequence.append(([], 200))
@@ -913,11 +923,11 @@ class AWG:
         sequence.append(([], 200))
         sequence.append(([ch('aom')], 200))
         # sequence.append(  ([ch('laser'), ch('aom')], 200)          )
-        sequence.append(([], LaserOn) )
+        sequence.append(([], LaserOn))
         for element in mwList:
             sequence.append(([], LaserWait))
             for pulse in eval(str(element)):
-                sequence.append( pulse )
+                sequence.append(pulse)
             sequence.append(([], laser_prewait))
             sequence.append(([ch('laser'), ch('aom')], LaserOn))
         # return sequence
@@ -927,9 +937,9 @@ class AWG:
         self.uploading = True
         self.stop()
         self.start_time = time.time()
-        #convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
+        # convert the values stored in dict_values (Tpi, etc) into local variables so they are found during eval of the sequence string
         for key in dict_values.keys():
-            exec ('{0} = {1}'.format(key, dict_values[key]))
+            exec('{0} = {1}'.format(key, dict_values[key]))
         ch = self.ch
         sequence = []
         # sequence.append(  ([       ], 200)        )
@@ -941,13 +951,13 @@ class AWG:
         # for tau in taus:
         sequence.append(([], LaserWait))
         for pulse in eval(mwsequence):
-            sequence.append( pulse )
-        sequence.append(([ ch('trig')], laser_prewait))
+            sequence.append(pulse)
+        sequence.append(([ch('trig')], laser_prewait))
         sequence.append(([ch('laser'), ch('aom')], LaserOn))
         if imwsequence != "":
             sequence.append(([], LaserWait))
             for pulse in eval(imwsequence):
-                sequence.append( pulse )
+                sequence.append(pulse)
             sequence.append(([ch('trig2')], laser_prewait))
             sequence.append(([ch('laser'), ch('aom')], LaserOn))
         # return sequence
@@ -968,14 +978,15 @@ class AWG:
         offset = 0
         for i in channels:
             if i < 4:
-                ax.plot(np.asarray(self.data_list[i], dtype=float)/(2**15-1) - offset*2.5, 'k-', label = 'ch' + str(i))
+                ax.plot(np.asarray(self.data_list[i], dtype=float) / (2 ** 15 - 1) - offset * 2.5, 'k-',
+                        label='ch' + str(i))
             else:
-                ax.plot(np.asarray(self.data_list[i], dtype=float) - offset*2.5, 'k-', label = 'ch' + str(i))
-            yticks.append(-offset*2.5)
+                ax.plot(np.asarray(self.data_list[i], dtype=float) - offset * 2.5, 'k-', label='ch' + str(i))
+            yticks.append(-offset * 2.5)
             offset += 1
             ylabels.append('Ch' + str(i))
 
-        ax.set_ylim([-offset*2.5 + 1.0, 1.5])
+        ax.set_ylim([-offset * 2.5 + 1.0, 1.5])
         ax.set_yticks(yticks)
         ax.set_yticklabels(ylabels)
         pylab.show()
@@ -994,7 +1005,7 @@ class AWG:
 
     def get_data_from_channel(self, channel, duration, sample_rate, start_position):
         # channel = self.eval_channel(channel)
-        data = np.zeros(int(duration*1e-9 * sample_rate))
+        data = np.zeros(int(duration * 1e-9 * sample_rate))
         if channel['type'] == 'DC':
             data = self._get_data_DC(duration, sample_rate, channel)
         if channel['type'] == 'sin':
@@ -1004,14 +1015,14 @@ class AWG:
             self.temp_sine = data
         if channel['type'] == "chirp":
             data = self._get_data_Chirp(duration, sample_rate, channel, start_position)
-        return np.asarray(data*(2**15-1), dtype=np.int16)
+        return np.asarray(data * (2 ** 15 - 1), dtype=np.int16)
 
     def get_marker_data(self, channel, duration, sample_rate, start_position):
-        length = int(duration*1e-9 * sample_rate)
+        length = int(duration * 1e-9 * sample_rate)
         return self.get_marker_samples(length)
 
     def _get_data_DC(self, duration, sample_rate, ch):
-        length = int(duration*1e-9 * sample_rate)
+        length = int(duration * 1e-9 * sample_rate)
         return self._get_samples_DC(length, ch)
 
     def _get_samples_DC(self, samples, ch):
@@ -1019,32 +1030,34 @@ class AWG:
         return data
 
     def _get_data_Sin(self, duration, sample_rate, ch, start_position):
-        length = int(duration*1e-9 * sample_rate)
-        t = np.linspace((start_position) / float(sample_rate), start_position / float(sample_rate) + (duration-1) * 1e-9, length)
-        data = ch['amp']*np.sin(2*np.pi*ch['freq']*t + ch['phase'])
+        length = int(duration * 1e-9 * sample_rate)
+        t = np.linspace((start_position) / float(sample_rate),
+                        start_position / float(sample_rate) + (duration - 1) * 1e-9, length)
+        data = ch['amp'] * np.sin(2 * np.pi * ch['freq'] * t + ch['phase'])
         # print t
         # print 'start pos: ' + str(start_position) + ' => first sample: ' + str(data[0])
         return data
 
     def _get_data_Cos2(self, duration, sample_rate, ch, start_position):
-        magic_number_for_cos2 = 4 # not clear whether 4 is the right number. need to find analytical justification.
-        length = magic_number_for_cos2*int(duration*1e-9 * sample_rate)
-        t = np.linspace((start_position) / float(sample_rate), start_position / float(sample_rate) + (magic_number_for_cos2*duration-1) * 1e-9, length)
-        data = ch['amp']*np.sin(2*np.pi*ch['freq']*t + ch['phase'])
+        magic_number_for_cos2 = 4  # not clear whether 4 is the right number. need to find analytical justification.
+        length = magic_number_for_cos2 * int(duration * 1e-9 * sample_rate)
+        t = np.linspace((start_position) / float(sample_rate),
+                        start_position / float(sample_rate) + (magic_number_for_cos2 * duration - 1) * 1e-9, length)
+        data = ch['amp'] * np.sin(2 * np.pi * ch['freq'] * t + ch['phase'])
         # w = 2500.0                         # pulse width FWHM. Should be the same as the square pulse width
-        w = int(duration*1e-9 * sample_rate) # pulse width FWHM. Should be the same as the square pulse width
-            # right now it is in the units of the samples, so a factor of 0.8
-            # should go there when moving from 1.25 GS/s to 1.00 GS/s.
-        n = length   # number of samples
+        w = int(duration * 1e-9 * sample_rate)  # pulse width FWHM. Should be the same as the square pulse width
+        # right now it is in the units of the samples, so a factor of 0.8
+        # should go there when moving from 1.25 GS/s to 1.00 GS/s.
+        n = length  # number of samples
         x = np.arange(length)
-        data = data*np.sin(np.pi*np.maximum((1 - magic_number_for_cos2*np.abs(x/n - 0.5)), 0)/2)**2
+        data = data * np.sin(np.pi * np.maximum((1 - magic_number_for_cos2 * np.abs(x / n - 0.5)), 0) / 2) ** 2
         # print t
         # print 'start pos: ' + str(start_position) + ' => first sample: ' + str(data[0])
         return data
 
     def _get_samples_Sin(self, samples, sample_rate, ch, start_position):
         t = np.linspace((start_position) / float(sample_rate), (start_position + samples) / float(sample_rate), samples)
-        data = ch['amp']*np.sin(2*np.pi*ch['freq']*t + ch['phase'])
+        data = ch['amp'] * np.sin(2 * np.pi * ch['freq'] * t + ch['phase'])
         return data
 
     def get_marker_samples(self, samples):
@@ -1052,22 +1065,24 @@ class AWG:
         return data
 
     def _get_data_Chirp(self, duration, sample_rate, ch, start_position):
-        length = int(duration*1e-9 * sample_rate)
-        t = np.linspace((start_position) / float(sample_rate), start_position / float(sample_rate) + (duration-1) * 1e-9, length)
+        length = int(duration * 1e-9 * sample_rate)
+        t = np.linspace((start_position) / float(sample_rate),
+                        start_position / float(sample_rate) + (duration - 1) * 1e-9, length)
         t0 = t[0]
         t1 = t[-1]
-        data = ch['amp']*np.sin(2*np.pi*(ch['freq'] + (ch['freq2']-ch['freq'])/(2*(t1-t0)))*(t-t0)**2 + ch['phase'])
+        data = ch['amp'] * np.sin(
+            2 * np.pi * (ch['freq'] + (ch['freq2'] - ch['freq']) / (2 * (t1 - t0))) * (t - t0) ** 2 + ch['phase'])
         # data = ch['amp']*np.sin(2*np.pi*(ch['freq'] + (t-t0)*(ch['freq2']-ch['freq'])/(t1-t0))*t + ch['phase'])
         return data
 
     def _get_data_Idle(self, duration, sample_rate):
-        length = int(duration*1e-9 * sample_rate)
+        length = int(duration * 1e-9 * sample_rate)
         return np.zeros(length)
 
     def ch(self, name, type=None, amp=None, phase=None, freq=None, freq2=None, reset_phase=False):
         """ gets the dictonary with the setup of a certain channel """
 
-        #copy the dictionary so the channel setup is not changed
+        # copy the dictionary so the channel setup is not changed
         setup = copy.deepcopy(self.channel_setup)
 
         for c in setup:
@@ -1186,8 +1201,14 @@ class AWG:
         self.uploading = True
         # if not data0 == None or not data1 == None:
         self.start_upload_time = time.time()
-        t1 = threading.Thread(target=self._run_upload, args=(self.cards[0], [data[0], data[1], data[4], data[5], data[6]]), kwargs={'mem_offset': mem_offset, 'data_size': data_size, 'is_buffered': is_buffered, 'is_sequence_segment': is_sequence_segment})
-        t2 = threading.Thread(target=self._run_upload, args=(self.cards[1], [data[2], data[3], data[7], data[8], data[9]]), kwargs={'mem_offset': mem_offset, 'data_size': data_size, 'is_buffered': is_buffered, 'is_sequence_segment': is_sequence_segment})
+        t1 = threading.Thread(target=self._run_upload,
+                              args=(self.cards[0], [data[0], data[1], data[4], data[5], data[6]]),
+                              kwargs={'mem_offset': mem_offset, 'data_size': data_size, 'is_buffered': is_buffered,
+                                      'is_sequence_segment': is_sequence_segment})
+        t2 = threading.Thread(target=self._run_upload,
+                              args=(self.cards[1], [data[2], data[3], data[7], data[8], data[9]]),
+                              kwargs={'mem_offset': mem_offset, 'data_size': data_size, 'is_buffered': is_buffered,
+                                      'is_sequence_segment': is_sequence_segment})
         del data
         t1.start()
         t2.start()
@@ -1210,7 +1231,8 @@ class AWG:
 
     def _run_upload(self, card, data, data_size, mem_offset, is_buffered=True, is_sequence_segment=False):
         # print 'Uploading to card ' + str(card.cardNo) + '...'
-        res = card.upload(data_size, data[0], data[1], data[2], data[3], data[4], is_buffered=is_buffered, mem_offset=mem_offset, block=True, is_seq_segment=is_sequence_segment)
+        res = card.upload(data_size, data[0], data[1], data[2], data[3], data[4], is_buffered=is_buffered,
+                          mem_offset=mem_offset, block=True, is_seq_segment=is_sequence_segment)
         if res == 0:
             pass
             # print 'Upload to card ' + str(card.cardNo) + ' finished.'
@@ -1325,7 +1347,7 @@ class Hub():
         if self.chkError() == -1:
             return -1
         return res
-    
+
     def set32(self, register, value):
         spcm_dwSetParam_i32(self.handle, register, int32(value))
 
@@ -1349,29 +1371,28 @@ class Hub():
             return -1
         return 0
 
-class Card():
 
-    #lists that hold the registers of the same type but for different channels (0-3) or trigger channels (0-1)
-    #register for Amplitde in mV
+class Card():
+    # lists that hold the registers of the same type but for different channels (0-3) or trigger channels (0-1)
+    # register for Amplitde in mV
     _regs_amplitude = [SPC_AMP0, SPC_AMP1, SPC_AMP2, SPC_AMP3]
     _regs_output = [SPC_ENABLEOUT0, SPC_ENABLEOUT1, SPC_ENABLEOUT2, SPC_ENABLEOUT3]
-    #Filter cut off for antialiasing (pg. 73 manual)
+    # Filter cut off for antialiasing (pg. 73 manual)
     _regs_filter = [SPC_FILTER0, SPC_FILTER1, SPC_FILTER2, SPC_FILTER3]
     _regs_stoplevel = [SPC_CH0_STOPLEVEL, SPC_CH1_STOPLEVEL, SPC_CH2_STOPLEVEL, SPC_CH3_STOPLEVEL]
     _regs_trigger_level0 = [SPC_TRIG_EXT0_LEVEL0, SPC_TRIG_EXT1_LEVEL0]
     _regs_trigger_mode = [SPC_TRIG_EXT0_MODE, SPC_TRIG_EXT1_MODE]
-    _regs_offset = [SPC_OFFS0,SPC_OFFS1,SPC_OFFS2,SPC_OFFS3]
+    _regs_offset = [SPC_OFFS0, SPC_OFFS1, SPC_OFFS2, SPC_OFFS3]
 
-
-    #values for stoplevel. defines the output after a waveform is finished
+    # values for stoplevel. defines the output after a waveform is finished
     _vals_stoplevel = {
-        'zero': SPCM_STOPLVL_ZERO, #output 0 voltage
-        'low': SPCM_STOPLVL_LOW, #output low voltage
-        'high': SPCM_STOPLVL_HIGH, #output high voltage
-        'hold': SPCM_STOPLVL_HOLDLAST #hold the last voltage of the last sample
+        'zero': SPCM_STOPLVL_ZERO,  # output 0 voltage
+        'low': SPCM_STOPLVL_LOW,  # output low voltage
+        'high': SPCM_STOPLVL_HIGH,  # output high voltage
+        'hold': SPCM_STOPLVL_HOLDLAST  # hold the last voltage of the last sample
     }
 
-    #output mode
+    # output mode
     _vals_mode = {
         'single': SPC_REP_STD_SINGLE,
         'multi': SPC_REP_STD_MULTI,
@@ -1384,7 +1405,7 @@ class Card():
         'fifo_gate': SPC_REP_FIFO_GATE
     }
 
-    #trigger modes
+    # trigger modes
     _vals_trig_mode = {
         'pos_edge': SPC_TM_POS,
         'neg_edge': SPC_TM_NEG
@@ -1430,7 +1451,7 @@ class Card():
         if 1:
             address = "TCPIP::{0}::INST{1}::INSTR".format(self.ip, self.cardNo)
         else:
-            address = "{0}{1}".format(self.ip,self.cardNo)
+            address = "{0}{1}".format(self.ip, self.cardNo)
         self.handle = spcm_hOpen(create_string_buffer(bytes(address, 'utf8')))
         print(str(self.handle))
 
@@ -1531,7 +1552,7 @@ class Card():
         reg = self._regs_trigger_mode[trig_channel]
         res = self.get32(reg)
 
-        #get the name of the result from the trigger mode dictionary
+        # get the name of the result from the trigger mode dictionary
         for key in self._vals_trig_mode.keys():
             if self._vals_trig_mode[key] == res:
                 res = key
@@ -1618,7 +1639,8 @@ class Card():
         return res
 
     # @profile
-    def upload(self, number_of_samples, data=None, data1=None, marker0_data=None, marker1_data=None, marker2_data=None, is_buffered=False, mem_offset=0, block=False, is_seq_segment=False):
+    def upload(self, number_of_samples, data=None, data1=None, marker0_data=None, marker1_data=None, marker2_data=None,
+               is_buffered=False, mem_offset=0, block=False, is_seq_segment=False):
         """ uploads data to the card.
         Values in 'data' can not exceed -1.0 to 1.0.
         Values in marker data can only be 0 or 1
@@ -1631,11 +1653,11 @@ class Card():
         """
 
         new_samples = number_of_samples
-        #print(data)
+        # print(data)
         data //= 2
         data1 //= 4
 
-        #set the commands that are used for the data transfer
+        # set the commands that are used for the data transfer
         if block:
             com = M2CMD_DATA_STARTDMA | M2CMD_DATA_WAITDMA
         else:
@@ -1644,7 +1666,7 @@ class Card():
         used_channels = self.get_selected_channels_count()
         bytes_per_sample = self.get_bytes_per_sample()
 
-        #set the amount of memory that will be used
+        # set the amount of memory that will be used
         if not is_buffered:
             while (not (new_samples % 32 == 0)) or (is_seq_segment == True and new_samples < 192):
                 new_samples += 1
@@ -1652,12 +1674,11 @@ class Card():
             self.set_memory_size(new_samples, is_seq_segment=is_seq_segment)
             # print 'Setting memory size: ' + str(new_samples) + ', is_segment=' + str(is_seq_segment)
 
-
-        #set the buffer
+        # set the buffer
         BufferSize = uint64(new_samples * bytes_per_sample * used_channels)
         pvBuffer = create_string_buffer(BufferSize.value)
         # pnBuffer = cast(pvBuffer, ptr16)
-        pnBuffer = np.zeros(new_samples*used_channels, dtype=np.int16)
+        pnBuffer = np.zeros(new_samples * used_channels, dtype=np.int16)
         # test = np.zeros(new_samples*used_channels, dtype=np.int16)
 
         # print data.dtype
@@ -1666,20 +1687,22 @@ class Card():
 
         # print '{0}, {1}, {2}, {3}'.format(mem_offset, number_of_samples, new_samples, len(data))
 
-        pnBuffer[0:number_of_samples*2:2] = data[0:number_of_samples]
+        pnBuffer[0:number_of_samples * 2:2] = data[0:number_of_samples]
         # pdb.set_trace()
-        pnBuffer[0:number_of_samples*2:2] += np.ma.masked_where(data[0:number_of_samples]<0, data[0:number_of_samples], copy=False).mask*2**15
+        pnBuffer[0:number_of_samples * 2:2] += np.ma.masked_where(data[0:number_of_samples] < 0,
+                                                                  data[0:number_of_samples], copy=False).mask * 2 ** 15
         self.temp_data = data  # added this for debugging purposes and future plotting of data
         del data
-        pnBuffer[0:number_of_samples*2:2] -= marker0_data[0:number_of_samples]*2**15
+        pnBuffer[0:number_of_samples * 2:2] -= marker0_data[0:number_of_samples] * 2 ** 15
         # print pnBuffer.dtype
         del marker0_data
 
-        pnBuffer[1:number_of_samples*2:2] = data1[0:number_of_samples]
-        pnBuffer[1:number_of_samples*2:2] += np.ma.masked_where(data1[0:number_of_samples]<0, data1[0:number_of_samples], copy=False).mask*2**14
+        pnBuffer[1:number_of_samples * 2:2] = data1[0:number_of_samples]
+        pnBuffer[1:number_of_samples * 2:2] += np.ma.masked_where(data1[0:number_of_samples] < 0,
+                                                                  data1[0:number_of_samples], copy=False).mask * 2 ** 14
         del data1
-        pnBuffer[1:number_of_samples*2:2] -= marker1_data[0:number_of_samples]*2**15
-        pnBuffer[1:number_of_samples*2:2] += marker2_data[0:number_of_samples]*2**14
+        pnBuffer[1:number_of_samples * 2:2] -= marker1_data[0:number_of_samples] * 2 ** 15
+        pnBuffer[1:number_of_samples * 2:2] += marker2_data[0:number_of_samples] * 2 ** 14
         # print pnBuffer.dtype
         del marker1_data
         del marker2_data
@@ -1694,7 +1717,7 @@ class Card():
         # for i in range(number_of_samples, new_samples):
         #     pnBuffer[i] = 0
 
-        #write the data into the buffer
+        # write the data into the buffer
         # for i in range(number_of_samples):
         #     """value range is decreased by 1 bit for every used marker channel.
         #     Maximum value is 32767 when no marker is used.
@@ -1724,29 +1747,30 @@ class Card():
         # pnBuffer[i*used_channels + 1] = val2
         # test[i*used_channels + 1] = val2
 
-        #define the data transfer
-        spcm_dwDefTransfer_i64(self.handle, SPCM_BUF_DATA, SPCM_DIR_PCTOCARD, uint32(0), pvBuffer, uint64(mem_offset*used_channels*bytes_per_sample), BufferSize)
+        # define the data transfer
+        spcm_dwDefTransfer_i64(self.handle, SPCM_BUF_DATA, SPCM_DIR_PCTOCARD, uint32(0), pvBuffer,
+                               uint64(mem_offset * used_channels * bytes_per_sample), BufferSize)
 
         # self.data = test.copy()
         # del test
         # del data
         # del data1
 
-        #execute the transfer
+        # execute the transfer
         self.set32(SPC_M2CMD, com)
         if block:
             del pnBuffer, pvBuffer
         err = self.chkError()
         # print err
-        return err#self.chkError()
+        return err  # self.chkError()
 
     def init_sequence_mode(self, step_count):
         """ Sets the mode to sequence and set the maximum number of segments in the memory (max number of steps). """
-        #get the maximum segments value (only power of two is allowed)
+        # get the maximum segments value (only power of two is allowed)
         max_segments = 0
         for i in range(16):
-            if step_count <= 1<<i:
-                max_segments = 1<<i
+            if step_count <= 1 << i:
+                max_segments = 1 << i
                 break
 
         self.set_mode('sequence')
@@ -1763,7 +1787,7 @@ class Card():
     def write_sequence_segment(self, mem_segment_index, data0=None, data1=None, mrkr0=None, mrkr1=None, mrkr2=None):
         """ Creates a memory segment that can be used for a sequence step """
 
-        #select memory segment
+        # select memory segment
         self.set32(SPC_SEQMODE_WRITESEGMENT, mem_segment_index)
 
         self.upload(data0, data1, mrkr0, mrkr1, mrkr2, is_segment=True)
@@ -1782,10 +1806,10 @@ class Card():
     #
     #     return self.chkError()
 
-
     def write_sequence_step(self, step_index, mem_segment_index, loops, goto, next_condition):
         """ Writes an entry into the the sequence memory of the card (does not upload data to the card). """
-        val = int(mem_segment_index) | int(goto)<<16 | int(loops)<<32 | self._vals_sequence_step[next_condition]<<32
+        val = int(mem_segment_index) | int(goto) << 16 | int(loops) << 32 | self._vals_sequence_step[
+            next_condition] << 32
         self.set64(SPC_SEQMODE_STEPMEM0 + step_index, val)
 
         return self.chkError()
@@ -1844,13 +1868,13 @@ class Card():
 
     def set_channel_output(self, ch, enabled):
         """ set output of channel enabled/disabled """
-        ch_reg = self._regs_output[ch] #get the enable output register of the specific channel
+        ch_reg = self._regs_output[ch]  # get the enable output register of the specific channel
         self.set32(ch_reg, enabled)
         return self.chkError()
 
     def get_channel_output(self, ch):
         """ get whether the output of the channel is enabled """
-        ch_reg = self._regs_output[ch] # get the enable output register of the specific channel
+        ch_reg = self._regs_output[ch]  # get the enable output register of the specific channel
         res = self.get32(ch_reg)
         if self.chkError() == -1:
             return -1
@@ -1858,13 +1882,13 @@ class Card():
 
     def set_amplitude(self, ch, amp):
         """ set the amplitude of a channel in mV (into 50 Ohms) """
-        reg = self._regs_amplitude[ch] #get the amplitude register of the specific channel
+        reg = self._regs_amplitude[ch]  # get the amplitude register of the specific channel
         self.set32(reg, amp)
         return self.chkError()
 
     def get_amplitude(self, ch):
         """ get the amplitude of a channel in mV (into 50 Ohms) """
-        reg = self._regs_amplitude[ch] #get the amplitude register of the specific channel
+        reg = self._regs_amplitude[ch]  # get the amplitude register of the specific channel
         res = self.get32(reg)
         if self.chkError() == -1:
             return -1
@@ -1872,13 +1896,13 @@ class Card():
 
     def set_filter(self, ch, amp):
         """ set the filter cut off frequency (ls) """
-        reg = self._regs_filter[ch] #get the filter register of the specific channel
+        reg = self._regs_filter[ch]  # get the filter register of the specific channel
         self.set32(reg, amp)
         return self.chkError()
 
     def get_filter(self, ch):
         """ get the filter cut off frequency (ls) """
-        reg = self._regs_filter[ch] #get the filter register of the specific channel
+        reg = self._regs_filter[ch]  # get the filter register of the specific channel
         res = self.get32(reg)
         if self.chkError() == -1:
             return -1
@@ -1886,13 +1910,13 @@ class Card():
 
     def set_offset(self, ch, amp):
         """ set the ofset of a channel +/-100% in steps of 1%, pg. 74  """
-        reg = self._regs_offset[ch] #get the offset register of the specific channel
+        reg = self._regs_offset[ch]  # get the offset register of the specific channel
         self.set32(reg, amp)
         return self.chkError()
 
     def get_offset(self, ch):
         """ get the amplitude of a channel +/-100% in steps of 1%, pg. 74   """
-        reg = self._regs_offset[ch] #get the offest register of the specific channel
+        reg = self._regs_offset[ch]  # get the offest register of the specific channel
         res = self.get32(reg)
         if self.chkError() == -1:
             return -1
@@ -1906,12 +1930,12 @@ class Card():
             low: output low voltage
             hold: hold voltage of last sample
         """
-        reg = self._regs_stoplevel[ch] #get register for stoplevel
+        reg = self._regs_stoplevel[ch]  # get register for stoplevel
 
         if not self._vals_stoplevel.has_key(stoplevel):
             print('Unknown parameter value {0} in set_stoplevel.'.format(stoplevel))
 
-        val = self._vals_stoplevel[stoplevel] #values are stored in a dictionary
+        val = self._vals_stoplevel[stoplevel]  # values are stored in a dictionary
         self.set32(reg, val)
         return self.chkError()
 
@@ -1923,10 +1947,10 @@ class Card():
             low: output low voltage
             hold: hold voltage of last sample
         """
-        reg = self._regs_stoplevel[ch] #get register for stoplevel
+        reg = self._regs_stoplevel[ch]  # get register for stoplevel
         res = self.get32(reg)
 
-        #get the name of the result from the stoplevel dictionary
+        # get the name of the result from the stoplevel dictionary
         for key in self._vals_stoplevel.keys():
             if self._vals_stoplevel[key] == res:
                 res = key
@@ -1943,7 +1967,7 @@ class Card():
     def get_mode(self):
         res = self.get32(SPC_CARDMODE)
 
-        #get the name of the result from the mode dictionary
+        # get the name of the result from the mode dictionary
         for key in self._vals_mode.keys():
             if self._vals_mode[key] == res:
                 res = key
