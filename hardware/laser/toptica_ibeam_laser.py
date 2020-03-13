@@ -21,9 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from core.module import Base
 from core.configoption import ConfigOption
-from interface.simple_laser_interface import SimpleLaserInterface
-from interface.simple_laser_interface import ControlMode
-from interface.simple_laser_interface import LaserState
+from interface.simple_laser_interface import SimpleLaserInterface, ControlMode, LaserState, ShutterState
 import visa
 from pyvisa.constants import Parity, StopBits
 
@@ -41,11 +39,11 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
     """
 
     interface = ConfigOption('interface', 'ASRL1::INSTR', missing='error')
-    maxpower = ConfigOption('maxpower', 100.0, missing='warn')
-    maxcurrent = ConfigOption('maxcurrent', 200.0, missing='warn')
-    current = 1
-    power = 1
-    temperature = 25
+    maxpower = ConfigOption('maxpower', 0.1, missing='warn')
+    maxcurrent = ConfigOption('maxcurrent', 0.2, missing='warn')
+    current = 0.001
+    power = 0.001
+    temperature = 25.0
 
     def on_activate(self):
         """ Activate Module. Connect to Instrument.
@@ -93,7 +91,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """
         return ControlMode.POWER
 
-    def set_control_mode(self, mode):
+    def set_control_mode(self, control_mode):
         """ Set actve control mode
 
         @param ControlMode mode: desired control mode
@@ -113,7 +111,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: power setpoint in watts
         """
-        pass
+        return self.power
 
     def get_power_range(self):
         """ Laser power range
@@ -129,7 +127,8 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: actual laser power setpoint
         """
-        self.inst.write('ch 1 pow {}'.format(power))
+        power_mW = power * 1e3
+        self.inst.write('ch 1 pow {}'.format(power_mW))
         self.power = power
         return self.get_power()
 
@@ -138,7 +137,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
             return str: unit for laser current
         """
-        return 'mA'
+        return 'A'
 
     def get_current_range(self):
         """ Get range for laser current
@@ -159,21 +158,23 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: laser current setpoint
         """
-        pass
+        return self.current
 
     def set_current(self, current):
         """ Set laser current setpoint
 
-        @param float current_percent: desired laser current in mA
-        @return float: actual laer current setpoint
+        @param float current_mA: Laser current setpoint in amperes
+        @return float: Laser current setpoint in amperes
         """
         if current > self.maxcurrent:
             self.log.error("Laser current {} above maxcurrent {}".format(current))
         elif current < 0:
             self.log.error("Laser current {} too low".format(current))
         else:
-            self.inst.write('ch 1 cur {}'.format(current))
-            self.current = current
+            current_mA = current * 1e3
+            self.inst.write('ch 1 cur {}'.format(current_mA))
+
+        self.current = current
         return self.get_current()
 
     def get_shutter_state(self):
@@ -181,7 +182,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return ShutterState: current laser shutter state
         """
-        pass
+        return ShutterState.NOSHUTTER
 
     def set_shutter_state(self, state):
         """ Set laser shutter state.
@@ -189,7 +190,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @param ShuterState state: desired laser shutter state
         @return ShutterState: actual laser shutter state
         """
-        pass
+        return ShutterState.NOSHUTTER
 
     def get_heatsink_temperature(self):
         """ Get heatsink temperature.
@@ -225,7 +226,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
             @return dict: setpoint name and value
         """
-        pass
+        return self.temperature
 
     def get_laser_state(self):
         """ Get laser state.

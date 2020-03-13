@@ -20,6 +20,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import visa
+import time
 import numpy as np
 from core.module import Base
 from core.configoption import ConfigOption
@@ -49,21 +50,15 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.log.error('SMF100A could not connect to LAN address {}. Check NI-MAX settings to see if device '
                            'is connected correctly.'.format(self._smf_visa_address))
 
+        self._command_wait('*CLS')
+        self._command_wait('*RST')
+        self._command_wait('POW:ALC OFF')
+
     def on_deactivate(self):
         """ Deinitialization performed during deactivation of the module."""
         self.inst.close()
         self.rm.close()
         return
-
-    def rf_on(self):
-        """
-        Switches on cw microwave output.
-        Must return AFTER the device is actually running.
-
-        @return int: error code (0:OK, -1:error)
-        """
-        self.inst.write(':OUTP:STAT 1')
-        return 0
 
     def off(self):
         """
@@ -72,7 +67,20 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        mode, is_running = self.get_status()
+        if not is_running:
+            return 0
+
+        if mode != 'cw':
+            self.inst.write("SYST:DISP:UPD ON")
+            self._command_wait(':FREQ:MODE CW')
+
         self.inst.write(':OUTP:STAT 0')
+        self.inst.write('*WAI')
+
+        while int(float(self.inst.query('OUTP:STAT?'))) != 0:
+            time.sleep(0.2)
+
         return 0
 
     def get_status(self):
@@ -112,7 +120,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             start = float(self.inst.query(':FREQ:STAR?'))
             stop = float(self.inst.query(':FREQ:STOP?'))
             step = float(self.inst.query(':SWE:STEP?'))
-            freq = [start + step, stop, step]
+            freq = [start, stop, step]
         else:
             self.log.warning("Undefined mode {} for MW device".format(mode))
             freq = None
@@ -128,9 +136,16 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 self.off()
 
         if current_mode != 'cw':
-            self.inst.write(':FREQ:MODE CW')
+            self._command_wait(':FREQ:MODE CW')
 
         self.inst.write(':OUTP:STAT 1')
+        self.inst.write('*WAI')
+
+        _, is_running = self.get_status()
+        while not is_running:
+            time.sleep(0.2)
+            _, is_running = self.get_status()
+
         return 0
 
     def set_cw(self, freq=None, power=None, useinterleave=None):
@@ -150,11 +165,11 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.off()
 
         if mode != 'cw':
-            self.inst.write(':FREQ:MODE CW')
+            self._command_wait(':FREQ:MODE CW')
         if freq is not None:
-            self.inst.write(':SOUR:FREQ:CW {}'.format(freq))
+            self._command_wait(':SOUR:FREQ:CW {}'.format(freq))
         if power is not None:
-            self.inst.write(':SOUR:POW:POW {}'.format(power))
+            self._command_wait(':SOUR:POW:POW {}'.format(power))
         if useinterleave is not None:
             self.log.warning("No interleave available at the moment!")
 
@@ -192,11 +207,9 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':LIST:POW {0:f}'.format(power))
             self.inst.write('*WAI')
 
-        self.inst.write(':LIST:SEL "QUDI"')
-        self.inst.write(':LIST:DWELl 3')
-        self.inst.write(':LIST:MODE STEP')
-        self.inst.write(':LIST:TRIG:SOUR EXT')
-        self.inst.write(':FREQ:MODE LIST')
+        self._command_wait(':LIST:TRIG:SOUR EXT')
+        self._command_wait(':LIST:LEARN')
+        self._command_wait(':FREQ:MODE LIST')
 
         mode, _ = self.get_status()
         actual_freq = self.get_frequency()
@@ -218,7 +231,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 self.off()
 
         self.cw_on()
-        self.inst.write(':FREQ:MODE LIST')
+        self._command_wait(':FREQ:MODE LIST')
         self.inst.write(':LIST:TRIG:EXEC')
 
         _, is_running = self.get_status()
@@ -230,10 +243,10 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.inst.write(':LIST:RES')
+        self._command_wait(':LIST:RES')
         return 0
 
-    def set_sweep(self, start=None, stop=None, step=None, power=None):
+    def set_sweep(self, start=None, stop=None, step=None, power=None, dwell=100):
         """
         Configures the device for sweep-mode and optionally sets frequency start/stop/step
         and/or power
@@ -249,28 +262,28 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.off()
 
         if mode != 'sweep':
-            self.inst.write(':FREQ:MODE SWE')
+            self._command_wait(':FREQ:MODE SWE')
 
         if (start is not None) and (stop is not None) and (step is not None):
-            self.inst.write(':SWE:MODE STEP')
             self.inst.write(':SWE:SPAC LIN')
-
             self.inst.write('*WAI')
-            self.inst.write(':FREQ:START {0:f}'.format(start - step))
+            self.inst.write(':FREQ:STAR {0:f}'.format(start))
             self.inst.write(':FREQ:STOP {0:f}'.format(stop))
             self.inst.write(':SWE:STEP {0:f}'.format(step))
+            self.inst.write(':SWE:DWeLl {0:f}'.format(dwell))
             self.inst.write('*WAI')
 
         if power is not None:
             self.inst.write(':POW {0:f}'.format(power))
             self.inst.write('*WAI')
 
-        self.inst.write(':TRIG:SWE:SOUR EXT')
+        self._command_wait(':TRIG:FSW:SOUR SING')
+        self._command_wait(':SWE:FREQ:MODE AUTO')
 
         actual_power = self.get_power()
-        freq_list = self.get_frequency()
-        mode, dummy = self.get_status()
-        return freq_list[0], freq_list[1], freq_list[2], actual_power, mode
+        actual_start, actual_stop, actual_step = self.get_frequency()
+        mode, _ = self.get_status()
+        return actual_start, actual_stop, actual_step, actual_power, mode
 
     def sweep_on(self):
         """ Switches on the sweep mode.
@@ -285,10 +298,18 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 self.off()
 
         if current_mode != 'sweep':
-            self.inst.write(':FREQ:MODE SWEEP')
+            self._command_wait(':FREQ:MODE SWEEP')
 
+        if float(self.inst.query(":SWE:DWeLl?")) < 2.0:
+            self.inst.write("SYST:DISP:UPD OFF")
+
+        self._command_wait(':SWE:FREQ:EXEC')
         self.inst.write(':OUTP:STAT 1')
+
         _, is_running = self.get_status()
+        while not is_running:
+            time.sleep(0.2)
+            _, is_running = self.get_status()
         return 0
 
     def reset_sweeppos(self):
@@ -297,7 +318,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.inst.write(':SWE:RES')
+        self._command_wait(':SWE:RES')
         return 0
 
     def get_limits(self):
@@ -338,10 +359,23 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             edge = None
 
         if edge is not None:
-            self.inst.write('INP:TRIG:SLOP {0}'.format(edge))
+            self._command_wait('INP:TRIG:SLOP {0}'.format(edge))
 
         polarity = self.inst.query(':TRIG:SLOP?')
         if 'NEG' in polarity:
             return TriggerEdge.FALLING, timing
         else:
             return TriggerEdge.RISING, timing
+
+    def _command_wait(self, command_str):
+        """
+        Writes the command in command_str via GPIB and waits until the device has finished
+        processing it.
+
+        @param command_str: The command to be written
+        """
+        self.inst.write(command_str)
+        self.inst.write('*WAI')
+        while int(float(self.inst.query('*OPC?'))) != 1:
+            time.sleep(0.2)
+        return
