@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 This file contains the Qudi hardware module for Spectrum AWG.
 
@@ -16,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
-Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
+Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file atgeneral cleanup the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
@@ -24,7 +23,6 @@ import numpy as np
 import pickle
 from hardware.awg import SpectrumAWG35 as SpectrumAWG35
 from hardware.awg.pyspcm import *
-from core.util.modules import get_home_dir
 from core.configoption import ConfigOption
 from core.module import Base
 from collections import OrderedDict
@@ -34,28 +32,21 @@ from interface.pulser_interface import PulserInterface, PulserConstraints
 class AWG663(Base, PulserInterface):
     """ A hardware module for the Spectrum AWG for generating
         waveforms and sequences thereof.
-
-    Example config for copy-paste:
-
-    pulser_awg7000:
-        module.Class: 'awg.tektronix_awg7k.AWG7k'
-        awg_visa_address: 'TCPIP::10.42.0.211::INSTR'
-        awg_ip_address: '10.42.0.211'
-        timeout: 60
-        # tmp_work_dir: 'C:\\Software\\qudi_pulsed_files' # optional
-        # ftp_root_dir: 'C:\\inetpub\\ftproot' # optional, root directory on AWG device
-        # ftp_login: 'anonymous' # optional, the username for ftp login
-        # ftp_passwd: 'anonymous@' # optional, the password for ftp login
-
     """
     _modclass = 'awg663'
     _modtype = 'hardware'
 
     # config options
-    _tmp_work_dir = ConfigOption(name='tmp_work_dir',
-                                 default=os.path.join(get_home_dir(), 'pulsed_files'),
-                                 missing='warn')
     awg_ip_address = ConfigOption(name='awg_ip_address', missing='error')
+    waveform_folder = ConfigOption(name="waveform_folder",
+                                   default=os.path.join(os.getcwd(), 'hardware', 'awg', 'waveform'),
+                                   missing="warn")
+    sequence_folder = ConfigOption(name="sequence_folder",
+                                   default=os.path.join(os.getcwd(), 'hardware', 'awg', 'sequence'),
+                                   missing="warn")
+    _tmp_work_dir = ConfigOption(name='tmp_work_dir',
+                                 default=os.path.join(os.getcwd(), 'hardware', 'awg', 'temp'),
+                                 missing='warn')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -139,9 +130,7 @@ class AWG663(Base, PulserInterface):
         # [card, channel, binary channel for later use]
         self.channels = [[0, 0, 0b1], [0, 1, 0b10], [1, 0, 0b100], [1, 1, 0b1000]]
         self.loaded_assets = {}
-        self.WaveformFolder = os.path.join(os.getcwd(), 'hardware', 'awg', 'waveform')
-        self.SequenceFolder = os.path.join(os.getcwd(), 'hardware', 'awg', 'sequence')
-        self.CurrentUpload = os.path.join(os.getcwd(),  'hardware', 'awg', 'CurrentUpload.pkl')
+        self.CurrentUpload = os.path.join(os.getcwd(), 'hardware', 'awg', 'CurrentUpload.pkl')
         self.typeloaded = None
 
     def on_activate(self):
@@ -167,101 +156,7 @@ class AWG663(Base, PulserInterface):
     def get_constraints(self):
         """
         Retrieve the hardware constrains from the Pulsing device.
-
         @return constraints object: object with pulser constraints as attributes.
-
-        Provides all the constraints (e.g. sample_rate, amplitude, total_length_bins,
-        channel_config, ...) related to the pulse generator hardware to the caller.
-
-            SEE PulserConstraints CLASS IN pulser_interface.py FOR AVAILABLE CONSTRAINTS!!!
-
-        If you are not sure about the meaning, look in other hardware files to get an impression.
-        If still additional constraints are needed, then they have to be added to the
-        PulserConstraints class.
-
-        Each scalar parameter is an ScalarConstraints object defined in core.util.interfaces.
-        Essentially it contains min/max values as well as min step size, default value and unit of
-        the parameter.
-
-        PulserConstraints.activation_config differs, since it contain the channel
-        configuration/activation information of the form:
-            {<descriptor_str>: <channel_set>,
-             <descriptor_str>: <channel_set>,
-             ...}
-
-        If the constraints cannot be set in the pulsing hardware (e.g. because it might have no
-        sequence mode) just leave it out so that the default is used (only zeros).
-
-        # Example for configuration with default values:
-        constraints = PulserConstraints()
-
-        constraints.sample_rate.min = 10.0e6
-        constraints.sample_rate.max = 12.0e9
-        constraints.sample_rate.step = 10.0e6
-        constraints.sample_rate.default = 12.0e9
-
-        constraints.a_ch_amplitude.min = 0.02
-        constraints.a_ch_amplitude.max = 2.0
-        constraints.a_ch_amplitude.step = 0.001
-        constraints.a_ch_amplitude.default = 2.0
-
-        constraints.a_ch_offset.min = -1.0
-        constraints.a_ch_offset.max = 1.0
-        constraints.a_ch_offset.step = 0.001
-        constraints.a_ch_offset.default = 0.0
-
-        constraints.d_ch_low.min = -1.0
-        constraints.d_ch_low.max = 4.0
-        constraints.d_ch_low.step = 0.01
-        constraints.d_ch_low.default = 0.0
-
-        constraints.d_ch_high.min = 0.0
-        constraints.d_ch_high.max = 5.0
-        constraints.d_ch_high.step = 0.01
-        constraints.d_ch_high.default = 5.0
-
-        constraints.waveform_length.min = 80
-        constraints.waveform_length.max = 64800000
-        constraints.waveform_length.step = 1
-        constraints.waveform_length.default = 80
-
-        constraints.waveform_num.min = 1
-        constraints.waveform_num.max = 32000
-        constraints.waveform_num.step = 1
-        constraints.waveform_num.default = 1
-
-        constraints.sequence_num.min = 1
-        constraints.sequence_num.max = 8000
-        constraints.sequence_num.step = 1
-        constraints.sequence_num.default = 1
-
-        constraints.subsequence_num.min = 1
-        constraints.subsequence_num.max = 4000
-        constraints.subsequence_num.step = 1
-        constraints.subsequence_num.default = 1
-
-        # If sequencer mode is available then these should be specified
-        constraints.repetitions.min = 0
-        constraints.repetitions.max = 65539
-        constraints.repetitions.step = 1
-        constraints.repetitions.default = 0
-
-        constraints.event_triggers = ['A', 'B']
-        constraints.flags = ['A', 'B', 'C', 'D']
-
-        constraints.sequence_steps.min = 0
-        constraints.sequence_steps.max = 8000
-        constraints.sequence_steps.step = 1
-        constraints.sequence_steps.default = 0
-
-        # the name a_ch<num> and d_ch<num> are generic names, which describe UNAMBIGUOUSLY the
-        # channels. Here all possible channel configurations are stated, where only the generic
-        # names should be used. The names for the different configurations can be customary chosen.
-        activation_conf = OrderedDict()
-        activation_conf['yourconf'] = {'a_ch1', 'd_ch1', 'd_ch2', 'a_ch2', 'd_ch3', 'd_ch4'}
-        activation_conf['different_conf'] = {'a_ch1', 'd_ch1', 'd_ch2'}
-        activation_conf['something_else'] = {'a_ch2', 'd_ch3', 'd_ch4'}
-        constraints.activation_config = activation_conf
         """
         constraints = PulserConstraints()
 
@@ -289,7 +184,6 @@ class AWG663(Base, PulserInterface):
 
     def pulser_off(self):
         """ Switches the pulsing device off.
-
         @return int: error code (0:OK, -1:error)
         """
         ERR = self.instance.stop()
@@ -358,7 +252,7 @@ class AWG663(Base, PulserInterface):
             return -1
 
         # load possible sequences
-        path = self.WaveformFolder
+        path = self.waveform_folder
         wave_form_files = self.get_waveform_names()
         wave_form_list = [file.rsplit('.pkl')[0] for file in wave_form_files]
         # with open(path,'w') as json_file:
@@ -544,13 +438,9 @@ class AWG663(Base, PulserInterface):
                              dictionary containing status description for all the possible status
                              variables of the pulse generator hardware.
         """
-        status_dic = {}
-        status_dic[-1] = 'no communication with device'
-        status_dic[0] = ' device is sactive and ready'
+        status_dic = {-1: 'no communication with device', 0: ' device is active and ready'}
         self.status_dic = status_dic
-
         num = 0
-
         return num, status_dic
 
     def get_sample_rate(self):
@@ -611,7 +501,7 @@ class AWG663(Base, PulserInterface):
         a_ch = [ch for ch in channels if 'a' in ch]
 
         AllAmp = dict()
-        if amplitude != None:
+        if amplitude is not None:
             for chan in amplitude:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
@@ -625,7 +515,7 @@ class AWG663(Base, PulserInterface):
                 AllAmp[chan] = state
 
         AllOffset = dict()
-        if offset != None:
+        if offset is not None:
             for chan in offset:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
@@ -638,7 +528,7 @@ class AWG663(Base, PulserInterface):
                 state = self.instance.cards[chInd[0]].get_offset(chInd[1])
                 AllOffset[ch] = state
 
-        return (AllAmp, AllOffset)
+        return AllAmp, AllOffset
 
     def set_analog_level(self, amplitude=None, offset=None):
         """ Set amplitude and/or offset value of the provided analog channel(s).
@@ -660,14 +550,14 @@ class AWG663(Base, PulserInterface):
               return values for further processing.
         """
 
-        if amplitude != None:
+        if amplitude is not None:
             for chan in amplitude:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
                 amp = amplitude[chan]
                 state = self.instance.cards[chInd[0]].set_amplitude(chInd[1], amp)
 
-        if offset != None:
+        if offset is not None:
             for chan in offset:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
@@ -676,7 +566,7 @@ class AWG663(Base, PulserInterface):
 
         AllAmp, AllOffset = self.get_analog_level()
 
-        return (AllAmp, AllOffset)
+        return AllAmp, AllOffset
 
     def get_digital_level(self, low=None, high=None):
         """ Retrieve the digital low and high level of the provided/all channels.
@@ -769,7 +659,7 @@ class AWG663(Base, PulserInterface):
         all_state = dict()
         all_constraints = self.get_constraints()
         all_options = all_constraints.activation_config['config1']
-            # ['a_ch0', 'a_ch1', 'a_ch2', 'a_ch3', 'd_ch0', 'd_ch1', 'd_ch2', 'd_ch3', 'd_ch4', 'd_ch5']
+        # ['a_ch0', 'a_ch1', 'a_ch2', 'a_ch3', 'd_ch0', 'd_ch1', 'd_ch2', 'd_ch3', 'd_ch4', 'd_ch5']
         count = 0
         #
         # index = 0
@@ -883,10 +773,10 @@ class AWG663(Base, PulserInterface):
         """
         waveforms = list()
 
-            #
-            #     # & is_last_chunk:
-            # self.log.error('sample is either first of last, not both')
-            # return -1, waveforms
+        #
+        #     # & is_last_chunk:
+        # self.log.error('sample is either first of last, not both')
+        # return -1, waveforms
 
         if len(analog_samples) == 0:
             self.log.error('No analog samples passed to write_waveform method')
@@ -915,11 +805,11 @@ class AWG663(Base, PulserInterface):
         for chan, value in analog_samples.items():
             full_name = '{0}_{1}'.format(name, chan)
             wavename = '{0}.pkl'.format(full_name)
-            path = os.path.join(self.WaveformFolder, wavename)
+            path = os.path.join(self.waveform_folder, wavename)
             if not value.dtype == 'float64':
-                convert = np.zeros(len(value),dtype='float64')
+                convert = np.zeros(len(value), dtype='float64')
                 ch_amp = self.get_analog_level(amplitude=[chan])
-                convert[0:len(value)]=value*ch_amp[0][chan]
+                convert[0:len(value)] = value * ch_amp[0][chan]
                 value = convert
             if is_first_chunk:
                 full_signal = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
@@ -936,7 +826,7 @@ class AWG663(Base, PulserInterface):
             # maybe need to convert to boolian
             full_name = '{0}_{1}'.format(name, chan)
             wavename = '{0}.pkl'.format(full_name)
-            path = os.path.join(self.WaveformFolder, wavename)
+            path = os.path.join(self.waveform_folder, wavename)
             self.my_save_dict(value, path)
             waveforms.append(full_name)
             total_length = len(full_signal)
@@ -990,7 +880,7 @@ class AWG663(Base, PulserInterface):
         """
 
         sequencename = '{0}.pkl'.format(name)
-        path = os.path.join(self.SequenceFolder, sequencename)
+        path = os.path.join(self.sequence_folder, sequencename)
         sequence_list = self.get_sequence_names()
 
         if name not in sequence_list:
@@ -1018,7 +908,7 @@ class AWG663(Base, PulserInterface):
         #
         # names = wave_dict.keys()
 
-        path = self.WaveformFolder
+        path = self.waveform_folder
         names = [f.rsplit('.pkl')[0] for f in os.listdir(path) if f.endswith(".pkl")]
 
         return names
@@ -1034,7 +924,7 @@ class AWG663(Base, PulserInterface):
         # pkl_file.close()
         #
         # names = wave_dict.keys()
-        path = self.SequenceFolder
+        path = self.sequence_folder
 
         names = [f for f in os.listdir(path) if f.endswith(".pkl")]
 

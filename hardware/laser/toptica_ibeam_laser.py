@@ -61,7 +61,6 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
                 baud_rate=115200,
                 data_bits=8,
                 parity=Parity.none,
-                xonxoff=False,
                 stop_bits=StopBits.one,
                 write_termination='\r\n',
                 read_termination='\r\n'
@@ -73,6 +72,12 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             return False
         else:
             return True
+
+    def on_deactivate(self):
+        """ Close the connection to the instrument.
+        """
+        self.inst.close()
+        self.rm.close()
 
     def allowed_control_modes(self):
         """ Control modes for this laser

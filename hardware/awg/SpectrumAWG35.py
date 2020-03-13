@@ -1277,9 +1277,6 @@ class Hub():
     def start_triggered(self):
         self.set32(SPC_M2CMD, M2CMD_CARD_START | M2CMD_CARD_ENABLETRIGGER | M2CMD_CARD_FORCETRIGGER)
         return self.chkError()
-        # self.start()
-        # # self.enable_trigger()
-        # self.force_trigger()
 
     def start_enable_trigger(self):
         self.set32(SPC_M2CMD, M2CMD_CARD_START | M2CMD_CARD_ENABLETRIGGER)

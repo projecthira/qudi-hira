@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 This file contains the Qudi hardware file to control R&S SMF100A devices.
 
@@ -42,18 +41,18 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         try:
             # trying to load the visa connection to the module
             self.rm = visa.ResourceManager()
-            self._conn = self.rm.open_resource(
+            self.inst = self.rm.open_resource(
                 resource_name=self._smf_visa_address,
                 timeout=self._smf_timeout)
             self.log.info('MW SMF100A initialised and connected to hardware.')
-            self.model = self._conn.query('*IDN?').split(',')[1]
+            self.model = self.inst.query('*IDN?').split(',')[1]
         except:
             self.log.error('SMF100A could not connect to LAN address {}. Check NI-MAX settings to see if device '
                            'is connected correctly.'.format(self._smf_visa_address))
 
     def on_deactivate(self):
         """ Deinitialization performed during deactivation of the module."""
-        self._conn.close()
+        self.inst.close()
         self.rm.close()
         return
 
@@ -64,7 +63,21 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._conn.write(':OUTP:STAT 1')
+        self.inst.write(':OUTP:STAT 1')
+        return 0
+
+    def cw_on(self):
+        current_mode, is_running = self.get_status()
+        if is_running:
+            if current_mode == 'cw':
+                return 0
+            else:
+                self.off()
+
+        if current_mode != 'cw':
+            self.inst.write(':FREQ:MODE CW')
+
+        self.inst.write(':OUTP:STAT 1')
         return 0
 
     def off(self):
@@ -74,7 +87,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._conn.write(':OUTP:STAT 0')
+        self.inst.write(':OUTP:STAT 0')
         return 0
 
     def get_status(self):
@@ -84,16 +97,18 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return str, bool: mode ['cw', 'sweep'], is_running [True, False]
         """
-        self.is_running = bool(int(float(self._conn.query(':OUTP:STAT?'))))
-        mode = self._conn.query(':SOUR:FREQ:MODE?').strip('\n').lower()
-        return mode, self.is_running
+        mode = self.inst.query(':SOUR:FREQ:MODE?').strip('\n').lower()
+        is_running = bool(int(float(self.inst.query(':OUTP:STAT?'))))
+        if mode == 'swe':
+            mode = 'sweep'
+        return mode, is_running
 
     def get_power(self):
         """ Gets the microwave output power.
 
         @return float: the power set at the device in dBm
         """
-        self.power = float(self._conn.query(':SOUR:POW:POW?'))
+        self.power = float(self.inst.query(':SOUR:POW:POW?'))
         return self.power
 
     def get_frequency(self):
@@ -101,7 +116,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return float: frequency (in Hz), which is currently set for this device
         """
-        self.freq = float(self._conn.query('SOUR:FREQ:CW?'))
+        self.freq = float(self.inst.query('SOUR:FREQ:CW?'))
         return self.freq
 
     def set_cw(self, freq=None, power=None, useinterleave=None):
@@ -116,6 +131,12 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             current power in dBm,
             current mode
         """
+        mode, is_running = self.get_status()
+        if is_running:
+            self.off()
+
+        if mode != 'cw':
+            self._command_wait(':FREQ:MODE CW')
         if freq is not None:
             self.set_frequency(freq)
         if power is not None:
@@ -127,6 +148,30 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         actual_freq = self.get_frequency()
         actual_power = self.get_power()
         return actual_freq, actual_power, mode
+
+    def list_on(self):
+        """
+        Switches on the list mode microwave output.
+        Must return AFTER the device is actually running.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        current_mode, is_running = self.get_status()
+        if is_running:
+            if current_mode == 'list':
+                return 0
+            else:
+                self.off()
+
+        # This needs to be done due to stupid design of the list mode (sweep is better)
+        self.cw_on()
+        self._command_wait(':LIST:LEARN')
+        self._command_wait(':FREQ:MODE LIST')
+        dummy, is_running = self.get_status()
+        while not is_running:
+            time.sleep(0.2)
+            dummy, is_running = self.get_status()
+        return 0
 
     def get_limits(self):
         """ Return the device-specific limits in a nested dictionary.
@@ -149,9 +194,9 @@ class MicrowaveSMF(Base, MicrowaveInterface):
     """
 
     def set_power(self, power):
-        self._conn.write(':SOUR:POW:POW {}'.format(power))
+        self.inst.write(':SOUR:POW:POW {}'.format(power))
         return
 
     def set_frequency(self, frequency):
-        self._conn.write(':SOUR:FREQ:CW {}'.format(frequency))
+        self.inst.write(':SOUR:FREQ:CW {}'.format(frequency))
         return
