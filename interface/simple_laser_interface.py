@@ -29,11 +29,13 @@ class ControlMode(Enum):
     POWER = 1
     CURRENT = 2
 
+
 class ShutterState(Enum):
     CLOSED = 0
     OPEN = 1
     UNKNOWN = 2
     NOSHUTTER = 3
+
 
 class LaserState(Enum):
     OFF = 0

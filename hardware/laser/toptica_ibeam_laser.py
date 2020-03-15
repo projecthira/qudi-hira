@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
+
 """
-This file contains the Qudi hardware file to control Toptica iBeam Smart lasers.
+This module controls the Coherent OBIS laser.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,253 +24,384 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from core.module import Base
 from core.configoption import ConfigOption
-from interface.simple_laser_interface import SimpleLaserInterface, ControlMode, LaserState, ShutterState
-import visa
-from pyvisa.constants import Parity, StopBits
+from interface.simple_laser_interface import SimpleLaserInterface, LaserState, ShutterState, ControlMode
+
+import re
+import serial
+import time
 
 
 class TopticaIBeamLaser(Base, SimpleLaserInterface):
-    """ Toptica iBeam Smart laser.
+    """ Implements the Toptica iBeam Smart Laser.
 
     Example config for copy-paste:
 
-    millennia_laser:
-        module.Class: 'laser.toptica_ibeam_laser.TopticaIBeamLaser'
-        interface: 'ASRL1::INSTR'
-        maxpower: 100 # in mW
-        maxcurrent: 200.0 # in mA
+    laser_toptica:
+        module.Class: 'laser.toptica_laser.TopticaIBeamLaser'
+        com_port: 'COM1'
+        maxpower: 0.1
+        maxcurrent: 0.2
     """
 
-    interface = ConfigOption('interface', 'ASRL1::INSTR', missing='error')
+    eol = '\r\n'
+
+    _com_port = ConfigOption('com_port', 'COM1', missing='error')
     maxpower = ConfigOption('maxpower', 0.1, missing='warn')
     maxcurrent = ConfigOption('maxcurrent', 0.2, missing='warn')
-    current = 0.001
-    power = 0.001
-    temperature = 25.0
 
     def on_activate(self):
-        """ Activate Module. Connect to Instrument.
-
-            @param str interface: visa interface identifier
-
-            @return bool: connection success
+        """ Activate module.
         """
         try:
-            self.rm = visa.ResourceManager()
-            self.inst = self.rm.open_resource(
-                self.interface,
-                baud_rate=115200,
-                data_bits=8,
-                parity=Parity.none,
-                stop_bits=StopBits.one,
-                write_termination='\r\n',
-                read_termination='\r\n'
+            self.ibeam = serial.Serial(
+                self._com_port,
+                baudrate=115200,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                xonxoff=False,
+                rtscts=False,
+                dsrdtr=False,
+                timeout=5,
+                write_timeout=5
             )
-            self.inst.timeout = 1000
-            self.inst.write('ini la')
-        except visa.VisaIOError as e:
-            self.log.exception('Communication Failure:', e)
-            return False
+        except serial.SerialException as e:
+            self.log.error(e)
+
+        connected = self._connect_laser()
+
+        if not connected:
+            self.log.error('Laser does not seem to be connected.')
+            return -1
         else:
-            return True
+            self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
+            return 0
 
     def on_deactivate(self):
+        """ Deactivate module.
+        """
+        self._disconnect_laser()
+
+    def _connect_laser(self):
+        """ Connect to Instrument.
+
+        @return bool: connection success
+        """
+        response = self._communicate('serial')
+        if 'SN: iBEAM-SMART-515-S-A3-15384' in response:
+            return True
+        else:
+            return False
+
+    def _disconnect_laser(self):
         """ Close the connection to the instrument.
         """
-        self.inst.close()
-        self.rm.close()
+        self.off()
+        self.ibeam.close()
 
     def allowed_control_modes(self):
-        """ Control modes for this laser
-
-            @return ControlMode: available control modes
-        """
-        return [ControlMode.POWER]
-
-    def get_control_mode(self):
-        """ Get active control mode
-
-        @return ControlMode: active control mode
+        """ Get available control mode of laser
+          @return list: list with enum control modes
         """
         return ControlMode.POWER
 
-    def set_control_mode(self, control_mode):
-        """ Set actve control mode
-
-        @param ControlMode mode: desired control mode
-        @return ControlMode: actual control mode
+    def get_control_mode(self):
+        """ Get control mode of laser
+          @return enum ControlMode: control mode
         """
+        self.log.warning(self._model_name + ' only has power control.')
+        return ControlMode.POWER
+
+    def set_control_mode(self, mode):
+        """ Set laser control mode.
+          @param enum control_mode: desired control mode
+          @return enum ControlMode: actual control mode
+        """
+        self.log.warning(self._model_name + ' only has power control, , '
+                                            'cannot set to mode {}'.format(mode)
+                         )
         return ControlMode.POWER
 
     def get_power(self):
-        """ Current laser power
+        """ Get laser power.
 
-        @return float: laser power in watts
+            @return float: laser power in watts
         """
-        return self.power
+        # The present laser output power in watts
+        response = self._communicate('sh pow')
+        power = float(re.search('PIC  = (.*) uW', response).group(1)) * 1e-6
+        return power
 
     def get_power_setpoint(self):
-        """ Current laser power setpoint
+        """ Get the laser power setpoint.
 
-        @return float: power setpoint in watts
+        @return float: laser power setpoint in watts
         """
-        return self.power
+        # The present laser power level setting in watts (set level)
+        response = self._communicate('sh level pow')
+        power = float(re.search('CH1, PWR: (.*)mWCH2,', response).group(1)) * 1e-3
+        return power
 
     def get_power_range(self):
-        """ Laser power range
+        """ Get laser power range.
 
-        @return (float, float): laser power range
+        @return tuple(float, float): laser power range
         """
         return 0, self.maxpower
 
     def set_power(self, power):
-        """ Set laser power setpoint
+        """ Set laser power
 
-        @param float power: desired laser power in mW
-
-        @return float: actual laser power setpoint
+        @param float power: desired laser power in watts
         """
-        power_mW = power * 1e3
-        self.inst.write('ch 1 pow {}'.format(power_mW))
-        self.power = power
+        self._communicate('ch 1 pow {}'.format(power))
         return self.get_power()
 
     def get_current_unit(self):
-        """ Get unit for current
+        """ Get unit for laser current.
 
-            return str: unit for laser current
+        @return str: unit for laser curret
         """
-        return 'A'
+        return 'A'  # amps
 
     def get_current_range(self):
-        """ Get range for laser current
+        """ Get range for laser current.
 
-            @return (float, float): range for laser current
+        @return tuple(flaot, float): range for laser current
         """
-        return 0, self.maxcurrent
+        return 0, 0.246
 
     def get_current(self):
-        """ Get current laser current
+        """ Cet current laser current
 
-        @return float: current laser current
+        @return float: current laser current in amps
         """
-        return self.current
+        response = self._communicate('sh cur')
+        current = float(re.search('scaledLDC  = (.*) mA', response).group(1)) * 1e-3
+        return current
 
     def get_current_setpoint(self):
-        """ Get laser current setpoint
+        """ Current laser current setpoint.
 
         @return float: laser current setpoint
         """
-        return self.current
+        self.log.warning('Getting the current setpoint is not supported by the ' + self._model_name)
+        return -1
 
     def set_current(self, current):
-        """ Set laser current setpoint
-
-        @param float current_mA: Laser current setpoint in amperes
+        """ Set laser current
+        @param float current: Laser current setpoint in amperes
         @return float: Laser current setpoint in amperes
         """
-        if current > self.maxcurrent:
-            self.log.error("Laser current {} above maxcurrent {}".format(current))
-        elif current < 0:
-            self.log.error("Laser current {} too low".format(current))
-        else:
-            current_mA = current * 1e3
-            self.inst.write('ch 1 cur {}'.format(current_mA))
-
-        self.current = current
+        self._communicate('ch 1 cur {}'.format(current * 1e3))
         return self.get_current()
 
     def get_shutter_state(self):
-        """ Get laser shutter state
-
-        @return ShutterState: current laser shutter state
+        """ Get shutter state. Has a state for no shutter present.
+          @return enum ShutterState: actual shutter state
         """
         return ShutterState.NOSHUTTER
 
     def set_shutter_state(self, state):
-        """ Set laser shutter state.
-
-        @param ShuterState state: desired laser shutter state
-        @return ShutterState: actual laser shutter state
+        """ Set shutter state.
+          @param enum state: desired shutter state
+          @return enum ShutterState: actual shutter state
         """
-        return ShutterState.NOSHUTTER
-
-    def get_heatsink_temperature(self):
-        """ Get heatsink temperature.
-
-            @return float: SHG crystal temperature in degrees Celsius
-        """
-        pass
-
-    def get_diode_temperature(self):
-        """ Get laser diode temperature.
-
-            @return float: laser diode temperature in degrees Celsius
-        """
-        pass
+        self.log.warning(self._model_name + ' does not have a shutter')
+        return self.get_shutter_state()
 
     def get_temperatures(self):
-        """ Get all available temperatures
-
-            @return dict: tict of temperature names and values
+        """ Get all available temperatures from laser.
+          @return dict: dict of name, value for temperatures
         """
-        return self.temperature
+        return {
+            'Diode': self._get_diode_temperature(),
+            'Base Plate': self._get_baseplate_temperature()
+        }
 
-    def set_temperatures(self, temp):
-        """ Set temperatures for lasers wth tunable temperatures
-
+    def set_temperatures(self, temps):
+        """ Set laser temperatures.
+          @param temps: dict of name, value to be set
+          @return dict: dict of name, value of temperatures that were set
         """
-        self.inst.write('set 1 temp {} celsi'.format(temp))
-        self.temperature = temp
-        return self.get_temperatures()
+        self._communicate("set temp {} celsi".format(temps))
+        return {'Diode': self._get_diode_temperature()}
 
     def get_temperature_setpoints(self):
-        """ Get tepmerature setpoints.
-
-            @return dict: setpoint name and value
+        """ Get all available temperature setpoints from laser.
+          @return dict: dict of name, value for temperature setpoints
         """
-        return self.temperature
+        return self.get_temperatures()
 
     def get_laser_state(self):
         """ Get laser state.
-        @return LaserState: current laser state
+          @return enum LaserState: laser state
         """
-        if LaserState.ON:
+        state = self._communicate('sta la')
+        if 'ON' in state:
             return LaserState.ON
-        elif LaserState.OFF:
+        elif 'OFF' in state:
             return LaserState.OFF
         else:
             return LaserState.UNKNOWN
 
-    def set_laser_state(self, state):
-        """ Set laser state
-
-        @param LaserState state: desired laser state
-        @return LaserState: actual laser state
+    def set_laser_state(self, status):
+        """ Set laser state.
+          @param enum state: desired laser state
+          @return enum LaserState: actual laser state
         """
-        actual_state = self.get_laser_state()
-
-        if actual_state != state:
-            if state == LaserState.ON:
-                self.inst.write('la on')
-            elif state == LaserState.OFF:
-                self.inst.write('la off')
-
-        return self.get_laser_state()
+        # TODO: this is big. cannot be called without having LaserState,
+        #       which is only defined in the simple laser interface.
+        #       I think this shoudl be a private method.
+        actstat = self.get_laser_state()
+        if actstat != status:
+            if status == LaserState.ON:
+                self._communicate('la on')
+                # return self.get_laser_state()
+            elif status == LaserState.OFF:
+                self._communicate('la off')
+                # return self.get_laser_state()
+            return self.get_laser_state()
 
     def on(self):
-        """ Turn laser on.
-
-            @return LaserState: actual laser state
+        """ Turn on laser. Does not open shutter if one is present.
+          @return enum LaserState: actual laser state
         """
-        return self.set_laser_state(LaserState.ON)
+        status = self.get_laser_state()
+        if status == LaserState.OFF:
+            self._communicate('la on')
+            return self.get_laser_state()
+        else:
+            return self.get_laser_state()
 
     def off(self):
-        """ Turn laser off.
-
-            @return LaserState: actual laser state
+        """ Turn off laser. Does not close shutter if one is present.
+          @return enum LaserState: actual laser state
         """
-        return self.set_laser_state(LaserState.OFF)
+        self.set_laser_state(LaserState.OFF)
+        return self.get_laser_state()
 
     def get_extra_info(self):
-        pass
+        """ Show dianostic information about lasers.
+          @return str: diagnostic info as a string
+        """
+        serial = re.search('SN: (.*)', self._communicate('serial')).group(1)
+        firmware = self._communicate('ver')
+        uptime = self._communicate("sh tim")
+        system_uptime = str(float(re.search('PowerUP: (.*) sLaserUP', uptime).group(1)))
+        laser_uptime = str(float(re.search('LaserUP: (.*) s', uptime).group(1)))
+
+        extra = (
+                'System Serial Number: ' + serial +
+                '\n' + 'Firmware version: ' + firmware +
+                '\n' + 'System Uptime (s): ' + system_uptime +
+                '\n' + 'Laser Uptime (s): ' + laser_uptime
+        )
+        return extra
+
+    """
+    Communication methods
+    """
+
+    def _send(self, message):
+        """ Send a message to to laser
+
+        @param string message: message to be delivered to the laser
+        """
+        new_message = message + self.eol
+        self.ibeam.write(new_message.encode())
+
+    def _communicate(self, message):
+        """ Send a receive messages with the laser
+
+        @param string message: message to be delivered to the laser
+
+        @returns string response: message received from the laser
+        """
+        self._send(message)
+        time.sleep(0.2)
+        response_len = self.ibeam.inWaiting()
+
+        response = []
+
+        while response_len > 0:
+            this_response_line = self.ibeam.readline().decode().strip()
+
+            response.append(this_response_line)
+            time.sleep(0.1)
+
+            response_len = self.ibeam.inWaiting()
+            if response_len == 5:
+                response.append('')
+                self.ibeam.flushInput()
+                self.ibeam.flushOutput()
+                response_len = self.ibeam.inWaiting()
+
+        full_response = ''.join(response)
+        return full_response
+
+    """
+    Internal methods
+    """
+    def _get_diode_temperature(self):
+        """ Get laser diode temperature
+
+        @return float: laser diode temperature
+        """
+        response = self._communicate('sh temp')
+        temp = float(re.search('scaledTEMP = (.*)  C', response).group(1))
+        return temp
+
+    def _get_internal_temperature(self):
+        """ Get internal laser temperature
+
+        @return float: internal laser temperature
+        """
+        return float(self._communicate('SOUR:TEMP:INT?').split('C')[0])
+
+    def _get_baseplate_temperature(self):
+        """ Get laser base plate temperature
+
+        @return float: laser base plate temperature
+        """
+        response = self._communicate('sh temp sys')
+        temp = float(re.search('TEMP = (.*) C', response).group(1))
+        return temp
+
+    def _fine_on(self):
+        """ Set FINE mode on
+        :return:
+        """
+        return 0
+
+    def _fine_on(self):
+        """ Set FINE mode off
+        :return:
+        """
+        self._communicate("fine off")
+        return 0
+
+    def _get_fine_state(self):
+        responce = self._communicate("sta fine")
+        if "ON" in responce:
+            return "ON"
+        else:
+            return "OFF"
+
+    def _set_fine_state(self, state):
+        act_state = self._get_fine_state()
+        if state != act_state:
+            if state == "ON":
+                self._communicate("fine on")
+            elif state == "OFF":
+                self._communicate("fine off")
+            else:
+                self.log.warning("Possible FINE states are 'ON' and 'OFF'")
+        return self._get_fine_state()
+
+    def _reboot_system(self):
+        """ Set FINE mode off
+        :return:
+        """
+        self._communicate("reset sys")
+        return 0
