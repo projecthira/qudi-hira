@@ -69,7 +69,7 @@ class ODMRGui(GUIBase):
     """
 
     # declare connectors
-    odmrlogic1 = Connector(interface='ODMRLogic')
+    odmrlogic1 = Connector(interface='ODMRAWGLogic')
     savelogic = Connector(interface='SaveLogic')
 
     sigStartOdmrScan = QtCore.Signal()

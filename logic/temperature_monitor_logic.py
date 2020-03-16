@@ -1,6 +1,8 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
-Laser management.
+Temperature Monitor logic.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,12 +78,16 @@ class TemperatureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-            self.temp = self._tm.get_process_value()
+            self.baseplate_temp = self._tm.get_process_value(channel="baseplate")
+            self.tip_temp = self._tm.get_process_value(channel="tip")
+            self.sample_temp = self._tm.get_process_value(channel="sample")
 
             for k in self.data:
                 self.data[k] = np.roll(self.data[k], -1)
 
-            self.data['temp'][-1] = self.temp
+            self.data['baseplate_temp'][-1] = self.baseplate_temp
+            self.data['tip_temp'][-1] = self.tip_temp
+            self.data['sample_temp'][-1] = self.sample_temp
             self.data['time'][-1] = time.time()
         except:
             qi = 3000
@@ -104,10 +110,12 @@ class TemperatureMonitorLogic(GenericLogic):
             if not self.stopRequest:
                 return
             QtCore.QCoreApplication.processEvents()
-            time.sleep(self.queryInterval/1000)
+            time.sleep(self.queryInterval / 1000)
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['temp'] = np.zeros(self.bufferLength)
-        self.data['time'] = np.ones(self.bufferLength) * time.time()
+        self.data['baseplate_temp'] = np.zeros(self.bufferLength)
+        self.data['tip_temp'] = np.zeros(self.bufferLength)
+        self.data['sample_temp'] = np.zeros(self.bufferLength)
 
+        self.data['time'] = np.ones(self.bufferLength) * time.time()

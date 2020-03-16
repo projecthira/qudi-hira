@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains a gui for the laser controller logic.
+This file contains a gui for the temperature monitor logic.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,7 +21,6 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import numpy as np
 import os
 import pyqtgraph as pg
 import time
@@ -53,7 +53,7 @@ class LaserWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_laser.ui')
+        ui_file = os.path.join(this_dir, 'ui_temperature_monitor.ui')
 
         # Load it
         super().__init__()
@@ -66,7 +66,7 @@ class TemperatureMonitorGUI(GUIBase):
     """
 
     ## declare connectors
-    tm_logic = Connector(interface='TemperatureMonitorLogic')
+    tmlogic = Connector(interface='TemperatureMonitorLogic')
 
     sigPower = QtCore.Signal(float)
 
@@ -76,7 +76,7 @@ class TemperatureMonitorGUI(GUIBase):
     def on_activate(self):
         """ Definition and initialisation of the GUI plus staring the measurement.
         """
-        self._tm_logic = self.tm_logic()
+        self._tm_logic = self.tmlogic()
 
         #####################
         # Configuring the dock widgets
@@ -107,11 +107,17 @@ class TemperatureMonitorGUI(GUIBase):
         for name in self._tm_logic.data:
             if name != 'time':
                 curve = pg.PlotDataItem()
-                if name == 'temp':
+                if name == 'baseplate_temp':
                     curve.setPen(palette.c1)
                     plot1.addItem(curve)
+                elif name == 'tip_temp':
+                    curve.setPen(palette.c2)
+                    plot1.addItem(curve)
+                elif name == 'sample_temp':
+                    curve.setPen(palette.c3)
+                    plot1.addItem(curve)
                 else:
-                    curve.setPen(colorlist[(2*i) % len(colorlist)])
+                    curve.setPen(colorlist[(2 * i) % len(colorlist)])
                     plot2.addItem(curve)
                 self.curves[name] = curve
                 i += 1
@@ -120,8 +126,6 @@ class TemperatureMonitorGUI(GUIBase):
         self.plot2 = plot2
         self.updateViews()
         self.plot1.vb.sigResized.connect(self.updateViews)
-
-        self.updateButtonsEnabled()
         self._tm_logic.sigUpdate.connect(self.updateGui)
 
     def on_deactivate(self):
@@ -140,15 +144,12 @@ class TemperatureMonitorGUI(GUIBase):
         """ Restore the arrangement of DockWidgets to the default
         """
         # Show any hidden dock widgets
-        self._mw.adjustDockWidget.show()
         self._mw.plotDockWidget.show()
 
         # re-dock any floating dock widgets
-        self._mw.adjustDockWidget.setFloating(False)
         self._mw.plotDockWidget.setFloating(False)
 
         # Arrange docks widgets
-        self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(1), self._mw.adjustDockWidget)
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(2), self._mw.plotDockWidget)
 
     @QtCore.Slot()
@@ -161,111 +162,30 @@ class TemperatureMonitorGUI(GUIBase):
         # shapes. (probably this should be handled in ViewBox.resizeEvent)
         self.plot2.linkedViewChanged(self.plot1.vb, self.plot2.XAxis)
 
-    @QtCore.Slot(bool)
-    def changeLaserState(self, on):
-        """ Disable laser power button and give logic signal.
-            Logic reaction to that signal will enable the button again.
-        """
-        self._mw.laserButton.setEnabled(False)
-        self.sigLaser.emit(on)
-
-    @QtCore.Slot(bool)
-    def changeShutterState(self, on):
-        """ Disable laser shutter button and give logic signal.
-            Logic reaction to that signal will enable the button again.
-        """
-        self._mw.shutterButton.setEnabled(False)
-        self.sigShutter.emit(on)
-
-    @QtCore.Slot(QtWidgets.QAbstractButton)
-    def changeControlMode(self, buttonId):
-        """ Process signal from laser control mode radio button group. """
-        cur = self._mw.currentRadioButton.isChecked() and self._mw.currentRadioButton.isEnabled()
-        pwr = self._mw.powerRadioButton.isChecked() and self._mw.powerRadioButton.isEnabled()
-        if pwr and not cur:
-            lpr = self._tm_logic.laser_power_range
-            self._mw.setValueDoubleSpinBox.setRange(lpr[0], lpr[1])
-            self._mw.setValueDoubleSpinBox.setValue(self._tm_logic.laser_power_setpoint)
-            self._mw.setValueDoubleSpinBox.setSuffix('W')
-            self._mw.setValueVerticalSlider.setValue(
-                self._tm_logic.laser_power_setpoint / (lpr[1] - lpr[0]) * 100 - lpr[0])
-            self.sigCtrlMode.emit(ControlMode.POWER)
-        elif cur and not pwr:
-            lcr = self._tm_logic.laser_current_range
-            self._mw.setValueDoubleSpinBox.setRange(lcr[0], lcr[1])
-            self._mw.setValueDoubleSpinBox.setValue(self._tm_logic.laser_current_setpoint)
-            self._mw.setValueDoubleSpinBox.setSuffix('%')
-            self._mw.setValueVerticalSlider.setValue(
-                self._tm_logic.laser_current_setpoint / (lcr[1] - lcr[0]) * 100 - lcr[0])
-            self.sigCtrlMode.emit(ControlMode.CURRENT)
-        else:
-            self.log.error('How did you mess up the radio button group?')
-
-    @QtCore.Slot()
-    def updateButtonsEnabled(self):
-        """ Logic told us to update our button states, so set the buttons accordingly. """
-        self._mw.laserButton.setEnabled(self._tm_logic.laser_can_turn_on)
-        if self._tm_logic.laser_state == LaserState.ON:
-            self._mw.laserButton.setText('Laser: ON')
-            self._mw.laserButton.setChecked(True)
-            self._mw.laserButton.setStyleSheet('')
-        elif self._tm_logic.laser_state == LaserState.OFF:
-            self._mw.laserButton.setText('Laser: OFF')
-            self._mw.laserButton.setChecked(False)
-        elif self._tm_logic.laser_state == LaserState.LOCKED:
-            self._mw.laserButton.setText('INTERLOCK')
-        else:
-            self._mw.laserButton.setText('Laser: ?')
-
-        self._mw.shutterButton.setEnabled(self._tm_logic.has_shutter)
-        if self._tm_logic.laser_shutter == ShutterState.OPEN:
-            self._mw.shutterButton.setText('Shutter: OPEN')
-        elif self._tm_logic.laser_shutter == ShutterState.CLOSED:
-            self._mw.shutterButton.setText('Shutter: CLOSED')
-        elif self._tm_logic.laser_shutter == ShutterState.NOSHUTTER:
-            self._mw.shutterButton.setText('No shutter.')
-        else:
-            self._mw.shutterButton.setText('Shutter: ?')
-
-        self._mw.currentRadioButton.setEnabled(self._tm_logic.laser_can_current)
-        self._mw.powerRadioButton.setEnabled(self._tm_logic.laser_can_power)
-
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
-        self._mw.currentLabel.setText(
-            '{0:6.3f} {1}'.format(
-                self._tm_logic.laser_current,
-                self._tm_logic.laser_current_unit))
-        self._mw.powerLabel.setText('{0:6.3f} W'.format(self._tm_logic.laser_power))
-        self._mw.extraLabel.setText(self._tm_logic.laser_extra)
-        self.updateButtonsEnabled()
-        for name, curve in self.curves.items():
-            curve.setData(x=self._tm_logic.data['time'], y=self._tm_logic.data[name])
+        if self._mw.baseplatecheckBox.isChecked():
+            self.curves['baseplate_temp'].show()
+            self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._tm_logic.baseplate_temp))
+            self.curves['baseplate_temp'].setData(x=self._tm_logic.data['time'],
+                                                  y=self._tm_logic.data['baseplate_temp'])
+        else:
+            self.curves['baseplate_temp'].hide()
+            self._mw.baseplateTemperature.setText('-')
 
-    @QtCore.Slot()
-    def updateFromSpinBox(self):
-        """ The user has changed the spinbox, update all other values from that. """
-        self._mw.setValueVerticalSlider.setValue(self._mw.setValueDoubleSpinBox.value())
-        cur = self._mw.currentRadioButton.isChecked() and self._mw.currentRadioButton.isEnabled()
-        pwr = self._mw.powerRadioButton.isChecked() and  self._mw.powerRadioButton.isEnabled()
-        if pwr and not cur:
-            self.sigPower.emit(self._mw.setValueDoubleSpinBox.value())
-        elif cur and not pwr:
-            self.sigCurrent.emit(self._mw.setValueDoubleSpinBox.value())
+        if self._mw.samplecheckBox.isChecked():
+            self.curves['sample_temp'].show()
+            self._mw.sampleTemperature.setText('{0:6.3f} K'.format(self._tm_logic.sample_temp))
+            self.curves['sample_temp'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['sample_temp'])
+        else:
+            self.curves['sample_temp'].hide()
+            self._mw.sampleTemperature.setText('-')
 
-    @QtCore.Slot()
-    def updateFromSlider(self):
-        """ The user has changed the slider, update all other values from that. """
-        cur = self._mw.currentRadioButton.isChecked() and self._mw.currentRadioButton.isEnabled()
-        pwr = self._mw.powerRadioButton.isChecked() and self._mw.powerRadioButton.isEnabled()
-        if pwr and not cur:
-            lpr = self._tm_logic.laser_power_range
-            self._mw.setValueDoubleSpinBox.setValue(
-                lpr[0] + self._mw.setValueVerticalSlider.value() / 100 * (lpr[1] - lpr[0]))
-            self.sigPower.emit(
-                lpr[0] + self._mw.setValueVerticalSlider.value() / 100 * (lpr[1] - lpr[0]))
-        elif cur and not pwr:
-            self._mw.setValueDoubleSpinBox.setValue(self._mw.setValueVerticalSlider.value())
-            self.sigCurrent.emit(self._mw.setValueDoubleSpinBox.value())
-
+        if self._mw.tipcheckBox.isChecked():
+            self.curves['tip_temp'].show()
+            self._mw.tipTemperature.setText('{0:6.3f} K'.format(self._tm_logic.tip_temp))
+            self.curves['tip_temp'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['tip_temp'])
+        else:
+            self.curves['tip_temp'].hide()
+            self._mw.tipTemperature.setText('-')
