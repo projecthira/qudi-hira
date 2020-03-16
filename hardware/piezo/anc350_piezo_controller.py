@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains the Qudi hardware file to control ANC350 devices.
+This file contains the Qudi hardware file to control attocube ANC350 devices.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

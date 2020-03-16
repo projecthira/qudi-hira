@@ -2,7 +2,7 @@
 __author__ = "Dinesh Pinto"
 __email__ = "d.pinto@fkf.mpg.de"
 """
-This module controls the Toptica iBeam Smart Laser.
+This file contains the Qudi hardware file to control the Toptica iBeam Smart Laser.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
