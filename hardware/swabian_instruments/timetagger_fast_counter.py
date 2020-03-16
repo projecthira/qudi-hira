@@ -218,7 +218,6 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
                      'elapsed_time': None}  # TODO : implement that according to hardware capabilities
         return np.array(self.pulsed.getData(), dtype='int64'), info_dict
 
-
     def get_status(self):
         """ Receives the current status of the Fast Counter and outputs it as
             return value.
@@ -235,4 +234,3 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """ Returns the width of a single timebin in the timetrace in seconds. """
         width_in_seconds = self._bin_width * 1e-9
         return width_in_seconds
-

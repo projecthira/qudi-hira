@@ -20,35 +20,17 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-from core.module import Base, ConfigOption
-#import hardware.piezo.anc350v2_header as self._dll
+from core.module import Base
+from core.configoption import ConfigOption
 import ctypes
-import math
 
 
-class ANC350(Base):
-    """
-    PyANC350 is a control scheme suitable for the Python coding style
-    for the attocube ANC350 closed-loop Positioner system.
-
-    It implements ANC350lib, which in turn depends on anc350v2.dll
-    which is provided by attocube in the ANC350_DLL folders on the driver disc.
-    This in turn requires libusb0.dll. Place all of these in the same folder
-    as this module (and that of ANC350lib).
-    """
-
-    _modclass = 'ANC350'
-    _modtype = 'hardware'
-    _dll_location = ConfigOption('dll_location', missing='error')
-    _dll = None
-
-    def __init__(self, dev_num=0):
-        # Device number defines which controller to connect to
-        # Since the controllers don't return unique hardware IDs
-        # 0 is generally scanner and 1 is generally gonio
-        self.dev_num = dev_num
-        self.check()
-        self.connect()
+class ANC350:
+    def __init__(self, dll_location, controller_number):
+        self.controller_number = controller_number
+        self._dll = ctypes.CDLL(dll_location)
+        self.handle = ctypes.c_int(0)
+        self._dll.PositionerConnect(self.controller_number, ctypes.byref(self.handle))
 
     def acInEnable(self, axis, state):
         """
@@ -80,18 +62,13 @@ class ANC350(Base):
         """
         self._dll.PositionerBandwidthLimitEnable(self.handle, axis, ctypes.c_bool(state))
 
-    def capMeasure(self, axis):
+    def capacitanceMeasure(self, axis):
         """
         determines the capacitance of the piezo addressed by axis
         """
         self.status = self._dll.Int32(0)
         self._dll.PositionerCapMeasure(self.handle, axis, ctypes.byref(self.status))
         return self.status.value
-
-    def check(self):
-        """
-        Determines number of connected Positioners and their respective hardware IDs
-        """
 
     def clearStopDetection(self, axis):
         """
@@ -104,18 +81,6 @@ class ANC350(Base):
         closes connection to ANC350 device
         """
         self._dll.PositionerClose(self.handle)
-
-    def connect(self):
-        """
-        Establishes connection to first device found
-        """
-        self.handle = self._dll.Int32(0)
-        try:
-            self._dll.PositionerConnect(self.dev_num, ctypes.byref(self.handle))  # 0 means "first device"
-            print('connected to first Positioner')
-        except Exception as e:
-            print('unable to connect!')
-            raise e
 
     def dcInEnable(self, axis, state):
         """
@@ -505,36 +470,23 @@ class ANC350(Base):
         self._dll.PositionerUpdateAbsolute(self.handle, axis, position)
 
 
-def bitmask(input_array):
-    """
-    takes an array or string and converts to integer bitmask; reads from left to right e.g. 0100 = 2 not 4
-    """
-    total = 0
-    for i in range(len(input_array)):
-        if int(input_array[i]) != 0 and int(input_array[i]) != 1:
-            raise Exception('nonbinary value in bitmask, panic!')
-        else:
-            total += int(input_array[i]) * (2 ** (i))
-    return total
+class ANCController(Base):
+    _modclass = 'attocube_anc350'
+    _modtype = 'hardware'
+
+    _dll_location = ConfigOption('dll_location', missing='error')
+    _sample_controller_number = ConfigOption("sample_controller_number", 0, missing='error')
+    _tip_controller_number = ConfigOption("tip_controller_number", 1, missing='error')
+
+    def on_activate(self):
+        self.tip = ANC350(self._dll_location, self._tip_controller_number)
+        self.sample = ANC350(self._dll_location, self._sample_controller_number)
+
+    def on_deactivate(self):
+        self.tip.close()
+        self.sample.close()
 
 
-def debitmask(input_int, num_bits=False):
-    """
-    takes a bitmask and returns a list of which bits are switched; reads from left to right e.g. 2 = [0, 1] not [1, 0]
-    """
-    if num_bits == False and input_int > 0:
-        num_bits = int(math.ceil(math.log(input_int + 1, 2)))
-    elif input_int == 0:
-        return [0]
-
-    result_array = [0] * num_bits
-    for i in reversed(range(num_bits)):
-        if input_int - 2 ** i >= 0:
-            result_array[i] = 1
-            input_int -= 2 ** i
-    return result_array
-
-
-# structure for PositionerInfo to handle PositionerCheck return data
+# structure for PositionerInfo to handle positionerCheck return data
 class PositionerInfo(ctypes.Structure):
     _fields_ = [("id", ctypes.c_int16), ("locked", ctypes.c_bool)]

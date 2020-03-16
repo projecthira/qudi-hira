@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = "Dinesh Pinto"
 __email__ = "d.pinto@fkf.mpg.de"
-
 """
-This module controls the Coherent OBIS laser.
+This module controls the Toptica iBeam Smart Laser.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -43,11 +42,11 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         maxcurrent: 0.2
     """
 
-    eol = '\r\n'
-
+    _modclass = 'TopticaIBeamLaser'
+    _modtype = 'hardware'
     _com_port = ConfigOption('com_port', 'COM1', missing='error')
-    maxpower = ConfigOption('maxpower', 0.1, missing='warn')
-    maxcurrent = ConfigOption('maxcurrent', 0.2, missing='warn')
+    _maxpower = ConfigOption('maxpower', 0.1, missing='warn')
+    _maxcurrent = ConfigOption('maxcurrent', 0.246, missing='warn')
 
     def on_activate(self):
         """ Activate module.
@@ -147,7 +146,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return tuple(float, float): laser power range
         """
-        return 0, self.maxpower
+        return 0, self._maxpower
 
     def set_power(self, power):
         """ Set laser power
@@ -308,7 +307,8 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @param string message: message to be delivered to the laser
         """
-        new_message = message + self.eol
+        eol = '\r\n'
+        new_message = message + eol
         self.ibeam.write(new_message.encode())
 
     def _communicate(self, message):

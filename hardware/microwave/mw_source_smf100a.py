@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
 This file contains the Qudi hardware file to control R&S SMF100a devices.
 
@@ -28,7 +30,15 @@ from interface.microwave_interface import MicrowaveInterface, MicrowaveMode, Mic
 
 
 class MicrowaveSMF(Base, MicrowaveInterface):
-    """ Hardware control class to controls R&S SMF100a devices.  """
+    """ Hardware control class to controls R&S SMF100a devices.
+
+    Example config for copy-paste:
+
+    mw_smf100a:
+        module.Class: 'microwave.mw_source_smf100a.MicrowaveSMF'
+        smf_visa_address: 'TCPIP0::192.168.0.6::inst0::INSTR'
+        smf_timeout: 100
+     """
 
     _modclass = 'MicrowaveSMF'
     _modtype = 'hardware'
