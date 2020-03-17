@@ -238,7 +238,6 @@ class ConfocalScannerDummy(Base, ConfocalScannerInterface):
         time.sleep(0.2)
         return 0
 
-
     def set_up_scanner(self, counter_channels=None, sources=None,
                        clock_channel=None, scanner_ao_channels=None):
         """ Configures the actual scanner with a given clock.
@@ -258,7 +257,6 @@ class ConfocalScannerDummy(Base, ConfocalScannerInterface):
         self.log.debug('ConfocalScannerDummy>set_up_scanner')
         time.sleep(0.2)
         return 0
-
 
     def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).

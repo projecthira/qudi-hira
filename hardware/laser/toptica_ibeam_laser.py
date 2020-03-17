@@ -321,12 +321,10 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         self._send(message)
         time.sleep(0.2)
         response_len = self.ibeam.inWaiting()
-
         response = []
 
         while response_len > 0:
             this_response_line = self.ibeam.readline().decode().strip()
-
             response.append(this_response_line)
             time.sleep(0.1)
 
