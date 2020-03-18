@@ -43,8 +43,8 @@ class PfeifferTPG366(Base, ProcessInterface):
     _com_port = ConfigOption('com_port', default='COM2', missing='error')
     _timeout = ConfigOption('timeout', default=2, missing='warn')
     _main_guage = ConfigOption('main_gauge', default=1, missing='warn')
-    _prep_guage = ConfigOption('prep_guage', default=2, missing='warn')
-    _back_guage = ConfigOption('back_guage', default=3, missing='warn')
+    _prep_guage = ConfigOption('prep_gauge', default=2, missing='warn')
+    _back_guage = ConfigOption('back_gauge', default=3, missing='warn')
 
     def on_activate(self):
         # TODO Connect over serial interface and test
@@ -135,10 +135,10 @@ class PfeifferTPG366(Base, ProcessInterface):
             pass
         elif status == "1":
             # Measuring range underrange
-            pressure = "UNDER"
+            pressure = "URANGE"
         elif status == "2":
             # Measuring range overrange
-            pressure = "OVER"
+            pressure = "ORANGE"
         elif status == "3":
             # Sensor Error
             pressure = "ERROR"
