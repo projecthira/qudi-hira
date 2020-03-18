@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>218</width>
+    <width>278</width>
     <height>470</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Qudi: Temperature Monitor</string>
+   <string>Qudi: Pressure Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -175,7 +175,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>218</width>
+     <width>278</width>
      <height>26</height>
     </rect>
    </property>

@@ -28,6 +28,33 @@ from core.configoption import ConfigOption
 from interface.process_interface import ProcessInterface
 
 
+def _check_status(status):
+    if status == "0":
+        # Measuring data okay
+        message = "Sensor OK"
+    elif status == "1":
+        # Measuring range underrange
+        message = "Sensor Underrange"
+    elif status == "2":
+        # Measuring range overrange
+        message = "Sensor Overrange"
+    elif status == "3":
+        # Sensor Error
+        message = "Sensor Error"
+    elif status == "4":
+        # Sensor switched off
+        message = "Sensor OFF"
+    elif status == "5":
+        # No gauge
+        message = "No gauge"
+    elif status == "6":
+        # Identification Error
+        message = "Identification Error"
+    else:
+        message = "Invalid response from gauge"
+    return message
+
+
 class PfeifferTPG366(Base, ProcessInterface):
     """
 
@@ -119,7 +146,11 @@ class PfeifferTPG366(Base, ProcessInterface):
         return 0
 
     def get_pressure(self, channel):
-        """ Get pressure of a specific channel """
+        """ Get pressure of a specific channel
+
+        @param channel: TPG366 channel to query
+        @return float: channel pressure in mbar
+        """
         if channel == "main_gauge":
             channel = self._main_guage
         elif channel == "prep_gauge":
@@ -132,26 +163,25 @@ class PfeifferTPG366(Base, ProcessInterface):
 
         if status == "0":
             # Measuring data okay
-            pass
-        elif status == "1":
-            # Measuring range underrange
-            pressure = "URANGE"
-        elif status == "2":
-            # Measuring range overrange
-            pressure = "ORANGE"
-        elif status == "3":
-            # Sensor Error
-            pressure = "ERROR"
-        elif status == "4":
-            # Sensor switched off
-            pressure = "OFF"
-        elif status == "5":
-            # No gauge
-            pressure = "NOGAUGE"
-        elif status == "6":
-            # Identification Error
-            pressure = "IDERROR"
+            pressure = float(pressure)
+        else:
+            # Measuring data non okay (see check_sensor_state)
+            pressure = float(-1)
+
         return pressure
+
+    def check_sensor_state(self):
+        """ Get state of sensors
+
+        @return list: list of sensor states
+        """
+        sensor_states = []
+        for ch in range(1, 7):
+            response = self._inst.query('PR{}'.format(ch))
+            status, _ = response.split(",")
+            sensor_states.append(_check_status(status))
+
+        return sensor_states
 
     # ProcessInterface methods
     def get_process_value(self, channel=None):

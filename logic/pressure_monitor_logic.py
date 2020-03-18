@@ -46,6 +46,7 @@ class PressureMonitorLogic(GenericLogic):
         self._pm = self.pm()
         self.stopRequest = False
         self.bufferLength = 100
+        self.data = {}
 
         # delay timer for querying
         self.queryTimer = QtCore.QTimer()
@@ -55,6 +56,7 @@ class PressureMonitorLogic(GenericLogic):
 
         self.pm_unit = self._pm.get_process_unit()
 
+        self.init_data_logging()
         self.start_query_loop()
 
     def on_deactivate(self):
@@ -78,9 +80,17 @@ class PressureMonitorLogic(GenericLogic):
             self.main_pressure = self._pm.get_process_value(channel="main_gauge")
             self.prep_pressure = self._pm.get_process_value(channel="prep_gauge")
             self.back_pressure = self._pm.get_process_value(channel="back_gauge")
+
+            for k in self.data:
+                self.data[k] = np.roll(self.data[k], -1)
+
+            self.data['main_pressure'][-1] = self.main_pressure
+            self.data['prep_pressure'][-1] = self.prep_pressure
+            self.data['back_pressure'][-1] = self.back_pressure
+            self.data['time'][-1] = time.time()
         except:
             qi = 3000
-            self.log.exception("Exception in TM status loop, throttling refresh rate.")
+            self.log.exception("Exception in PM status loop, throttling refresh rate.")
 
         self.queryTimer.start(qi)
         self.sigUpdate.emit()
@@ -100,3 +110,10 @@ class PressureMonitorLogic(GenericLogic):
                 return
             QtCore.QCoreApplication.processEvents()
             time.sleep(self.queryInterval / 1000)
+
+    def init_data_logging(self):
+        """ Zero all log buffers. """
+        self.data['main_pressure'] = np.zeros(self.bufferLength)
+        self.data['prep_pressure'] = np.zeros(self.bufferLength)
+        self.data['back_pressure'] = np.zeros(self.bufferLength)
+        self.data['time'] = np.ones(self.bufferLength) * time.time()
