@@ -87,7 +87,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @return bool: connection success
         """
         response = self._communicate('serial')
-        if 'SN: iBEAM-SMART-515-S-A3-15384' in response:
+        if 'SN: iBEAM-SMART' in response:
             return True
         else:
             return False

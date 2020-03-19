@@ -88,6 +88,12 @@ class PfeifferTPG366(Base, ProcessInterface):
             read_termination='\r\n',
             send_end=True
         )
+        responce = self.tpg.query("UNI,0")
+        if responce != "0":
+            self.log.error('Laser does not seem to be connected.')
+            return -1
+        else:
+            return 0
 
     def on_deactivate(self):
         """ Close the connection to the instrument.

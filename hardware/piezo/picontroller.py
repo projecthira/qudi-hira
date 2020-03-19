@@ -276,7 +276,7 @@ class PiezoStagePI_PyGCS2(Base, MotorInterface):
         if self._has_connect_piezo_controller:
             try:
                 self._has_move_abs = pidevice.HasMOV()
-                self._has_get_pos = pidevice.HasqPOS()
+                        self._has_get_pos = pidevice.HasqPOS()
                 # above is important to logic interfuse motor scanner
 
                 # Hardware module xyz range self-auto-check.

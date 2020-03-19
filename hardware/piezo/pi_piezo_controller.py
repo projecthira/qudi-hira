@@ -36,7 +36,7 @@ except ModuleNotFoundError as err:
     raise
 
 
-class PIPiezoController(Base):
+class PIPiezoController(Base, ConfocalScannerInterface):
     _modtype = 'PIPiezoController'
     _modclass = 'hardware'
 
@@ -44,7 +44,7 @@ class PIPiezoController(Base):
     _ipport = ConfigOption("ipport", default=50000, missing="warn")
     #_stages = ConfigOption("stages", default=['S-330.8SH', 'S-330.8SH', 'NOSTAGE'], missing="warn")
     _stages = ['S-330.8SH', 'S-330.8SH', 'DEFAULT_STAGE-Z']
-    _refmodes = ['FNL', 'FRF']
+    _refmodes = None
     _controllername = 'E-727'
 
     def on_activate(self):
@@ -52,11 +52,16 @@ class PIPiezoController(Base):
 
             @return: error code (0:OK, -1:error)
         """
-        self.pidevice = GCSDevice(self._controllername)
-        self.pidevice.ConnectTCPIP(self._ipaddress, self._ipport)
-        device_name = self.pidevice.qIDN().strip()
-        self.log.info('PI controller {} connected'.format(device_name))
-        pitools.startup(self.pidevice, stages=self._stages)
+        try:
+            self.pidevice = GCSDevice(self._controllername)
+            self.pidevice.ConnectTCPIP(self._ipaddress, self._ipport)
+            device_name = self.pidevice.qIDN().strip()
+            self.log.info('PI controller {} connected'.format(device_name))
+            pitools.startup(self.pidevice, stages=self._stages)
+            return 0
+        except GCSError as error:
+            self.log.error(error)
+            return -1
 
     def on_deactivate(self):
         """ Deinitialise and deactivate the hardware module.
@@ -67,9 +72,13 @@ class PIPiezoController(Base):
         # self._set_servo_state(False)
         # If not shutdown, keep servo on to stay on target.
         self.pidevice.errcheck = True
-        self.pidevice.CloseConnection()
-        self.log.info("PI Device has been closed connection !")
-        return 0
+        try:
+            self.pidevice.CloseConnection()
+            self.log.info("PI Device has been closed connection !")
+            return 0
+        except GCSError as error:
+            self.log.error(error)
+            return -1
 
     def get_constraints(self):
         """ Retrieve the hardware constrains from the motor device.
@@ -84,9 +93,7 @@ class PIPiezoController(Base):
         # TODO get constraints auto by gcs
 
         constraints = OrderedDict()
-        rangemin = self.pidevice.qTMN()
-        rangemax = self.pidevice.qTMX()
-        curpos = self.pidevice.qPOS()
+
 
         axis0 = {'label': self._first_axis_label,
                  'ID': self._first_axis_ID,
@@ -159,7 +166,13 @@ class PIPiezoController(Base):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        try:
+            self.pidevice.close()
+            self.log.info("PI Device has been reset")
+            return 0
+        except GCSError as error:
+           self.log.error(error)
+           return -1
 
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -167,18 +180,56 @@ class PIPiezoController(Base):
         @return float [4][2]: array of 4 ranges with an array containing lower
                               and upper limit
         """
+        rangemin = self.pidevice.qTMN()
+        rangemax = self.pidevice.qTMX()
+        curpos = self.pidevice.qPOS()
 
         pass
+
+    def get_position_range(self):
+        """ Returns the physical range of the scanner.
+
+        @return float [4][2]: array of 4 ranges with an array containing lower
+                              and upper limit. The unit of the scan range is
+                              meters.
+        """
+        return self._scanner_position_ranges
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
 
         @param float [4][2] myrange: array of 4 ranges with an array containing
-                                     lower and upper limit
+                                     lower and upper limit. The unit of the
+                                     scan range is meters.
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        if myrange is None:
+            myrange = [[0, 10000], [0, 10000], [0, 100], [0, 1]]
+
+        if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
+            self.log.error('Given range is no array type.')
+            return -1
+
+        if len(myrange) != 4:
+            self.log.error(
+                'Given range should have dimension 4, but has {0:d} instead.'
+                ''.format(len(myrange)))
+            return -1
+
+        for pos in myrange:
+            if len(pos) != 2:
+                self.log.error(
+                    'Given range limit {1:d} should have dimension 2, but has {0:d} instead.'
+                    ''.format(len(pos), pos))
+                return -1
+            if pos[0] > pos[1]:
+                self.log.error(
+                    'Given range limit {0:d} has the wrong order.'.format(pos))
+                return -1
+
+        self._scanner_position_ranges = myrange
+        return 0
 
     def set_voltage_range(self, myrange=None):
         """ Sets the voltage range of the NI Card.
@@ -202,7 +253,7 @@ class PIPiezoController(Base):
 
           On error, return an empty list.
         """
-        pass
+        return ['x', 'y']
 
     def get_scanner_count_channels(self):
         """ Returns the list of channels that are recorded while scanning an image.
@@ -254,6 +305,7 @@ class PIPiezoController(Base):
 
         @return int: error code (0:OK, -1:error)
         """
+        self.pidevice.GOH()
         pass
 
     def get_scanner_position(self):
