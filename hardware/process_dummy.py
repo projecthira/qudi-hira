@@ -25,6 +25,7 @@ from interface.process_control_interface import ProcessControlInterface
 from qtpy import QtCore
 import numpy as np
 
+
 class ProcessDummy(Base, ProcessInterface, ProcessControlInterface):
     """ Methods to control slow laser switching devices.
 

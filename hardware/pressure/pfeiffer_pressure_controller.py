@@ -28,45 +28,50 @@ from core.configoption import ConfigOption
 from interface.process_interface import ProcessInterface
 
 
-def _check_status(status):
-    if status == "0":
+def _status_value_to_message(status_value):
+    if status_value == "0":
         # Measuring data okay
-        message = "Sensor OK"
-    elif status == "1":
+        status_message = "Sensor OK"
+    elif status_value == "1":
         # Measuring range underrange
-        message = "Sensor Underrange"
-    elif status == "2":
+        status_message = "Sensor Underrange"
+    elif status_value == "2":
         # Measuring range overrange
-        message = "Sensor Overrange"
-    elif status == "3":
+        status_message = "Sensor Overrange"
+    elif status_value == "3":
         # Sensor Error
-        message = "Sensor Error"
-    elif status == "4":
+        status_message = "Sensor Error"
+    elif status_value == "4":
         # Sensor switched off
-        message = "Sensor OFF"
-    elif status == "5":
+        status_message = "Sensor OFF"
+    elif status_value == "5":
         # No gauge
-        message = "No gauge"
-    elif status == "6":
+        status_message = "No gauge"
+    elif status_value == "6":
         # Identification Error
-        message = "Identification Error"
+        status_message = "Identification Error"
     else:
-        message = "Invalid response from gauge"
-    return message
+        status_message = "Invalid response from gauge"
+    return status_message
 
 
 class PfeifferTPG366(Base, ProcessInterface):
     """
+    Hardware control class to control Pfeiffer TPG366 devices.
 
     Example config for copy-paste:
 
     pfeiffer_tpg366:
-    module.Class: 'pressure.pfeiffer_pressure_controller.PfeifferTPG266'
-    com_port : 'COM2'
-    timeout : 2
+        module.Class: 'pressure.pfeiffer_pressure_controller.PfeifferTPG266'
+        com_port : 'COM2'
+        timeout : 2
+        main_gauge : 1
+        prep_gauge : 2
+        back_gauge : 3
     """
-    _modclass = 'PfeifferTPG266'
+    _modclass = 'PfeifferTPG366'
     _modtype = 'hardware'
+
     _com_port = ConfigOption('com_port', default='COM2', missing='error')
     _timeout = ConfigOption('timeout', default=2, missing='warn')
     _main_guage = ConfigOption('main_gauge', default=1, missing='warn')
@@ -76,7 +81,7 @@ class PfeifferTPG366(Base, ProcessInterface):
     def on_activate(self):
         # TODO Connect over serial interface and test
         self.rm = visa.ResourceManager()
-        self.tpg = self.rm.open_resource(
+        self._tpg = self.rm.open_resource(
             resource_name=self._com_port,
             timeout=self._timeout,
             baudrate=9600,
@@ -88,9 +93,9 @@ class PfeifferTPG366(Base, ProcessInterface):
             read_termination='\r\n',
             send_end=True
         )
-        responce = self.tpg.query("UNI,0")
+        responce = self._tpg.query("UNI,0")
         if responce != "0":
-            self.log.error('Laser does not seem to be connected.')
+            self.log.error('Pfeiffer pressure controller does not seem to be connected.')
             return -1
         else:
             return 0
@@ -99,13 +104,17 @@ class PfeifferTPG366(Base, ProcessInterface):
         """ Close the connection to the instrument.
         """
         self.off()
-        self.tpg.close()
+        self._tpg.close()
 
     def off(self, gauge=None):
         """"
-        0 - No change
-        1 - Gauge off
-        2 - Gauge on
+        Switch off specific pressure gauges, or all if gauge=None
+
+        Gauge state values:
+            0 - No change
+            1 - Gauge off
+            2 - Gauge on
+        @return float: 0 if successful, -1 if not
         """
         gauge_states = ['0'] * 6
 
@@ -128,10 +137,14 @@ class PfeifferTPG366(Base, ProcessInterface):
 
     def on(self, gauge=None):
         """"
-         0 - No change
-         1 - Gauge off
-         2 - Gauge on
-         """
+        Switch on specific pressure gauges, or all if gauge=None
+
+        Gauge state values:
+            0 - No change
+            1 - Gauge off
+            2 - Gauge on
+        @return 0:if successful
+        """
         gauge_states = ['0'] * 6
 
         if gauge is None:
@@ -176,7 +189,7 @@ class PfeifferTPG366(Base, ProcessInterface):
 
         return pressure
 
-    def check_sensor_state(self):
+    def check_sensor_states(self):
         """ Get state of sensors
 
         @return list: list of sensor states
@@ -185,7 +198,7 @@ class PfeifferTPG366(Base, ProcessInterface):
         for ch in range(1, 7):
             response = self._inst.query('PR{}'.format(ch))
             status, _ = response.split(",")
-            sensor_states.append(_check_status(status))
+            sensor_states.append(_status_value_to_message(status))
 
         return sensor_states
 
@@ -196,4 +209,4 @@ class PfeifferTPG366(Base, ProcessInterface):
 
     def get_process_unit(self, channel=None):
         """ Return the unit of measured temperature """
-        return 'mbar', 'milibar'
+        return 'mbar', 'millibar'
