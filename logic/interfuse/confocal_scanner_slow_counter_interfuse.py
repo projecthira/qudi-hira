@@ -109,7 +109,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self.log.warning("Lying to ConfocalLogic : set_voltage_range")
         return 0
 
-    def set_up_scanner_clock(self, clock_frequency = None, clock_channel = None):
+    def set_up_scanner_clock(self, clock_frequency=None, clock_channel=None):
         """ Configures the hardware clock of the NiDAQ card to give the timing.
         This is a direct pass-through to the scanner HW
 
@@ -119,8 +119,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         #return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
-        self.log.warning("Lying to ConfocalLogic : set_up_scanner_clock")
-        return 0
+        self.log.warning("Lying to ConfocalLogic : set_up_scanner_clock, set_up_clock instead")
+        return self._slowcounter_hw.set_up_clock(clock_frequency=clock_frequency)
 
     def set_up_scanner(self, counter_channel=None, photon_source=None, clock_channel=None, scanner_ao_channels=None):
         """ Configures the actual scanner with a given clock.
@@ -134,9 +134,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._slowcounter_hw.set_up_counter()
-        self.log.warning("Lying to ConfocalLogic : set_up_scanner")
-        return 0
+        self.log.warning("Lying to ConfocalLogic : set_up_scanner, set_up_counter instead")
+        return self._slowcounter_hw.set_up_counter()
 
     def get_scanner_axes(self):
         """ Pass through scanner axes. """
@@ -164,7 +163,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         return self._scanner_hw.get_scanner_position()
 
     def get_scanner_count_channels(self):
-        return [1]
+        return ['1']
 
     def set_up_line(self, length=100):
         """ Set the line length
@@ -187,24 +186,25 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         @return float[]: the photon counts per second
         """
 
-        if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray) ):
+        if not isinstance(line_path, (frozenset, list, set, tuple, np.ndarray)):
             self.log.error('Given voltage list is no array type.')
             return np.array([-1.])
 
         self.set_up_line(np.shape(line_path)[1])
 
         count_data = np.zeros(self._line_length)
-        print(count_data.shape)
+
+        t1 = time.time()
 
         for i in range(self._line_length):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1])
-            print(i, coords)
 
             # record spectral data
             count_data = self._slowcounter_hw.get_counter()
-            time.sleep(0.2)
-            print(count_data.shape)
+        t2 = time.time()
+
+        print("time", t2-t1)
 
         return count_data
 

@@ -24,6 +24,7 @@ from core.module import Base
 from core.configoption import ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 import numpy as np
+import time
 try:
     from pipython import GCSDevice, pitools, GCSError, gcserror
 except ModuleNotFoundError as err:
@@ -54,7 +55,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             device_name = self.pidevice.qIDN().strip()
             self.log.info('PI controller {} connected'.format(device_name))
             pitools.startup(self.pidevice, stages=self._stages)
-            self.scanner_set_position(x=5e-3, y=5e-3)
             return 0
         except GCSError as error:
             self.log.error(error)
@@ -207,16 +207,14 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        x *= 1.e6
-        y *= 1.e6
+        axes = [self._x_scanner, self._y_scanner]
+        self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
 
-        self.pidevice.MOV(self._x_scanner, x)
-        pitools.waitontarget(self.pidevice, axes=self._x_scanner)
+        # pitools.waitontarget(self.pidevice, axes=axes)
 
-        self.pidevice.MOV(self._y_scanner, y)
-        pitools.waitontarget(self.pidevice, axes=self._y_scanner)
-
-        print(self.pidevice.qPOS())
+        while not all(list(self.pidevice.qONT(axes).values())):
+            time.sleep(0.05)
+        # print(self.pidevice.qPOS())
         return 0
 
     def get_scanner_position(self):
@@ -225,7 +223,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         position = self.pidevice.qPOS()
-        return position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.
+        return [position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.

@@ -62,8 +62,11 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         # 2: dual channel for apd_0 and apd_1
         if self._sum_channels:
             self._mode = 1
+            channel_combined = tt.Combiner(self._tagger, channels=[self._channel_apd_0, self._channel_apd_1])
+            self._channel_apd = channel_combined.getChannel()
         elif self._channel_apd_1 is None:
             self._mode = 0
+            self._channel_apd = self._channel_apd_0
         else:
             self._mode = 2
 
@@ -111,10 +114,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         # currently, parameters passed to this function are ignored -- the channels used and clock frequency are
         # set at startup
-        if self._mode == 1:
-            channel_combined = tt.Combiner(self._tagger, channels = [self._channel_apd_0, self._channel_apd_1])
-            self._channel_apd = channel_combined.getChannel()
 
+        if self._mode == 1:
             self.counter = tt.Counter(
                 self._tagger,
                 channels=[self._channel_apd],
@@ -136,7 +137,6 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
                 n_values=1
             )
         else:
-            self._channel_apd = self._channel_apd_0
             self.counter = tt.Counter(
                 self._tagger,
                 channels=[self._channel_apd],
@@ -149,7 +149,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
     def get_counter_channels(self):
         if self._mode < 2:
-            return self._channel_apd
+            return [self._channel_apd]
         else:
             return [self._channel_apd_0, self._channel_apd_1]
 
