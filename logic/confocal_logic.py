@@ -689,7 +689,7 @@ class ConfocalLogic(GenericLogic):
         for i, ch in enumerate(self.get_scanner_axes()):
             pos_dict[ch_array[i]] = pos_array[i]
 
-        print(pos_dict)
+        #print(pos_dict)
 
         self._scanning_device.scanner_set_position(**pos_dict)
         return 0
@@ -770,6 +770,7 @@ class ConfocalLogic(GenericLogic):
                 image[self._scan_counter, :, 2] = self._current_z * np.ones(z_shape)
 
             # make a line in the scan, _scan_counter says which one it is
+            print("scan counter", self._scan_counter)
             lsx = image[self._scan_counter, :, 0]
             lsy = image[self._scan_counter, :, 1]
             lsz = image[self._scan_counter, :, 2]

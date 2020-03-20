@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains the Qudi Interfuse between Magnet Logic and Motor Hardware.
+This file contains a Qudi Interfuse.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -75,7 +78,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0, 1e-2], [0, 1e-2], [0, 1], [0, 1]]
+            myrange = [[0, 1e-2], [0, 1e-2], [0, 1.e-4], [0, 1]]
         return self._scanning_device.set_position_range(myrange)
 
     def set_voltage_range(self, myrange=None):
@@ -144,7 +147,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
             z += self._calc_dz(x, y)
             z_min = self.get_position_range()[2][0]
             z_max = self.get_position_range()[2][1]
-            if not(z_min <= z <= z_max):
+            if not (z_min <= z <= z_max):
                 z = min(max(z, z_min), z_max)
                 self.log.warning(
                     'The entered z position is out of scanner '
@@ -158,7 +161,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
 
         @return float[]: current position in (x, y, z, a).
         """
-        position = copy.copy(self._scanning_device.get_scanner_position())    # not tested atm
+        position = copy.copy(self._scanning_device.get_scanner_position())  # not tested atm
         if self.tiltcorrection:
             position[2] -= self._calc_dz(position[0], position[1])
             return position
@@ -206,7 +209,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
             return 0.
         else:
             dz = -(
-                (x - self.tilt_reference_x) * self.tilt_variable_ax
-                + (y - self.tilt_reference_y) * self.tilt_variable_ay
+                    (x - self.tilt_reference_x) * self.tilt_variable_ax
+                    + (y - self.tilt_reference_y) * self.tilt_variable_ay
             )
             return dz

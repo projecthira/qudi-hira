@@ -28,6 +28,7 @@ from interface.odmr_counter_interface import ODMRCounterInterface
 from interface.microwave_interface import MicrowaveInterface
 from interface.microwave_interface import TriggerEdge
 
+
 class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
                                     MicrowaveInterface):
     """
@@ -47,7 +48,6 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         self._lock_in_active = False
         self._oversampling = 10
         self._odmr_length = 100
-
 
     def on_activate(self):
         """ Initialisation performed during activation of the module."""
@@ -71,7 +71,7 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         @return int: error code (0:OK, -1:error)
         """
         return self._sc_device.set_up_clock(clock_frequency=clock_frequency,
-                                                   clock_channel=clock_channel)
+                                            clock_channel=clock_channel)
 
     def set_up_odmr(self, counter_channel=None, photon_source=None,
                     clock_channel=None, odmr_trigger_channel=None):
@@ -90,9 +90,9 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         """
 
         return self._sc_device.set_up_counter(counter_channels=counter_channel,
-                                                sources=photon_source,
-                                                clock_channel=clock_channel,
-                                                counter_buffer=None)
+                                              sources=photon_source,
+                                              clock_channel=clock_channel,
+                                              counter_buffer=None)
 
     def set_odmr_length(self, length=100):
         """Set up the trigger sequence for the ODMR and the triggered microwave.
@@ -104,7 +104,7 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         self._odmr_length = length
         return 0
 
-    def count_odmr(self, length = 100):
+    def count_odmr(self, length=100):
         """ Sweeps the microwave and returns the counts on that sweep.
 
         @param int length: length of microwave sweep in pixel

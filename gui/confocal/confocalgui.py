@@ -107,6 +107,7 @@ class SaveDialog(QtWidgets.QDialog):
         self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
         self.setLayout(self.hbox)
 
+
 class ConfocalGui(GUIBase):
     """ Main Confocal Class for xy and depth scans.
     """

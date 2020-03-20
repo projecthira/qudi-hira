@@ -24,6 +24,7 @@ from core.module import Base
 from core.configoption import ConfigOption
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 import numpy as np
+import time
 try:
     from pipython import GCSDevice, pitools, GCSError, gcserror
 except ModuleNotFoundError as err:
@@ -54,7 +55,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             device_name = self.pidevice.qIDN().strip()
             self.log.info('PI controller {} connected'.format(device_name))
             pitools.startup(self.pidevice, stages=self._stages)
-            self.scanner_set_position(x=5e-3, y=5e-3)
             return 0
         except GCSError as error:
             self.log.error(error)
@@ -67,7 +67,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         """
         # self._set_servo_state(False)
         # If not shutdown, keep servo on to stay on target.
-        self.pidevice.errcheck = True
         try:
             self.pidevice.CloseConnection()
             self.log.info("PI Device has been closed connection !")
@@ -109,7 +108,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.], [0., 1.]]
+            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.e-4], [0., 1.]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -202,21 +201,25 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
-        @param float x: postion in x-direction (m)
-        @param float y: postion in y-direction (m)
+        @param float x: position in x-direction (m)
+        @param float y: position in y-direction (m)
 
         @return int: error code (0:OK, -1:error)
         """
-        x *= 1.e6
-        y *= 1.e6
+        axes = [self._x_scanner, self._y_scanner]
 
-        self.pidevice.MOV(self._x_scanner, x)
-        pitools.waitontarget(self.pidevice, axes=self._x_scanner)
+        # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
+        # ALL axes can move. All axes start moving simultaneously.
+        # Servo must be enabled for all commanded axes prior to using this command.
+        self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
 
-        self.pidevice.MOV(self._y_scanner, y)
-        pitools.waitontarget(self.pidevice, axes=self._y_scanner)
+        # Takes longer but does more error checking
+        # pitools.waitontarget(self.pidevice, axes=axes)
 
-        print(self.pidevice.qPOS())
+        # Check if axes have reached the target.
+        while not all(list(self.pidevice.qONT(axes).values())):
+            time.sleep(0.1)
+        # print(self.pidevice.qPOS())
         return 0
 
     def get_scanner_position(self):
@@ -225,7 +228,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         position = self.pidevice.qPOS()
-        return position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.
+        return [position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.
