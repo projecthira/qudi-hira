@@ -67,7 +67,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         """
         # self._set_servo_state(False)
         # If not shutdown, keep servo on to stay on target.
-        self.pidevice.errcheck = True
         try:
             self.pidevice.CloseConnection()
             self.log.info("PI Device has been closed connection !")
@@ -109,7 +108,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.], [0., 1.]]
+            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.e-4], [0., 1.]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -202,18 +201,24 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
-        @param float x: postion in x-direction (m)
-        @param float y: postion in y-direction (m)
+        @param float x: position in x-direction (m)
+        @param float y: position in y-direction (m)
 
         @return int: error code (0:OK, -1:error)
         """
         axes = [self._x_scanner, self._y_scanner]
+
+        # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
+        # ALL axes can move. All axes start moving simultaneously.
+        # Servo must be enabled for all commanded axes prior to using this command.
         self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
 
+        # Takes longer but does more error checking
         # pitools.waitontarget(self.pidevice, axes=axes)
 
+        # Check if axes have reached the target.
         while not all(list(self.pidevice.qONT(axes).values())):
-            time.sleep(0.05)
+            time.sleep(0.1)
         # print(self.pidevice.qPOS())
         return 0
 

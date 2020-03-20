@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
+__author__ = "Dinesh Pinto"
+__email__ = "d.pinto@fkf.mpg.de"
 """
-Interfuse to do confocal scans where two different insturments perform the roles of scanning and photon counting.
-The confocal_scanner_interface is intended for the case where one instrument performs both roles - e.g. the NI card.
-This is originally intended to be able to use the NI card for the physical scanning, while the Time Tagger will function
-as the slow counter.
-This is based on the confocal_scanner_spectrometer_interfuse that is built-in to qudi-0.9.
-Written by Dan Yudilevich, January 2019.
+Interfuse to perform confocal scans when using different hardware to perform scanning and photon counting. 
+An example will be scanning with a PI controller (over ConfocalScannerInterface) and counting photons with a 
+TimeTagger (over SlowCounterInterface).
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +23,6 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import time
 import numpy as np
 
 from core.module import Base
@@ -33,13 +31,8 @@ from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
 class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
-
-    """This is the Interface class to define the controls for the simple
-    microwave hardware.
+    """ This is the interfuse class between ConfocalScannerInterface and SlowCounterInterface.
     """
-    _modclass = 'confocalscannerinterface'
-    _modtype = 'hardware'
-
     # connectors
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     counter1 = Connector(interface='SlowCounterInterface')
@@ -52,7 +45,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self._scanner_counter_daq_task = None
         self._voltage_range = [-10., 10.]
 
-        self._position_range = [[0., 1.0e-2], [0., 1.0e-2], [0., 1.], [0., 1.]]
+        self._position_range = [[0., 1.0e-2], [0., 1.0e-2], [0., 1.e-4], [0., 1.]]
         self._current_position = [0., 0., 0., 0.]
 
         self._num_points = 500
@@ -105,7 +98,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         if myrange is None:
             myrange = [-10., 10.]
 
-        #self._scanner_hw.set_voltage_range(myrange=myrange)
+        # self._scanner_hw.set_voltage_range(myrange=myrange)
         self.log.warning("Lying to ConfocalLogic : set_voltage_range")
         return 0
 
@@ -118,7 +111,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        #return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
+        # return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
         self.log.warning("Lying to ConfocalLogic : set_up_scanner_clock, set_up_clock instead")
         return self._slowcounter_hw.set_up_clock(clock_frequency=clock_frequency)
 
@@ -177,7 +170,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         return 0
 
     def scan_line(self, line_path=None, pixel_clock=False):
-        # The old version similar to what appeared in the nix file
         """ Scans a line and returns the counts on that line.
 
         @param float[][4] line_path: array of 4-part tuples defining the voltage points
@@ -194,17 +186,12 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         count_data = np.zeros(self._line_length)
 
-        t1 = time.time()
-
         for i in range(self._line_length):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1])
 
             # record spectral data
             count_data = self._slowcounter_hw.get_counter()
-        t2 = time.time()
-
-        print("time", t2-t1)
 
         return count_data
 

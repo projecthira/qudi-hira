@@ -102,7 +102,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """ Get available control mode of laser
           @return list: list with enum control modes
         """
-        return ControlMode.POWER
+        return [ControlMode.POWER]
 
     def get_control_mode(self):
         """ Get control mode of laser
@@ -184,8 +184,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: laser current setpoint
         """
-        self.log.warning('Getting the current setpoint is not supported by the ' + self._model_name)
-        return -1
+        return self.get_current()
 
     def set_current(self, current):
         """ Set laser current
@@ -249,9 +248,6 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
           @param enum state: desired laser state
           @return enum LaserState: actual laser state
         """
-        # TODO: this is big. cannot be called without having LaserState,
-        #       which is only defined in the simple laser interface.
-        #       I think this shoudl be a private method.
         actstat = self.get_laser_state()
         if actstat != status:
             if status == LaserState.ON:
