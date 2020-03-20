@@ -36,7 +36,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
     _ipaddress = ConfigOption("ipaddress", default='192.168.0.8', missing="error")
     _ipport = ConfigOption("ipport", default=50000, missing="warn")
-    _stages = ConfigOption("stages", default=['S-330.8SH', 'S-330.8SH',], missing="error")
+    _stages = ConfigOption("stages", default=['S-330.8SH', 'S-330.8SH'], missing="error")
+    _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
     _x_scanner = ConfigOption("x_scanner", default='1', missing="warn")
     _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
     _controllername = 'E-727'
@@ -53,6 +54,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             device_name = self.pidevice.qIDN().strip()
             self.log.info('PI controller {} connected'.format(device_name))
             pitools.startup(self.pidevice, stages=self._stages)
+            self.scanner_set_position(x=5e-3, y=5e-3)
             return 0
         except GCSError as error:
             self.log.error(error)
@@ -140,7 +142,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        return self._scanner_position_ranges
 
     def get_scanner_axes(self):
         """ Find out how many axes the scanning device is using for confocal and their names.
@@ -155,7 +157,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
           On error, return an empty list.
         """
-        return ['x', 'y']
+        return ['x', 'y', 'z']
 
     def get_scanner_count_channels(self):
         """ Returns the list of channels that are recorded while scanning an image.
@@ -205,7 +207,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        # Convert m to um
         x *= 1.e6
         y *= 1.e6
 
@@ -215,6 +216,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         self.pidevice.MOV(self._y_scanner, y)
         pitools.waitontarget(self.pidevice, axes=self._y_scanner)
 
+        print(self.pidevice.qPOS())
         return 0
 
     def get_scanner_position(self):
@@ -223,7 +225,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         position = self.pidevice.qPOS()
-        return position['1'], position['2'], 0., 0.
+        return position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.
@@ -240,7 +242,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        self.pidevice.HLT()
+        return 0
 
     def close_scanner_clock(self, power=0):
         """ Closes the clock and cleans up afterwards.

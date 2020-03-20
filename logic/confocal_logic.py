@@ -389,7 +389,7 @@ class ConfocalLogic(GenericLogic):
         else:
             return 0
 
-    def start_scanning(self, zscan = False, tag='logic'):
+    def start_scanning(self, zscan=False, tag='logic'):
         """Starts scanning
 
         @param bool zscan: zscan if true, xyscan if false
@@ -688,6 +688,8 @@ class ConfocalLogic(GenericLogic):
 
         for i, ch in enumerate(self.get_scanner_axes()):
             pos_dict[ch_array[i]] = pos_array[i]
+
+        print(pos_dict)
 
         self._scanning_device.scanner_set_position(**pos_dict)
         return 0

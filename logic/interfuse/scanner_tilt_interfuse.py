@@ -75,7 +75,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0, 1], [0, 1], [0, 1], [0, 1]]
+            myrange = [[0, 1e-2], [0, 1e-2], [0, 1], [0, 1]]
         return self._scanning_device.set_position_range(myrange)
 
     def set_voltage_range(self, myrange=None):

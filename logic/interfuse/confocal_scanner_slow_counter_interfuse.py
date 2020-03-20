@@ -134,6 +134,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        self._slowcounter_hw.set_up_counter()
         self.log.warning("Lying to ConfocalLogic : set_up_scanner")
         return 0
 
@@ -141,7 +142,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         """ Pass through scanner axes. """
         return self._scanner_hw.get_scanner_axes()
 
-    def scanner_set_position(self, x = None, y = None, z = None, a = None):
+    def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
         This is a direct pass-through to the scanner HW
 
@@ -152,7 +153,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._scanner_hw.scanner_set_position(x=x, y=y, z=z, a=a)
+        return self._scanner_hw.scanner_set_position(x=x, y=y)
 
     def get_scanner_position(self):
         """ Get the current position of the scanner hardware.
@@ -193,15 +194,17 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self.set_up_line(np.shape(line_path)[1])
 
         count_data = np.zeros(self._line_length)
+        print(count_data.shape)
 
         for i in range(self._line_length):
             coords = line_path[:, i]
-            self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2], a=coords[3])
+            self.scanner_set_position(x=coords[0], y=coords[1])
             print(i, coords)
 
             # record spectral data
             count_data = self._slowcounter_hw.get_counter()
             time.sleep(0.2)
+            print(count_data.shape)
 
         return count_data
 
