@@ -56,6 +56,7 @@ class LaserLogic(GenericLogic):
         # get laser capabilities
         self.laser_state = self._laser.get_laser_state()
         self.laser_shutter = self._laser.get_shutter_state()
+        self.laser_external = self._laser.get_external_state()
         self.laser_can_turn_on = self.laser_state.value <= LaserState.ON.value
         self.laser_current_unit = self._laser.get_current_unit()
         self.laser_power_range = self._laser.get_power_range()
@@ -94,6 +95,7 @@ class LaserLogic(GenericLogic):
             #print('laserloop', QtCore.QThread.currentThreadId())
             self.laser_state = self._laser.get_laser_state()
             self.laser_shutter = self._laser.get_shutter_state()
+            self.laser_external = self._laser.get_external_state()
             self.laser_power = self._laser.get_power()
             self.laser_power_setpoint = self._laser.get_power_setpoint()
             self.laser_current = self._laser.get_current()
@@ -167,12 +169,9 @@ class LaserLogic(GenericLogic):
         self.sigUpdate.emit()
 
     @QtCore.Slot(bool)
-    def set_shutter_state(self, state):
-        """ Open or close the laser output shutter. """
-        if state and self.laser_shutter == ShutterState.CLOSED:
-            self._laser.set_shutter_state(ShutterState.OPEN)
-        if not state and self.laser_shutter == ShutterState.OPEN:
-            self._laser.set_shutter_state(ShutterState.CLOSED)
+    def set_external_state(self, state):
+        """ Switched external driving on or off. """
+        self._laser.set_external_state(state)
 
     @QtCore.Slot(float)
     def set_power(self, power):

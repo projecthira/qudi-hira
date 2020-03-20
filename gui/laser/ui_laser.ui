@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>730</width>
+    <width>740</width>
     <height>511</height>
    </rect>
   </property>
@@ -133,6 +133,29 @@
         </spacer>
        </item>
        <item>
+        <widget class="QPushButton" name="externalButton">
+         <property name="text">
+          <string>External</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <widget class="QLabel" name="extraLabel">
          <property name="baseSize">
           <size>
@@ -161,8 +184,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>730</width>
-     <height>18</height>
+     <width>740</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

@@ -74,6 +74,8 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             return -1
         else:
             self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
+            self.set_external_state(False)
+            self.external = False
             return 0
 
     def on_deactivate(self):
@@ -208,6 +210,21 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """
         self.log.warning(self._model_name + ' does not have a shutter')
         return self.get_shutter_state()
+
+    def set_external_state(self, state):
+        if state:
+            self.external = True
+            self._communicate("en ext")
+        else:
+            self.external = True
+            self._communicate("di ext")
+        return 0
+
+    def get_external_state(self):
+        if self.external:
+            return 0
+        else:
+            return -1
 
     def get_temperatures(self):
         """ Get all available temperatures from laser.

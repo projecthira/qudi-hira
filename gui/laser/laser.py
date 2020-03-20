@@ -71,6 +71,8 @@ class LaserGUI(GUIBase):
 
     sigLaser = QtCore.Signal(bool)
     sigShutter = QtCore.Signal(bool)
+    sigExternal = QtCore.Signal(bool)
+
     sigPower = QtCore.Signal(float)
     sigCurrent = QtCore.Signal(float)
     sigCtrlMode = QtCore.Signal(ControlMode)
@@ -130,8 +132,10 @@ class LaserGUI(GUIBase):
         self.updateButtonsEnabled()
         self._mw.laserButton.clicked.connect(self.changeLaserState)
         self._mw.shutterButton.clicked.connect(self.changeShutterState)
+        self._mw.externalButton.clicked.connect(self.changeExternalState)
         self.sigLaser.connect(self._laser_logic.set_laser_state)
         self.sigShutter.connect(self._laser_logic.set_shutter_state)
+        self.sigExternal.connect(self._laser_logic.set_external_state)
         self.sigCurrent.connect(self._laser_logic.set_current)
         self.sigPower.connect(self._laser_logic.set_power)
         self.sigCtrlMode.connect(self._laser_logic.set_control_mode)
@@ -184,6 +188,14 @@ class LaserGUI(GUIBase):
         """
         self._mw.laserButton.setEnabled(False)
         self.sigLaser.emit(on)
+
+    @QtCore.Slot(bool)
+    def changeExternalState(self, on):
+        """ Disable laser external button and give logic signal.
+            Logic reaction to that signal will enable the button again.
+        """
+        self._mw.externalButton.setEnabled(False)
+        self.sigExternal.emit(on)
 
     @QtCore.Slot(bool)
     def changeShutterState(self, on):
