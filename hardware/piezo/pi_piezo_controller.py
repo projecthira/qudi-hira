@@ -22,14 +22,8 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 from core.module import Base
 from core.configoption import ConfigOption
-from interface.motor_interface import MotorInterface
-from collections import OrderedDict
-
-from interface.slow_counter_interface import SlowCounterInterface
-from interface.slow_counter_interface import SlowCounterConstraints
-from interface.slow_counter_interface import CountingMode
-from interface.odmr_counter_interface import ODMRCounterInterface
 from interface.confocal_scanner_interface import ConfocalScannerInterface
+import numpy as np
 try:
     from pipython import GCSDevice, pitools, GCSError, gcserror
 except ModuleNotFoundError as err:
@@ -42,10 +36,11 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
     _ipaddress = ConfigOption("ipaddress", default='192.168.0.8', missing="error")
     _ipport = ConfigOption("ipport", default=50000, missing="warn")
-    #_stages = ConfigOption("stages", default=['S-330.8SH', 'S-330.8SH', 'NOSTAGE'], missing="warn")
-    _stages = ['S-330.8SH', 'S-330.8SH', 'DEFAULT_STAGE-Z']
-    _refmodes = None
+    _stages = ConfigOption("stages", default=['S-330.8SH', 'S-330.8SH',], missing="error")
+    _x_scanner = ConfigOption("x_scanner", default='1', missing="warn")
+    _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
     _controllername = 'E-727'
+    _refmodes = None
 
     def on_activate(self):
         """ Initialise and activate the hardware module.
@@ -68,7 +63,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
-        # TODO add def shutdown(self) to set Votage=0 V for safety.
         # self._set_servo_state(False)
         # If not shutdown, keep servo on to stay on target.
         self.pidevice.errcheck = True
@@ -79,86 +73,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         except GCSError as error:
             self.log.error(error)
             return -1
-
-    def get_constraints(self):
-        """ Retrieve the hardware constrains from the motor device.
-
-        Provides all the constraints for the xyz stage  and rot stage (like total
-        movement, velocity, ...)
-        Each constraint is a tuple of the form
-            (min_value, max_value, stepsize)
-
-            @return dict constraints : dict with constraints for the device
-        """
-        # TODO get constraints auto by gcs
-
-        constraints = OrderedDict()
-
-
-        axis0 = {'label': self._first_axis_label,
-                 'ID': self._first_axis_ID,
-                 'unit': 'm',
-                 'ramp': None,
-                 'pos_min': self._min_first,
-                 'pos_max': self._max_first,
-                 'pos_step': self.step_first_axis,
-                 'vel_min': None,
-                 'vel_max': None,
-                 'vel_step': None,
-                 'acc_min': None,
-                 'acc_max': None,
-                 'acc_step': None}
-
-        axis1 = {'label': self._second_axis_label,
-                 'ID': self._second_axis_ID,
-                 'unit': 'm',
-                 'ramp': None,
-                 'pos_min': self._min_second,
-                 'pos_max': self._max_second,
-                 'pos_step': self.step_second_axis,
-                 'vel_min': None,
-                 'vel_max': None,
-                 'vel_step': None,
-                 'acc_min': None,
-                 'acc_max': None,
-                 'acc_step': None}
-
-        axis2 = {'label': self._third_axis_label,
-                 'ID': self._third_axis_ID,
-                 'unit': 'm',
-                 'ramp': None,
-                 'pos_min': self._min_third,
-                 'pos_max': self._max_third,
-                 'pos_step': self.step_third_axis,
-                 'vel_min': None,
-                 'vel_max': None,
-                 'vel_step': None,
-                 'acc_min': None,
-                 'acc_max': None,
-                 'acc_step': None}
-
-        # assign the parameter container for x to a name which will identify it
-        constraints[axis0['label']] = axis0
-        constraints[axis1['label']] = axis1
-        constraints[axis2['label']] = axis2
-        # constraints[axis3['label']] = axis3
-
-        return constraints
-
-    def _has_diff_constrains_check(self):
-        """#whether each axis range is smaller than its PI GCS range.
-        bool dict flage:_has_diff_constrains will be True.
-        To enable hardware-module pre check than PI GCS
-        for the axis move to target value.
-                             set enable?
-                             range pzt hardware?
-                             is 'P-563' ?
-                             if larger, auto-reset?
-        @return True or False
-        """
-        # TODO
-        # constraints = self._configured_constraints
-        return False
 
     def reset_hardware(self):
         """ Resets the hardware, so the connection is lost and other programs
@@ -173,18 +87,6 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         except GCSError as error:
            self.log.error(error)
            return -1
-
-    def get_position_range(self):
-        """ Returns the physical range of the scanner.
-
-        @return float [4][2]: array of 4 ranges with an array containing lower
-                              and upper limit
-        """
-        rangemin = self.pidevice.qTMN()
-        rangemax = self.pidevice.qTMX()
-        curpos = self.pidevice.qPOS()
-
-        pass
 
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -205,7 +107,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0, 10000], [0, 10000], [0, 100], [0, 1]]
+            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.], [0., 1.]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -298,22 +200,30 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
-        @param float x: postion in x-direction (volts)
-        @param float y: postion in y-direction (volts)
-        @param float z: postion in z-direction (volts)
-        @param float a: postion in a-direction (volts)
+        @param float x: postion in x-direction (m)
+        @param float y: postion in y-direction (m)
 
         @return int: error code (0:OK, -1:error)
         """
-        self.pidevice.GOH()
-        pass
+        # Convert m to um
+        x *= 1.e6
+        y *= 1.e6
+
+        self.pidevice.MOV(self._x_scanner, x)
+        pitools.waitontarget(self.pidevice, axes=self._x_scanner)
+
+        self.pidevice.MOV(self._y_scanner, y)
+        pitools.waitontarget(self.pidevice, axes=self._y_scanner)
+
+        return 0
 
     def get_scanner_position(self):
         """ Get the current position of the scanner hardware.
 
         @return float[n]: current position in (x, y, z, a).
         """
-        pass
+        position = self.pidevice.qPOS()
+        return position['1'], position['2'], 0., 0.
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.

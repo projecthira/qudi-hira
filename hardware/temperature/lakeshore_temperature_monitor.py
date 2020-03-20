@@ -30,16 +30,16 @@ from .Model224 import Model224, InstrumentException
 
 class Lakeshore224TM(Base, ProcessInterface):
     """
-        Main class for the Lakeshore 224 Temperature Monitor.
+    Main class for the Lakeshore 224 Temperature Monitor.
 
-        Example config:
+    Example config:
 
-        lakeshore_224tm:
-            module.Class: 'temperature.lakeshore_temperature_monitor.Lakeshore224TM'
-            ip_address : '192.168.0.12'
-            ip_port : 7777
-            timeout : 2
-        """
+    lakeshore_224tm:
+        module.Class: 'temperature.lakeshore_temperature_monitor.Lakeshore224TM'
+        ip_address : '192.168.0.12'
+        ip_port : 7777
+        timeout : 2
+    """
 
     _modtype = 'lakeshore_224tm'
     _modclass = 'hardware'
@@ -58,13 +58,16 @@ class Lakeshore224TM(Base, ProcessInterface):
         """
         try:
             self._inst = Model224(ip_address=self._ip_address, tcp_port=self._ip_port, timeout=self._timeout)
+            return 0
         except InstrumentException:
             self.log.error("Lakeshore controller found but unable to communicate, check IP and port.")
+            return -1
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
         self._inst.disconnect_tcp()
+        return 0
 
     def get_temperature(self, channel):
         """ Get temperature of a specific channel """

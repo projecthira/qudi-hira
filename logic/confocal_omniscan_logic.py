@@ -386,7 +386,7 @@ class ConfocalLogic(GenericLogic):
         else:
             return 0
 
-    def start_scanning(self, zscan = False, tag='logic'):
+    def start_scanning(self, zscan=False, tag='logic'):
         """Starts scanning
 
         @param bool zscan: zscan if true, xyscan if false
