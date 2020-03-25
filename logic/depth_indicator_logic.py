@@ -44,57 +44,29 @@ class DepthIndicatorLogic(GenericLogic):
         self._hdi = self.hdi()
         self.stopRequest = False
         self.bufferLength = 100
+        self.data = {}
 
-        # get laser capabilities
         self.hdi_unit = self._hdi.get_process_unit()
 
         self.init_data_logging()
-        self.start_query_loop()
 
     def on_deactivate(self):
         """ Deactivate module.
         """
-        self.stop_query_loop()
         for i in range(5):
-            time.sleep(self.queryInterval / 1000)
             QtCore.QCoreApplication.processEvents()
 
-    @QtCore.Slot()
-    def check_depth_loop(self):
-        """ Get depth from monitor. """
-        if self.stopRequest:
-            if self.module_state.can('stop'):
-                self.module_state.stop()
-            self.stopRequest = False
-            return
-        qi = self.queryInterval
-        try:
-            self.helium_depth = self._hdi.get_process_value()
-            for k in self.data:
-                self.data[k] = np.roll(self.data[k], -1)
+    @QtCore.Slot(bool)
+    def measure_depth(self, state):
+        """ Switched external driving on or off. """
+        self.helium_depth = self._hdi.get_process_value()
 
-            self.data['helium_depth'][-1] = self.helium_depth
-            self.data['time'][-1] = time.time()
-        except:
-            self.log.exception("Exception in TM status loop, throttling refresh rate.")
+        for k in self.data:
+            self.data[k] = np.roll(self.data[k], -1)
 
-        self.queryTimer.start(qi)
+        self.data['helium_depth'][-1] = self.helium_depth
+        self.data['time'][-1] = time.time()
         self.sigUpdate.emit()
-
-    @QtCore.Slot()
-    def start_query_loop(self):
-        """ Start the readout loop. """
-        self.module_state.run()
-
-    @QtCore.Slot()
-    def stop_query_loop(self):
-        """ Stop the readout loop. """
-        self.stopRequest = True
-        for i in range(10):
-            if not self.stopRequest:
-                return
-            QtCore.QCoreApplication.processEvents()
-            time.sleep(self.queryInterval / 1000)
 
     def init_data_logging(self):
         """ Zero all log buffers. """
