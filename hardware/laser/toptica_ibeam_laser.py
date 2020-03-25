@@ -73,9 +73,9 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             self.log.error('Laser does not seem to be connected.')
             return -1
         else:
+            self._communicate("ini la")
             self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
             self.set_external_state(False)
-            self.external = False
             return 0
 
     def on_deactivate(self):
@@ -110,7 +110,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """ Get control mode of laser
           @return enum ControlMode: control mode
         """
-        self.log.warning(self._model_name + ' only has power control.')
+        # self.log.warning(self._model_name + ' only has power control.')
         return ControlMode.POWER
 
     def set_control_mode(self, mode):
@@ -118,9 +118,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
           @param enum control_mode: desired control mode
           @return enum ControlMode: actual control mode
         """
-        self.log.warning(self._model_name + ' only has power control, , '
-                                            'cannot set to mode {}'.format(mode)
-                         )
+        # self.log.warning(self._model_name + ' only has power control, cannot set to mode {}'.format(mode))
         return ControlMode.POWER
 
     def get_power(self):
@@ -155,6 +153,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @param float power: desired laser power in watts
         """
+        power *= 1e3
         self._communicate('ch 1 pow {}'.format(power))
         return self.get_power()
 
@@ -170,7 +169,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return tuple(flaot, float): range for laser current
         """
-        return 0, 0.246
+        return 0, self._maxcurrent
 
     def get_current(self):
         """ Cet current laser current
@@ -215,15 +214,15 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             self.external = True
             self._communicate("en ext")
         else:
-            self.external = True
+            self.external = False
             self._communicate("di ext")
         return 0
 
     def get_external_state(self):
         if self.external:
-            return 0
+            return True
         else:
-            return -1
+            return False
 
     def get_temperatures(self):
         """ Get all available temperatures from laser.
@@ -231,7 +230,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """
         return {
             'Diode': self._get_diode_temperature(),
-            'Base Plate': self._get_baseplate_temperature()
+            # 'Base Plate': self._get_baseplate_temperature()
         }
 
     def set_temperatures(self, temps):
@@ -332,14 +331,14 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @returns string response: message received from the laser
         """
         self._send(message)
-        time.sleep(0.2)
+        time.sleep(0.05)
         response_len = self.ibeam.inWaiting()
         response = []
 
         while response_len > 0:
             this_response_line = self.ibeam.readline().decode().strip()
             response.append(this_response_line)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
             response_len = self.ibeam.inWaiting()
             if response_len == 5:

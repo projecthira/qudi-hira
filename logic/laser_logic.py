@@ -44,7 +44,7 @@ class LaserLogic(GenericLogic):
         """
         self._laser = self.laser()
         self.stopRequest = False
-        self.bufferLength = 100
+        self.bufferLength = 20
         self.data = {}
 
         # delay timer for querying laser
@@ -57,6 +57,7 @@ class LaserLogic(GenericLogic):
         self.laser_state = self._laser.get_laser_state()
         self.laser_shutter = self._laser.get_shutter_state()
         self.laser_external = self._laser.get_external_state()
+
         self.laser_can_turn_on = self.laser_state.value <= LaserState.ON.value
         self.laser_current_unit = self._laser.get_current_unit()
         self.laser_power_range = self._laser.get_power_range()
@@ -71,6 +72,8 @@ class LaserLogic(GenericLogic):
             self.laser_can_current = True
 
         self.has_shutter = self._laser.get_shutter_state() != ShutterState.NOSHUTTER
+        self.can_turn_on_external = True
+
         self.init_data_logging()
         self.start_query_loop()
 
@@ -92,21 +95,23 @@ class LaserLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-            #print('laserloop', QtCore.QThread.currentThreadId())
+            # print('laserloop', QtCore.QThread.currentThreadId())
             self.laser_state = self._laser.get_laser_state()
             self.laser_shutter = self._laser.get_shutter_state()
             self.laser_external = self._laser.get_external_state()
             self.laser_power = self._laser.get_power()
-            self.laser_power_setpoint = self._laser.get_power_setpoint()
+            # self.laser_power_setpoint = self._laser.get_power_setpoint()
+            self.laser_power_setpoint = 0.0
             self.laser_current = self._laser.get_current()
-            self.laser_current_setpoint = self._laser.get_current_setpoint()
+            # self.laser_current_setpoint = self._laser.get_current_setpoint()
+            self.laser_current_setpoint = 0.0
             self.laser_temps = self._laser.get_temperatures()
 
             for k in self.data:
                 self.data[k] = np.roll(self.data[k], -1)
 
             self.data['power'][-1] = self.laser_power
-            self.data['current'][-1] = self.laser_current
+            # self.data['current'][-1] = self.laser_current
             self.data['time'][-1] = time.time()
 
             for k, v in self.laser_temps.items():
@@ -136,7 +141,7 @@ class LaserLogic(GenericLogic):
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['current'] = np.zeros(self.bufferLength)
+        # self.data['current'] = np.zeros(self.bufferLength)
         self.data['power'] = np.zeros(self.bufferLength)
         self.data['time'] = np.ones(self.bufferLength) * time.time()
         temps = self._laser.get_temperatures()
@@ -172,6 +177,11 @@ class LaserLogic(GenericLogic):
     def set_external_state(self, state):
         """ Switched external driving on or off. """
         self._laser.set_external_state(state)
+
+    @QtCore.Slot(bool)
+    def set_shutter_state(self, state):
+        """ Switched external driving on or off. """
+        self._laser.set_shutter_state(state)
 
     @QtCore.Slot(float)
     def set_power(self, power):

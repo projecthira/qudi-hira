@@ -100,9 +100,9 @@ class LaserGUI(GUIBase):
         self._mw.pwContainer.layout().addWidget(self._mw.plotWidget)
 
         plot1 = self._mw.plotWidget.getPlotItem()
-        plot1.setLabel('left', 'power', units='W', color=palette.c1.name())
+        plot1.setLabel('left', 'Power', units='W', color=palette.c1.name())
         plot1.setLabel('bottom', 'Time', units=None)
-        plot1.setLabel('right', 'Temperature', units='°C', color=palette.c3.name())
+        plot1.setLabel('right', 'Diode Temperature', units='°C', color=palette.c3.name())
 
         plot2 = pg.ViewBox()
         plot1.scene().addItem(plot2)
@@ -119,7 +119,7 @@ class LaserGUI(GUIBase):
                     curve.setPen(palette.c1)
                     plot1.addItem(curve)
                 else:
-                    curve.setPen(colorlist[(2*i) % len(colorlist)])
+                    curve.setPen(palette.c3)
                     plot2.addItem(curve)
                 self.curves[name] = curve
                 i += 1
@@ -255,6 +255,17 @@ class LaserGUI(GUIBase):
         else:
             self._mw.shutterButton.setText('Shutter: ?')
 
+        self._mw.externalButton.setEnabled(self._laser_logic.can_turn_on_external)
+        if self._laser_logic.laser_external:
+            self._mw.externalButton.setText('External: ON')
+            self._mw.externalButton.setChecked(True)
+            self._mw.externalButton.setStyleSheet('')
+        elif not self._laser_logic.laser_external:
+            self._mw.externalButton.setText('External: OFF')
+            self._mw.externalButton.setChecked(False)
+        else:
+            self._mw.externalButton.setText('External: ?')
+
         self._mw.currentRadioButton.setEnabled(self._laser_logic.laser_can_current)
         self._mw.powerRadioButton.setEnabled(self._laser_logic.laser_can_power)
 
@@ -274,9 +285,11 @@ class LaserGUI(GUIBase):
     @QtCore.Slot()
     def updateFromSpinBox(self):
         """ The user has changed the spinbox, update all other values from that. """
-        self._mw.setValueVerticalSlider.setValue(self._mw.setValueDoubleSpinBox.value())
+        lpr = self._laser_logic.laser_power_range
+        self._mw.setValueVerticalSlider.setValue(
+            (self._mw.setValueDoubleSpinBox.value() - lpr[0]) / (lpr[1] - lpr[0]) * 100)
         cur = self._mw.currentRadioButton.isChecked() and self._mw.currentRadioButton.isEnabled()
-        pwr = self._mw.powerRadioButton.isChecked() and  self._mw.powerRadioButton.isEnabled()
+        pwr = self._mw.powerRadioButton.isChecked() and self._mw.powerRadioButton.isEnabled()
         if pwr and not cur:
             self.sigPower.emit(self._mw.setValueDoubleSpinBox.value())
         elif cur and not pwr:

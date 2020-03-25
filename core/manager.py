@@ -994,7 +994,7 @@ class Manager(QtCore.QObject):
         module = self.tree['loaded'][base][name]
         try:
             if not self.isModuleActive(base, name):
-                logger.error('{0} module {1} is not activated.'.format(base, name))
+                logger.warning('{0} module {1} is not activated.'.format(base, name))
                 return
         except:
             logger.exception(
