@@ -1,0 +1,23 @@
+Nanonis Programming Interface
+----------------------------------
+
+1) What is it?
+The Programming Interface is a set of LabVIEW VIs to control many functions of the Nanonis Controller Software.
+
+
+2) Installation.
+The files are installed by default in the "user.lib" folder of LabVIEW.
+Thus, the Programming Interface VIs are directly available from the LabVIEW function palette under the "User libraries" section. 
+The "TREE.vi" VI is not meant to be run but to display all the available VIs. 
+
+
+3) Remote access.
+If you want to use the Programming Interface from another PC than the one on which the Nanonis Controller Software is running, you first have to enable the access from the Nanonis Software. 
+To do so, from the Nanonis Software main window, open the "System>Options" window and nagivate to "Programming Interface". 
+In the "Machine access configuration", add the IP address of the PC on which the Programming Interface VIs are running.
+Make sure your software firewall allows access from the remote PC. Depending on your software firewall you can add the remote PC in trusted environment or you can allow "Nanonis SPM Controller.exe" to listen to incoming connections and add port 3364 to the exceptions list.
+
+
+4) Examples.
+Several example VIs are located in the "Nanonis Prog Interface/Examples" palette section.
+
