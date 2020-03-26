@@ -35,14 +35,16 @@ class TwickenhamHDI(Base, ProcessInterface):
 
     Example config for copy-paste:
 
-    laser_toptica:
+    twickenham_hdi:
         module.Class: 'hdi.twickenham_hdi.TwickenhamHDI'
         com_port: 'COM1'
     """
 
     _modclass = 'TwickenhamHDI'
     _modtype = 'hardware'
-    _com_port = ConfigOption('com_port', 'COM1', missing='error')
+    _com_port = ConfigOption('com_port', default='COM1', missing='error')
+    _channel = ConfigOption('channel', default="P0", missing='warn')
+    _meas_speed = ConfigOption('meas_speed', default="M2", missing='warn')
 
     def on_activate(self):
         """ Activate module.
@@ -68,14 +70,22 @@ class TwickenhamHDI(Base, ProcessInterface):
 
     def get_helium_level(self):
         # Choose channel A or B (most likely A)
-        self._communicate("P0")
+        self._communicate(self._channel)
+
         # Fast measurement
-        self._communicate("M2")
+        self._communicate(self._meas_speed)
+
         # Readout display
         level = self._communicate("G")
+
         # Go to STANDBY mode
-        self._communicate("M0")
+        self.goto_standby()
+
+        self.log.info("HDI queried, now in standby")
         return level
+
+    def goto_standby(self):
+        return self._communicate("M0")
 
     def get_process_value(self, channel=None):
         """ Get measured value of the depth """

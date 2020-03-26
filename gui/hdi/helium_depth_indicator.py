@@ -50,6 +50,7 @@ class DepthIndicatorGUI(GUIBase):
     # declare connectors
     hdi_logic = Connector(interface='DepthIndicatorLogic')
     sigPower = QtCore.Signal(float)
+    sigMeasure = QtCore.Signal(bool)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -63,10 +64,8 @@ class DepthIndicatorGUI(GUIBase):
         # Configuring the dock widgets
         # Use the inherited class 'CounterMainWindow' to create the GUI window
         self._mw = DepthWindow()
-
-        # Setup dock widgets
-        self._mw.setDockNestingEnabled(True)
-        self._mw.actionReset_View.triggered.connect(self.restoreDefaultView)
+        self._mw.measuredepthButton.clicked.connect(self.measureDepth)
+        self.sigMeasure.connect(self._hdi_logic.measure_depth)
         self._hdi_logic.sigUpdate.connect(self.updateGui)
 
     def on_deactivate(self):
@@ -81,12 +80,16 @@ class DepthIndicatorGUI(GUIBase):
         self._mw.activateWindow()
         self._mw.raise_()
 
-    def restoreDefaultView(self):
-        """ Restore the arrangement of DockWidgets to the default
+    @QtCore.Slot(bool)
+    def measureDepth(self, on):
+        """ Disable laser shutter button and give logic signal.
+            Logic reaction to that signal will enable the button again.
         """
-        pass
+        self._mw.measuredepthButton.setEnabled(False)
+        self.sigMeasure.emit(on)
+        self._mw.measuredepthButton.setEnabled(True)
 
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
-        self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._hdi_logic.baseplate_temp))
+        self._mw.heliumDepth.setText('{0:6.1f} mm'.format(self._hdi_logic.helium_depth))
