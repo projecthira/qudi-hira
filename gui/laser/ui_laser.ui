@@ -216,8 +216,8 @@
     <number>1</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_2">
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
       <widget class="QRadioButton" name="currentRadioButton">
        <property name="enabled">
         <bool>false</bool>
@@ -230,7 +230,7 @@
        </attribute>
       </widget>
      </item>
-     <item row="1" column="0">
+     <item>
       <widget class="QRadioButton" name="powerRadioButton">
        <property name="enabled">
         <bool>false</bool>
@@ -246,7 +246,7 @@
        </attribute>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item>
       <widget class="QLabel" name="powerLabel">
        <property name="font">
         <font>
@@ -258,7 +258,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item>
       <widget class="QLabel" name="currentLabel">
        <property name="font">
         <font>
@@ -270,22 +270,53 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
+     <item>
       <widget class="ScienDSpinBox" name="setValueDoubleSpinBox">
        <property name="suffix">
         <string>W</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QSlider" name="setValueVerticalSlider">
-       <property name="maximum">
-        <number>100</number>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QSlider" name="setValueVerticalSlider">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBothSides</enum>
+         </property>
+         <property name="tickInterval">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>

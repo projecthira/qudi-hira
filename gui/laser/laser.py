@@ -65,8 +65,6 @@ class LaserWindow(QtWidgets.QMainWindow):
 class LaserGUI(GUIBase):
     """ FIXME: Please document
     """
-
-    ## declare connectors
     laserlogic = Connector(interface='LaserLogic')
 
     sigLaser = QtCore.Signal(bool)
