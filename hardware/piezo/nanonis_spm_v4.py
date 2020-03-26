@@ -29,7 +29,7 @@ from core.util.modules import get_main_dir
 import socket
 
 
-class NanonisSPM(Base):
+class NanonisSPMv4(Base):
     """Provides software backend to the Nanonis via Python.
     """
 
