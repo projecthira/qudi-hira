@@ -93,9 +93,28 @@ class PfeifferTPG366(Base, ProcessInterface):
             read_termination='\r\n',
             send_end=True
         )
+
+        try:
+            self.rm = visa.ResourceManager()
+            self._tpg = self.rm.open_resource(
+                resource_name=self._com_port,
+                timeout=self._timeout,
+                baudrate=9600,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                xonxoff=False,
+                write_termination='\r\n',
+                read_termination='\r\n',
+                send_end=True
+            )
+        except Exception as e:
+            self.log.error('Pfeiffer pressure controller does not seem to be connected. {}'.format(e))
+            return -1
+
         responce = self._tpg.query("UNI,0")
         if responce != "0":
-            self.log.error('Pfeiffer pressure controller does not seem to be connected.')
+            self.log.error('Pfeiffer pressure controller is connected but not responding.')
             return -1
         else:
             return 0

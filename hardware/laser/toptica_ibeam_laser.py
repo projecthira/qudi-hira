@@ -64,8 +64,9 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
                 timeout=5,
                 write_timeout=5
             )
-        except serial.SerialException as e:
+        except Exception as e:
             self.log.error(e)
+            return -1
 
         connected = self._connect_laser()
 
