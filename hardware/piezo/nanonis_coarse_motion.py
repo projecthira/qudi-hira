@@ -26,6 +26,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from core.module import Base
 from core.configoption import ConfigOption
 import win32com.client
+import threading
 
 
 def _get_lv_axis(axis):
@@ -60,6 +61,8 @@ def _get_lv_direction(direction):
 class NanonisCoarseMotion(Base):
     """Provides software backend to the Nanonis via LabView.
     """
+    _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha',  missing='error')
+    _vi_path_prog_interface_openappref = ConfigOption('vi_path_prog_interface_openappref',  missing='error')
     _vi_path_motor_frequency_amplitude_get = ConfigOption('vi_path_motor_frequency_amplitude_get',  missing='error')
     _vi_path_motor_frequency_amplitude_set = ConfigOption('vi_path_motor_frequency_amplitude_set',  missing='error')
     _vi_path_motor_start_move = ConfigOption('vi_path_motor_start_move',  missing='error')
@@ -81,12 +84,15 @@ class NanonisCoarseMotion(Base):
             self.labview = win32com.client.dynamic.Dispatch("Labview.Application")
             # Load all the required VIs for piezo coarse motion
             self.labview._FlagAsMethod("GetVIReference")
+            self.openappref = self.labview.GetVIReference(self._vi_path_prog_interface_openappref)
             self.motor_freq_amp_get = self.labview.GetVIReference(self._vi_path_motor_frequency_amplitude_get)
             self.motor_freq_amp_set = self.labview.GetVIReference(self._vi_path_motor_frequency_amplitude_set)
             self.motor_start_move = self.labview.GetVIReference(self._vi_path_motor_start_move)
             self.motor_step_counter_get = self.labview.GetVIReference(self._vi_path_motor_step_counter_get)
             self.motor_stop_move = self.labview.GetVIReference(self._vi_path_motor_stop_move)
-            self.open_front_panels()
+            self.run_casestruct_tcp_alpha_threaded()
+            self.open_casestruct_frontpanel()
+            # self.open_front_panels()
             self.log.info("Finished loading all required LabView VIs.")
             return 0
         except Exception as exc:
@@ -100,6 +106,30 @@ class NanonisCoarseMotion(Base):
         except TypeError:
             pass
         return 0
+
+    def open_casestruct_frontpanel(self):
+        self.casestruct_tcp_alpha = self.labview.GetVIReference(self._vi_path_casestruct_tcp_alpha)
+        try:
+            self.casestruct_tcp_alpha.OpenFrontPanel()
+        except TypeError:
+            pass
+
+    def create_threads(self):
+        labview = win32com.client.dynamic.Dispatch("Labview.Application")
+        casestruct_tcp_alpha = labview.GetVIReference(self._vi_path_casestruct_tcp_alpha)
+        casestruct_tcp_alpha.OpenFrontPanel()
+        casestruct_tcp_alpha.Call()
+
+    def run_casestruct_tcp_alpha_threaded(self):
+        try:
+            x = threading.Thread(target=self.create_threads(), args=(1,))
+            self.log.info("Case Struct: before running thread")
+            x.start()
+            self.log.info("Main    : wait for the thread to finish")
+            # x.join()
+            self.log.info("Main    : all done")
+        except TypeError:
+            pass
 
     def open_front_panels(self):
         try:
@@ -120,6 +150,10 @@ class NanonisCoarseMotion(Base):
             pass
         try:
             self.motor_stop_move.OpenFrontPanel()
+        except TypeError:
+            pass
+        try:
+            self.openappref.OpenFrontPanel()
         except TypeError:
             pass
 
@@ -179,11 +213,11 @@ class NanonisCoarseMotion(Base):
         :param group: Piezo group as assigned in Nanonis
         :param direction: Direction of movement "X+", "X-" etc.
         :param steps: Number of steps to take in that direction
-        :return:
+        :return: 0 if successful
         """
-        if group == "tip":
+        if group == "tip" or group == self._tip_group:
             self.motor_start_move.setControlValue("Group", self._tip_group)
-        elif group == "sample":
+        elif group == "sample" or group == self._sample_group:
             self.motor_start_move.setControlValue("Group", self._sample_group)
         else:
             self.log.warn("Group parameter {} is not 'tip' or 'sample'.".format(group))

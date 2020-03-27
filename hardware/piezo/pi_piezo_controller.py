@@ -96,7 +96,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                               and upper limit. The unit of the scan range is
                               meters.
         """
-        return self._scanner_position_ranges
+        return [[0., 1.e-2], [0., 1.e-2], [0., 1.e-4], [0., 1.]]
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
