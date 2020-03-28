@@ -80,7 +80,8 @@ class NanonisCoarseMotion(Base):
     def on_activate(self):
         try:
             # Dispatches a signal to open 64-bit LabView
-            # dynamic dispatch is required to ensure late-binding of application, otherwise the code will not run
+            # dynamic dispatch is required to ensure late-binding of application, otherwise the code will not be
+            # able to read all available LabView container functions
             self.labview = win32com.client.dynamic.Dispatch("Labview.Application")
             # Load all the required VIs for piezo coarse motion
             self.labview._FlagAsMethod("GetVIReference")
@@ -106,13 +107,13 @@ class NanonisCoarseMotion(Base):
         return 0
 
     def run_casestruct_tcp_alpha(self):
-        """ Runs a non-blocking command shell prompt to call casestruct alpha, which is required for setting up
-        the Nanonis server communication.
+        """ Runs a non-blocking command shell prompt in a subprocess to call casestruct_tcp_alpha.vi, which is
+        required for setting up the Nanonis server communication.
 
         :return: 0 if successful
         """
-        self.log.info("Launching LabView server in a subprocess.")
-        subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
+        self.process = subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
+        self.log.info("Launching LabView server in a subprocess PID = {}.".format(self.process.pid))
         return 0
 
     def open_front_panels(self):
