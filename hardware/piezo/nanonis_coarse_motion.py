@@ -26,7 +26,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from core.module import Base
 from core.configoption import ConfigOption
 import win32com.client
-import threading
+import subprocess
 
 
 def _get_lv_axis(axis):
@@ -61,20 +61,20 @@ def _get_lv_direction(direction):
 class NanonisCoarseMotion(Base):
     """Provides software backend to the Nanonis via LabView.
     """
-    _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha',  missing='error')
-    _vi_path_prog_interface_openappref = ConfigOption('vi_path_prog_interface_openappref',  missing='error')
-    _vi_path_motor_frequency_amplitude_get = ConfigOption('vi_path_motor_frequency_amplitude_get',  missing='error')
-    _vi_path_motor_frequency_amplitude_set = ConfigOption('vi_path_motor_frequency_amplitude_set',  missing='error')
-    _vi_path_motor_start_move = ConfigOption('vi_path_motor_start_move',  missing='error')
-    _vi_path_motor_step_counter_get = ConfigOption('vi_path_motor_step_counter_get',  missing='error')
-    _vi_path_motor_stop_move = ConfigOption('vi_path_motor_stop_move',  missing='error')
+    _labview_path = ConfigOption('labview_path', missing='error')
+    _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha', missing='error')
+    _vi_path_motor_frequency_amplitude_get = ConfigOption('vi_path_motor_frequency_amplitude_get', missing='error')
+    _vi_path_motor_frequency_amplitude_set = ConfigOption('vi_path_motor_frequency_amplitude_set', missing='error')
+    _vi_path_motor_start_move = ConfigOption('vi_path_motor_start_move', missing='error')
+    _vi_path_motor_step_counter_get = ConfigOption('vi_path_motor_step_counter_get', missing='error')
+    _vi_path_motor_stop_move = ConfigOption('vi_path_motor_stop_move', missing='error')
     _sample_group = ConfigOption('sample_group', default=0, missing='warn')
     _tip_group = ConfigOption('tip_group', default=1, missing='warn')
 
-    #_host = ConfigOption('host', default='localhost', missing='error')
+    # _host = ConfigOption('host', default='localhost', missing='error')
 
     _host = 'localhost'
-    #_port = ConfigOption('port', default=3353, missing='error')
+    # _port = ConfigOption('port', default=3353, missing='error')
     _port = 3364
 
     def on_activate(self):
@@ -84,14 +84,12 @@ class NanonisCoarseMotion(Base):
             self.labview = win32com.client.dynamic.Dispatch("Labview.Application")
             # Load all the required VIs for piezo coarse motion
             self.labview._FlagAsMethod("GetVIReference")
-            self.openappref = self.labview.GetVIReference(self._vi_path_prog_interface_openappref)
             self.motor_freq_amp_get = self.labview.GetVIReference(self._vi_path_motor_frequency_amplitude_get)
             self.motor_freq_amp_set = self.labview.GetVIReference(self._vi_path_motor_frequency_amplitude_set)
             self.motor_start_move = self.labview.GetVIReference(self._vi_path_motor_start_move)
             self.motor_step_counter_get = self.labview.GetVIReference(self._vi_path_motor_step_counter_get)
             self.motor_stop_move = self.labview.GetVIReference(self._vi_path_motor_stop_move)
-            self.run_casestruct_tcp_alpha_threaded()
-            self.open_casestruct_frontpanel()
+            self.run_casestruct_tcp_alpha()
             # self.open_front_panels()
             self.log.info("Finished loading all required LabView VIs.")
             return 0
@@ -107,35 +105,17 @@ class NanonisCoarseMotion(Base):
             pass
         return 0
 
-    def open_casestruct_frontpanel(self):
-        self.casestruct_tcp_alpha = self.labview.GetVIReference(self._vi_path_casestruct_tcp_alpha)
-        try:
-            self.casestruct_tcp_alpha.OpenFrontPanel()
-        except TypeError:
-            pass
+    def run_casestruct_tcp_alpha(self):
+        """ Runs a non-blocking command shell prompt to call casestruct alpha, which is required for setting up
+        the Nanonis server communication.
 
-    def create_threads(self):
-        labview = win32com.client.dynamic.Dispatch("Labview.Application")
-        casestruct_tcp_alpha = labview.GetVIReference(self._vi_path_casestruct_tcp_alpha)
-        casestruct_tcp_alpha.OpenFrontPanel()
-        casestruct_tcp_alpha.Call()
-
-    def run_casestruct_tcp_alpha_threaded(self):
-        try:
-            x = threading.Thread(target=self.create_threads(), args=(1,))
-            self.log.info("Case Struct: before running thread")
-            x.start()
-            self.log.info("Main    : wait for the thread to finish")
-            # x.join()
-            self.log.info("Main    : all done")
-        except TypeError:
-            pass
+        :return: 0 if successful
+        """
+        self.log.info("Launching LabView server in a subprocess.")
+        subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
+        return 0
 
     def open_front_panels(self):
-        try:
-            self.motor_freq_amp_get.OpenFrontPanel()
-        except TypeError:
-            pass
         try:
             self.motor_freq_amp_set.OpenFrontPanel()
         except TypeError:
