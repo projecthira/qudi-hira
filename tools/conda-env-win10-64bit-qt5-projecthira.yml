@@ -105,12 +105,15 @@ dependencies:
     - gitdb2==2.0.3
     - gitpython==2.1.10
     - iso8601==0.1.12
+    - lakeshore==1.3.0
     - lmfit==0.9.10
+    - pipython==1.3.9.40
     - plumbum==1.6.6
     - pydaqmx==1.4.1
     - pyflowgraph-qo==0.0.3.1
     - pyqtgraph-qo==0.10.0.4
     - pyvisa==1.9.0
+    - pywin32==227
     - pyyaml==3.12
     - qtpy==1.4.2
     - rpyc==4.0.2
@@ -120,4 +123,3 @@ dependencies:
     - smmap2==2.0.3
     - typing==3.6.4
     - uncertainties==3.0.2
-
