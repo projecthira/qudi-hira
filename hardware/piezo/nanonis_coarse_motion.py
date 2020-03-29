@@ -5,7 +5,7 @@ __email__ = "d.pinto@fkf.mpg.de"
 This file contains the Nanonis LabView controller module for Qudi
 using the official LabView VI files from SPECS. 
 
-Requires 64-bit LabView with backend configured to output to Nanonis
+Requires 64-bit LabView with server configured to output to Nanonis
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ def _get_lv_direction(direction):
 
 
 class NanonisCoarseMotion(Base):
-    """Provides software backend to the Nanonis via LabView.
+    """Provides software interface to the Nanonis Coarse Motion via LabView.
     """
     _labview_path = ConfigOption('labview_path', missing='error')
     _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha', missing='error')
@@ -72,12 +72,13 @@ class NanonisCoarseMotion(Base):
     _tip_group = ConfigOption('tip_group', default=1, missing='warn')
 
     # _host = ConfigOption('host', default='localhost', missing='error')
-
-    _host = 'localhost'
     # _port = ConfigOption('port', default=3353, missing='error')
-    _port = 3364
 
     def on_activate(self):
+        """ Initialise and activate the hardware module.
+
+            @return: error code (0:OK, -1:error)
+        """
         try:
             # Dispatches a signal to open 64-bit LabView
             # dynamic dispatch is required to ensure late-binding of application, otherwise the code will not be
@@ -96,9 +97,13 @@ class NanonisCoarseMotion(Base):
             return 0
         except Exception as exc:
             self.log.error("Error during LabView connection : {}".format(exc))
-            return 1
+            return -1
 
     def on_deactivate(self):
+        """ Deinitialise and deactivate the hardware module.
+
+            @return: error code (0:OK, -1:error)
+        """
         try:
             self.log.info("LabView Save Dialog should be dealt with.")
             self.labview.Quit()
@@ -113,10 +118,14 @@ class NanonisCoarseMotion(Base):
         :return: 0 if successful
         """
         self.process = subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
-        self.log.info("Launching LabView server in a subprocess PID = {}.".format(self.process.pid))
+        self.log.info("Launching LabView in a subprocess PID = {}.".format(self.process.pid))
         return 0
 
     def open_front_panels(self):
+        """ Open all LabView front panels used.
+
+        @return: 0
+        """
         try:
             self.motor_freq_amp_set.OpenFrontPanel()
         except TypeError:
@@ -137,6 +146,7 @@ class NanonisCoarseMotion(Base):
             self.openappref.OpenFrontPanel()
         except TypeError:
             pass
+        return 0
 
     def get_amplitude(self, axis=None):
         """ Get driving amplitude of piezo motion from LabView.
