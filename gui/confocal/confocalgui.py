@@ -79,6 +79,7 @@ class ConfocalSettingDialog(QtWidgets.QDialog):
         uic.loadUi(ui_file, self)
 
 
+
 class OptimizerSettingDialog(QtWidgets.QDialog):
     """ User configurable settings for the optimizer embedded in cofocal gui"""
 
@@ -90,6 +91,7 @@ class OptimizerSettingDialog(QtWidgets.QDialog):
         # Load it
         super(OptimizerSettingDialog, self).__init__()
         uic.loadUi(ui_file, self)
+
 
 class SaveDialog(QtWidgets.QDialog):
     """ Dialog to provide feedback and block GUI while saving """
@@ -136,6 +138,14 @@ class ConfocalGui(GUIBase):
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
+        import pythoncom
+        import win32com.client
+        # Initialize
+        pythoncom.CoInitialize()
+        # Get instance
+        labview_gui = win32com.client.dynamic.Dispatch('Labview.Application')
+        # Create id
+        self.labview_id_gui = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_gui)
 
     def on_activate(self):
         """ Initializes all needed UI files and establishes the connectors.
@@ -148,6 +158,8 @@ class ConfocalGui(GUIBase):
         self._scanning_logic = self.confocallogic1()
         self._save_logic = self.savelogic()
         self._optimizer_logic = self.optimizerlogic1()
+
+        self._scanning_logic.pass_id_from_gui(self.labview_id_gui)
 
         self._hardware_state = True
 

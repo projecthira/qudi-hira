@@ -56,13 +56,14 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self._scanner_hw = self.confocalscanner1()
         self._slowcounter_hw = self.counter1()
 
+    def pass_id_from_logic(self, labview_id_logic):
+        self._scanner_hw.get_id_from_logic(labview_id_logic)
+
+    def pass_id_from_gui(self, labview_id_gui):
+        self._scanner_hw.get_id_from_gui(labview_id_gui)
+
     def on_deactivate(self):
         self.reset_hardware()
-
-    def activate_from_logic(self, labview_id):
-        self._scanner_hw.activate_from_logic(labview_id)
-
-    def deactivate_from_logic(self):
         self._scanner_hw.deactivate_from_logic()
 
     def reset_hardware(self):
@@ -191,10 +192,12 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self.set_up_line(np.shape(line_path)[1])
 
         count_data = np.zeros(self._line_length)
+        print(line_path)
 
         for i in range(self._line_length):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1])
+            print("Set scanner position")
 
             # record spectral data
             count_data = self._slowcounter_hw.get_counter()

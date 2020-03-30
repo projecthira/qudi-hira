@@ -26,11 +26,11 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from core.module import Base
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 from core.configoption import ConfigOption
-import win32com.client
-import pythoncom
 import subprocess
 import numpy as np
 import time
+import pythoncom
+import win32com.client
 
 
 def _limit_precision(number):
@@ -63,6 +63,8 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
+        self.run_casestruct_tcp_alpha()
+
         return 0
         try:
             # Dispatches a signal to open 64-bit LabView
@@ -97,24 +99,55 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
             pass
         return 0
 
-    def activate_from_logic(self, labview_id):
+    def get_id_from_logic(self, labview_id_logic):
         pythoncom.CoInitialize()
 
         # Get instance from the id
-        self.labview = win32com.client.dynamic.Dispatch(
-            pythoncom.CoGetInterfaceAndReleaseStream(labview_id, pythoncom.IID_IDispatch)
+        self.labview_logic = win32com.client.dynamic.Dispatch(
+            pythoncom.CoGetInterfaceAndReleaseStream(labview_id_logic, pythoncom.IID_IDispatch)
         )
         # Load all the required VIs for scanner motion
-        self.labview._FlagAsMethod("GetVIReference")
-        self.scanner_speed_set = self.labview.GetVIReference(self._vi_path_folme_speed_set)
-        self.scanner_speed_get = self.labview.GetVIReference(self._vi_path_folme_speed_get)
-        self.scanner_xy_pos_set = self.labview.GetVIReference(self._vi_path_xy_pos_set_fast)
-        self.scanner_xy_pos_get = self.labview.GetVIReference(self._vi_path_xy_pos_get)
-        self.scanner_stop = self.labview.GetVIReference(self._vi_path_folme_stop_movement)
+        self.labview_logic._FlagAsMethod("GetVIReference")
+        self.scanner_speed_set_logic = self.labview_logic.GetVIReference(self._vi_path_folme_speed_set)
+        self.scanner_speed_get_logic = self.labview_logic.GetVIReference(self._vi_path_folme_speed_get)
+        self.scanner_xy_pos_set_logic = self.labview_logic.GetVIReference(self._vi_path_xy_pos_set_fast)
+        self.scanner_xy_pos_get_logic = self.labview_logic.GetVIReference(self._vi_path_xy_pos_get)
+        self.scanner_stop_logic = self.labview_logic.GetVIReference(self._vi_path_folme_stop_movement)
 
-        # self.run_casestruct_tcp_alpha()
-        # self.open_front_panels()
-        self.log.info("Finished loading all required LabView VIs.")
+    def get_id_from_gui(self, labview_id_gui):
+        pythoncom.CoInitialize()
+
+        # Get instance from the id
+        self.labview_gui = win32com.client.dynamic.Dispatch(
+            pythoncom.CoGetInterfaceAndReleaseStream(labview_id_gui, pythoncom.IID_IDispatch)
+        )
+        # Load all the required VIs for scanner motion
+        self.labview_gui._FlagAsMethod("GetVIReference")
+        self.scanner_speed_set_gui = self.labview_gui.GetVIReference(self._vi_path_folme_speed_set)
+        self.scanner_speed_get_gui = self.labview_gui.GetVIReference(self._vi_path_folme_speed_get)
+        self.scanner_xy_pos_set_gui = self.labview_gui.GetVIReference(self._vi_path_xy_pos_set_fast)
+        self.scanner_xy_pos_get_gui = self.labview_gui.GetVIReference(self._vi_path_xy_pos_get)
+        self.scanner_stop_gui = self.labview_gui.GetVIReference(self._vi_path_folme_stop_movement)
+
+    # def activate_from_logic(self, labview_id):
+    #     # Get instance from the id
+    #     self.labview = win32com.client.dynamic.Dispatch(
+    #         pythoncom.CoGetInterfaceAndReleaseStream(labview_id, pythoncom.IID_IDispatch)
+    #     )
+    #
+    #     # Load all the required VIs for scanner motion
+    #     self.labview._FlagAsMethod("GetVIReference")
+    #     self.scanner_speed_set = self.labview.GetVIReference(self._vi_path_folme_speed_set)
+    #     self.scanner_speed_get = self.labview.GetVIReference(self._vi_path_folme_speed_get)
+    #     self.scanner_xy_pos_set = self.labview.GetVIReference(self._vi_path_xy_pos_set_fast)
+    #     self.scanner_xy_pos_get = self.labview.GetVIReference(self._vi_path_xy_pos_get)
+    #     self.scanner_stop = self.labview.GetVIReference(self._vi_path_folme_stop_movement)
+    #
+    #     self.run_casestruct_tcp_alpha()
+    #     # self.open_front_panels()
+    #     self.log.info("Finished loading all required LabView VIs.")
+    #     print("getting scan speed from HW")
+    #     self.get_scan_speed()
 
     def deactivate_from_logic(self):
         try:
@@ -299,18 +332,38 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.scanner_xy_pos_set.setControlValue("X (m)", x)
-        self.scanner_xy_pos_set.setControlValue("Y (m)", y)
-
+        print(x, y)
+        time.sleep(1)
         try:
-            self.scanner_xy_pos_set.Run()
+            self.scanner_xy_pos_set_logic.setControlValue("X (m)", x)
+            self.scanner_xy_pos_set_logic.setControlValue("Y (m)", y)
+            print("Set logic")
         except TypeError:
             pass
+        except Exception:
+            try:
+                self.scanner_xy_pos_set_gui.setControlValue("X (m)", x)
+                self.scanner_xy_pos_set_gui.setControlValue("Y (m)", y)
+                print("Set GUI")
+            except TypeError:
+                pass
+
+
+        try:
+            self.scanner_xy_pos_set_logic.Run()
+        except TypeError:
+            pass
+        except Exception:
+            try:
+                self.scanner_xy_pos_set_gui.Run()
+            except TypeError:
+                pass
+        print("Im here")
 
         actual_pos = self.get_scanner_position()
 
         if x != actual_pos[0] or y != actual_pos[1]:
-            self.log.warn("Scanners did not set position correctly. TARGET = {0}{1}, ACTUAL = {2}{3}".
+            self.log.warn("Scanners did not set position correctly. TARGET = {0},{1}, ACTUAL = {2},{3}".
                           format(x, y, actual_pos[0], actual_pos[1]))
         return 0
 
@@ -324,12 +377,26 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         try:
-            self.scanner_xy_pos_get.Run()
+            self.scanner_xy_pos_get_logic.Run()
         except TypeError:
             pass
+        except Exception:
+            try:
+                self.scanner_xy_pos_get_gui.Run()
+            except TypeError:
+                pass
         # Limit to 10 decimal places of precision to synchronize Python and Nanonis values
-        x = _limit_precision(self.scanner_xy_pos_get.getControlValue("X (m)"))
-        y = _limit_precision(self.scanner_xy_pos_get.getControlValue("Y (m)"))
+        try:
+            x = _limit_precision(self.scanner_xy_pos_get_logic.getControlValue("X (m)"))
+            y = _limit_precision(self.scanner_xy_pos_get_logic.getControlValue("Y (m)"))
+        except TypeError:
+            pass
+        except Exception:
+            try:
+                x = _limit_precision(self.scanner_xy_pos_get_gui.getControlValue("X (m)"))
+                y = _limit_precision(self.scanner_xy_pos_get_gui.getControlValue("Y (m)"))
+            except TypeError:
+                pass
         return [x, y, 0., 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):

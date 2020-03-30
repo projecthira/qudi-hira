@@ -32,8 +32,6 @@ from logic.generic_logic import GenericLogic
 from core.util.mutex import Mutex
 from core.connector import Connector
 from core.statusvariable import StatusVar
-import pythoncom
-import win32com.client
 
 
 class OldConfigFileError(Exception):
@@ -104,6 +102,15 @@ class ConfocalHistoryEntry(QtCore.QObject):
         self.tilt_slope_y = 0
         self.tilt_reference_x = 0
         self.tilt_reference_y = 0
+
+        import pythoncom
+        import win32com.client
+        # Initialize
+        pythoncom.CoInitialize()
+        # Get instance
+        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
+        # Create id
+        self.labview_id = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
 
     def restore(self, confocal):
         """ Write data back into confocal logic and pull all the necessary strings """
@@ -261,7 +268,7 @@ class ConfocalLogic(GenericLogic):
 
     # status vars
     _clock_frequency = StatusVar('clock_frequency', 500)
-    return_slowness = StatusVar(default=50)
+    return_slowness = StatusVar(default=2)
     max_history_length = StatusVar(default=10)
 
     # signals
@@ -301,6 +308,14 @@ class ConfocalLogic(GenericLogic):
         self.depth_scan_dir_is_xz = True
         self.depth_img_is_xz = True
         self.permanent_scan = False
+        import pythoncom
+        import win32com.client
+        # Initialize
+        pythoncom.CoInitialize()
+        # Get instance
+        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
+        # Create id
+        self.labview_id_logic = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -308,13 +323,7 @@ class ConfocalLogic(GenericLogic):
         self._scanning_device = self.confocalscanner1()
         self._save_logic = self.savelogic()
 
-        # Initialize
-        pythoncom.CoInitialize()
-        # Get instance
-        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
-        # Create id
-        labview_id = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
-        self._scanning_device.activate_from_logic(labview_id)
+        self._scanning_device.pass_id_from_logic(self.labview_id_logic)
 
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
         self.x_range = self._scanning_device.get_position_range()[0]
@@ -359,6 +368,12 @@ class ConfocalLogic(GenericLogic):
 
         self._change_position('activation')
 
+    def pass_id_from_gui(self, labview_id_gui):
+        self._scanning_device.pass_id_from_gui(labview_id_gui)
+
+    def get_scanner_position(self):
+        self._scanning_device.get_scanner_position()
+
     def on_deactivate(self):
         """ Reverse steps of activation
 
@@ -371,7 +386,6 @@ class ConfocalLogic(GenericLogic):
         for state in reversed(self.history):
             self._statusVariables['history_{0}'.format(histindex)] = state.serialize()
             histindex += 1
-        self._scanning_device.deactivate_from_logic()
         return 0
 
     def switch_hardware(self, to_on=False):
@@ -417,7 +431,12 @@ class ConfocalLogic(GenericLogic):
         else:
             self._xyscan_continuable = True
 
+        self._scanning_device.scanner_set_position(2e-9, 2e-9)
+        print("Set scanner pos")
+
         self.signal_start_scanning.emit(tag)
+        self.signal_scan_lines_next.emit()
+
         return 0
 
     def continue_scanning(self,zscan,tag='logic'):
@@ -583,6 +602,7 @@ class ConfocalLogic(GenericLogic):
         self.module_state.lock()
 
         self._scanning_device.module_state.lock()
+
         if self.initialize_image() < 0:
             self._scanning_device.module_state.unlock()
             self.module_state.unlock()
@@ -606,7 +626,7 @@ class ConfocalLogic(GenericLogic):
             self.set_position('scanner')
             return -1
 
-        self.signal_scan_lines_next.emit()
+
         return 0
 
     def continue_scanner(self):
@@ -769,13 +789,19 @@ class ConfocalLogic(GenericLogic):
                     start_line = np.vstack(
                         [lsx, lsy, lsz, np.ones(lsx.shape) * self._current_a])
                 # move to the start position of the scan, counts are thrown away
+
+
                 start_line_counts = self._scanning_device.scan_line(start_line)
+                print("Going to create start line counts")
+
                 if np.any(start_line_counts == -1):
+                    print("stop was requested to create start line counts")
                     self.stopRequested = True
                     self.signal_scan_lines_next.emit()
                     return
 
             # adjust z of line in image to current z before building the line
+
             if not self._zscan:
                 z_shape = image[self._scan_counter, :, 2].shape
                 image[self._scan_counter, :, 2] = self._current_z * np.ones(z_shape)
