@@ -32,6 +32,8 @@ from logic.generic_logic import GenericLogic
 from core.util.mutex import Mutex
 from core.connector import Connector
 from core.statusvariable import StatusVar
+import pythoncom
+import win32com.client
 
 
 class OldConfigFileError(Exception):
@@ -306,6 +308,14 @@ class ConfocalLogic(GenericLogic):
         self._scanning_device = self.confocalscanner1()
         self._save_logic = self.savelogic()
 
+        # Initialize
+        pythoncom.CoInitialize()
+        # Get instance
+        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
+        # Create id
+        labview_id = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
+        self._scanning_device.activate_from_logic(labview_id)
+
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
         self.x_range = self._scanning_device.get_position_range()[0]
         self.y_range = self._scanning_device.get_position_range()[1]
@@ -361,6 +371,7 @@ class ConfocalLogic(GenericLogic):
         for state in reversed(self.history):
             self._statusVariables['history_{0}'.format(histindex)] = state.serialize()
             histindex += 1
+        self._scanning_device.deactivate_from_logic()
         return 0
 
     def switch_hardware(self, to_on=False):

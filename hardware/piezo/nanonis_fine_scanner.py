@@ -27,9 +27,11 @@ from core.module import Base
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 from core.configoption import ConfigOption
 import win32com.client
+import pythoncom
 import subprocess
 import numpy as np
 import time
+
 
 def _limit_precision(number):
     """ Limit to 10 decimal places of precision to synchronize Python and Nanonis values. Otherwise LabView returns an
@@ -61,6 +63,7 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
+        return 0
         try:
             # Dispatches a signal to open 64-bit LabView
             # dynamic dispatch is required to ensure late-binding of application, otherwise the code will not be
@@ -86,6 +89,34 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
+        return 0
+        try:
+            self.log.info("LabView Save Dialog should be dealt with.")
+            self.labview.Quit()
+        except TypeError:
+            pass
+        return 0
+
+    def activate_from_logic(self, labview_id):
+        pythoncom.CoInitialize()
+
+        # Get instance from the id
+        self.labview = win32com.client.dynamic.Dispatch(
+            pythoncom.CoGetInterfaceAndReleaseStream(labview_id, pythoncom.IID_IDispatch)
+        )
+        # Load all the required VIs for scanner motion
+        self.labview._FlagAsMethod("GetVIReference")
+        self.scanner_speed_set = self.labview.GetVIReference(self._vi_path_folme_speed_set)
+        self.scanner_speed_get = self.labview.GetVIReference(self._vi_path_folme_speed_get)
+        self.scanner_xy_pos_set = self.labview.GetVIReference(self._vi_path_xy_pos_set_fast)
+        self.scanner_xy_pos_get = self.labview.GetVIReference(self._vi_path_xy_pos_get)
+        self.scanner_stop = self.labview.GetVIReference(self._vi_path_folme_stop_movement)
+
+        # self.run_casestruct_tcp_alpha()
+        # self.open_front_panels()
+        self.log.info("Finished loading all required LabView VIs.")
+
+    def deactivate_from_logic(self):
         try:
             self.log.info("LabView Save Dialog should be dealt with.")
             self.labview.Quit()
