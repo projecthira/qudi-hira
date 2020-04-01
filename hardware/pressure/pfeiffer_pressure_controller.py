@@ -21,38 +21,42 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import visa
 import serial
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.process_interface import ProcessInterface
+import time
 
+ETX = chr(3)  # \x03
+CR = chr(13)
+LF = chr(10)
+ENQ = chr(5)  # \x05
+ACK = chr(6)  # \x06
+NAK = chr(21)  # \x15
 
-def _status_value_to_message(status_value):
-    if status_value == "0":
-        # Measuring data okay
-        status_message = "Sensor OK"
-    elif status_value == "1":
-        # Measuring range underrange
-        status_message = "Sensor Underrange"
-    elif status_value == "2":
-        # Measuring range overrange
-        status_message = "Sensor Overrange"
-    elif status_value == "3":
-        # Sensor Error
-        status_message = "Sensor Error"
-    elif status_value == "4":
-        # Sensor switched off
-        status_message = "Sensor OFF"
-    elif status_value == "5":
-        # No gauge
-        status_message = "No gauge"
-    elif status_value == "6":
-        # Identification Error
-        status_message = "Identification Error"
-    else:
-        status_message = "Invalid response from gauge"
-    return status_message
+# Code translations constants
+MEASUREMENT_STATUS = {
+    0: 'Measurement data okay',
+    1: 'Underrange',
+    2: 'Overrange',
+    3: 'Sensor error',
+    4: 'Sensor off (IKR, PKR, IMR, PBR)',
+    5: 'No sensor',
+    6: 'Identification error'
+}
+GAUGE_IDS = {
+    'TPR': 'Pirani Gauge or Pirani Capacitive gauge',
+    'IKR9': 'Cold Cathode Gauge 10E-9 ',
+    'IKR11': 'Cold Cathode Gauge 10E-11 ',
+    'PKR': 'FullRange CC Gauge',
+    'PBR': 'FullRange BA Gauge',
+    'IMR': 'Pirani / High Pressure Gauge',
+    'CMR': 'Linear gauge',
+    'noSEn': 'no SEnsor',
+    'noid': 'no identifier'
+}
+PRESSURE_UNITS = {0: 'mbar', 1: 'Torr', 2: 'hPa'}
+PRESSURE_UNITS_FULL = {'mbar': 'millibar', 'Torr': 'torr', 'hPa': 'hectopascals'}
 
 
 class PfeifferTPG366(Base, ProcessInterface):
@@ -72,57 +76,28 @@ class PfeifferTPG366(Base, ProcessInterface):
     _modclass = 'PfeifferTPG366'
     _modtype = 'hardware'
 
-    _com_port = ConfigOption('com_port', default='COM2', missing='error')
+    _com_port = ConfigOption('com_port', default='COM3', missing='error')
     _timeout = ConfigOption('timeout', default=2, missing='warn')
-    _main_guage = ConfigOption('main_gauge', default=1, missing='warn')
-    _prep_guage = ConfigOption('prep_gauge', default=2, missing='warn')
-    _back_guage = ConfigOption('back_gauge', default=3, missing='warn')
+    _main_guage_number = ConfigOption('main_gauge_number', default=1, missing='warn')
+    _prep_guage_number = ConfigOption('prep_gauge_number', default=2, missing='warn')
+    _back_guage_number = ConfigOption('back_gauge_number', default=3, missing='warn')
 
     def on_activate(self):
-        # TODO Connect over serial interface and test
-        self.rm = visa.ResourceManager()
-        self._tpg = self.rm.open_resource(
-            resource_name=self._com_port,
+        self._tpg = serial.Serial(
+            self._com_port,
             timeout=self._timeout,
             baudrate=9600,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             xonxoff=False,
-            write_termination='\r\n',
-            read_termination='\r\n',
-            send_end=True
+            rtscts=False
         )
-
-        try:
-            self.rm = visa.ResourceManager()
-            self._tpg = self.rm.open_resource(
-                resource_name=self._com_port,
-                timeout=self._timeout,
-                baudrate=9600,
-                bytesize=serial.EIGHTBITS,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                xonxoff=False,
-                write_termination='\r\n',
-                read_termination='\r\n',
-                send_end=True
-            )
-        except Exception as e:
-            self.log.error('Pfeiffer pressure controller does not seem to be connected. {}'.format(e))
-            return -1
-
-        responce = self._tpg.query("UNI,0")
-        if responce != "0":
-            self.log.error('Pfeiffer pressure controller is connected but not responding.')
-            return -1
-        else:
-            return 0
+        return 0
 
     def on_deactivate(self):
         """ Close the connection to the instrument.
         """
-        self.off()
         self._tpg.close()
 
     def off(self, gauge=None):
@@ -141,17 +116,17 @@ class PfeifferTPG366(Base, ProcessInterface):
             # Switch off all gauges
             gauge_states = ['1'] * 6
         elif gauge == "main_gauge":
-            gauge_states[self._main_guage-1] = '1'
+            gauge_states[self._main_guage_number - 1] = '1'
         elif gauge == "prep_gauge":
-            gauge_states[self._prep_guage-1] = '1'
+            gauge_states[self._prep_guage_number - 1] = '1'
         elif gauge == "back_gauge":
-            gauge_states[self._back_guage-1] = '1'
+            gauge_states[self._back_guage_number - 1] = '1'
         else:
             self.log.error("Invalid pressure gauge specified.")
             return -1
 
         command = ','.join(gauge_states)
-        self._inst.write('SEN,{}'.format(command))
+        self._communicate('SEN,{}'.format(command))
         return 0
 
     def on(self, gauge=None):
@@ -170,17 +145,17 @@ class PfeifferTPG366(Base, ProcessInterface):
             # Switch off all gauges
             gauge_states = ['2'] * 6
         elif gauge == "main_gauge":
-            gauge_states[self._main_guage - 1] = '2'
+            gauge_states[self._main_guage_number - 1] = '2'
         elif gauge == "prep_gauge":
-            gauge_states[self._prep_guage - 1] = '2'
+            gauge_states[self._prep_guage_number - 1] = '2'
         elif gauge == "back_gauge":
-            gauge_states[self._back_guage - 1] = '2'
+            gauge_states[self._back_guage_number - 1] = '2'
         else:
             self.log.error("Invalid pressure gauge specified.")
             return -1
 
         command = ','.join(gauge_states)
-        self._inst.write('SEN,{}'.format(command))
+        self._communicate('SEN,{}'.format(command))
         return 0
 
     def get_pressure(self, channel):
@@ -190,36 +165,49 @@ class PfeifferTPG366(Base, ProcessInterface):
         @return float: channel pressure in mbar
         """
         if channel == "main_gauge":
-            channel = self._main_guage
+            channel = self._main_guage_number
         elif channel == "prep_gauge":
-            channel = self._prep_guage
+            channel = self._prep_guage_number
         elif channel == "back_gauge":
-            channel = self._back_guage
+            channel = self._back_guage_number
 
-        response = self._inst.query('PR{}'.format(channel))
+        response = self._communicate('PR{}'.format(channel))
         status, pressure = response.split(",")
 
         if status == "0":
             # Measuring data okay
             pressure = float(pressure)
         else:
-            # Measuring data non okay (see check_sensor_state)
-            pressure = float(-1)
-
+            # Measuring data not okay (see MEASUREMENT_STATUS)
+            pressure = MEASUREMENT_STATUS[int(status)]
         return pressure
 
-    def check_sensor_states(self):
+    def get_sensor_states(self):
         """ Get state of sensors
 
         @return list: list of sensor states
         """
         sensor_states = []
         for ch in range(1, 7):
-            response = self._inst.query('PR{}'.format(ch))
-            status, _ = response.split(",")
-            sensor_states.append(_status_value_to_message(status))
-
+            status, _ = self._communicate('PR{}'.format(ch)).split(",")
+            sensor_states.append(MEASUREMENT_STATUS[int(status)])
         return sensor_states
+
+    def get_sensor_names(self):
+        """ Get names of sensors
+
+        @return list: list of sensor names
+        """
+        sensor_names = self._communicate('TID').split(",")
+        return sensor_names
+
+    def get_pressure_unit(self):
+        """Return the pressure unit
+        :return: Pressure unit (mbar/Torr/hPa)
+        :rtype: str
+        """
+        unit_code = self._communicate('UNI')
+        return PRESSURE_UNITS[int(unit_code)]
 
     # ProcessInterface methods
     def get_process_value(self, channel=None):
@@ -228,4 +216,35 @@ class PfeifferTPG366(Base, ProcessInterface):
 
     def get_process_unit(self, channel=None):
         """ Return the unit of measured temperature """
-        return 'mbar', 'millibar'
+        unit = self.get_pressure_unit()
+        return unit, PRESSURE_UNITS_FULL[unit]
+
+    def _send(self, message):
+        """ Send a message to to HDI
+
+        @param string message: message to be delivered to the HDI
+        """
+        eol = '\r\n'
+        new_message = message + eol
+        self._tpg.write(new_message.encode())
+
+    def _communicate(self, message):
+        """ Sends and receive messages with the TPG
+
+        @param string message: message to be delivered to the TPG
+        @returns string response: message received from the TPG
+        """
+        self._send(message)
+        time.sleep(0.05)
+        self._send(ENQ)
+
+        response_len = self._tpg.inWaiting()
+        response = []
+
+        while response_len > 0:
+            this_response_line = self._tpg.readline().decode().strip("\r\n")
+            response.append(this_response_line)
+            time.sleep(0.05)
+            response_len = self._tpg.inWaiting()
+
+        return response[1]

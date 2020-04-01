@@ -37,6 +37,14 @@ class ProcessInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
+    def get_process_value__maximum(self):
+        """ Return a measured value
+
+        @param (int) channel: (Optional) The number of the channel
+        @return (float): The measured process value
+        """
+        pass
+
     @abstract_interface_method
     def get_process_unit(self, channel=None):
         """ Return the unit that the value is measured in as a tuple of ('abbreviation', 'full unit name')

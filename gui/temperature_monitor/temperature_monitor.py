@@ -68,8 +68,6 @@ class TemperatureMonitorGUI(GUIBase):
     ## declare connectors
     tmlogic = Connector(interface='TemperatureMonitorLogic')
 
-    sigPower = QtCore.Signal(float)
-
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 

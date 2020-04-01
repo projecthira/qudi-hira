@@ -36,7 +36,7 @@ class PressureMonitorLogic(GenericLogic):
 
     # waiting time between queries im milliseconds
     pm = Connector(interface='ProcessInterface')
-    queryInterval = ConfigOption('query_interval', 1000)
+    queryInterval = ConfigOption('query_interval', 5000)
 
     sigUpdate = QtCore.Signal()
 
@@ -84,9 +84,19 @@ class PressureMonitorLogic(GenericLogic):
             for k in self.data:
                 self.data[k] = np.roll(self.data[k], -1)
 
-            self.data['main_pressure'][-1] = self.main_pressure
-            self.data['prep_pressure'][-1] = self.prep_pressure
-            self.data['back_pressure'][-1] = self.back_pressure
+            if isinstance(self.main_pressure, float):
+                self.data['main_pressure'][-1] = self.main_pressure
+            else:
+                self.data['main_pressure'][-1] = -1
+            if isinstance(self.prep_pressure, float):
+                self.data['prep_pressure'][-1] = self.prep_pressure
+            else:
+                self.data['prep_pressure'][-1] = -1
+            if isinstance(self.back_pressure, float):
+                self.data['back_pressure'][-1] = self.back_pressure
+            else:
+                self.data['back_pressure'][-1] = -1
+
             self.data['time'][-1] = time.time()
         except:
             qi = 3000

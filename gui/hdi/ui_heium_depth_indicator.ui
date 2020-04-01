@@ -43,7 +43,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="maximumDepth">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -80,6 +80,9 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionClose">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>../../artwork/icons/oxygen/22x22/application-exit.png</normaloff>../../artwork/icons/oxygen/22x22/application-exit.png</iconset>
@@ -90,5 +93,22 @@
   </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>actionClose</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>151</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

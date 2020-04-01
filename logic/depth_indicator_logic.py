@@ -64,9 +64,16 @@ class DepthIndicatorLogic(GenericLogic):
         for k in self.data:
             self.data[k] = np.roll(self.data[k], -1)
 
-        self.data['helium_depth'][-1] = self.helium_depth
-        self.data['time'][-1] = time.time()
+        if isinstance(self.helium_depth, float):
+            self.data['helium_depth'][-1] = self.helium_depth
+            self.data['time'][-1] = time.time()
+        else:
+            self.log.info("HDI not return floating point number")
+            pass
         self.sigUpdate.emit()
+
+    def maximum_depth(self):
+        return self._hdi.get_process_value_maximum()
 
     def init_data_logging(self):
         """ Zero all log buffers. """

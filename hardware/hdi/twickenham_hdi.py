@@ -48,6 +48,7 @@ class TwickenhamHDI(Base, ProcessInterface):
     _com_port = ConfigOption('com_port', default='COM1', missing='error')
     _channel = ConfigOption('channel', default="P0", missing='warn')
     _meas_speed = ConfigOption('meas_speed', default="M2", missing='warn')
+    _max_depth = ConfigOption("max_depth", default=550)
 
     def on_activate(self):
         """ Activate module.
@@ -74,12 +75,15 @@ class TwickenhamHDI(Base, ProcessInterface):
     def get_helium_level(self):
         # Choose channel A or B (most likely A)
         self._communicate(self._channel)
+        time.sleep(0.1)
 
         # Fast measurement
         self._communicate(self._meas_speed)
+        time.sleep(0.1)
 
         # Readout display
         level = self._communicate("G")
+        time.sleep(0.1)
 
         # Go to STANDBY mode
         self.goto_standby()
@@ -89,6 +93,9 @@ class TwickenhamHDI(Base, ProcessInterface):
 
     def goto_standby(self):
         return self._communicate("M0")
+
+    def get_process_value_maximum(self):
+        return self._max_depth
 
     def get_process_value(self, channel=None):
         """ Get measured value of the depth """

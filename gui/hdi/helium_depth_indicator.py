@@ -67,6 +67,7 @@ class DepthIndicatorGUI(GUIBase):
         self._mw.measuredepthButton.clicked.connect(self.measureDepth)
         self.sigMeasure.connect(self._hdi_logic.measure_depth)
         self._hdi_logic.sigUpdate.connect(self.updateGui)
+        self._mw.maximumDepth.setText('Maximum depth : {} mm'.format(self._hdi_logic.maximum_depth()))
 
     def on_deactivate(self):
         """ Deactivate the module properly.
@@ -92,4 +93,8 @@ class DepthIndicatorGUI(GUIBase):
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
-        self._mw.heliumDepth.setText('{0:6.1f} mm'.format(self._hdi_logic.helium_depth))
+        if isinstance(self._hdi_logic.helium_depth, float):
+            self._mw.heliumDepth.setText('{0:6.1f} mm'.format(self._hdi_logic.helium_depth))
+        else:
+            self._mw.heliumDepth.setText('{}'.format(self._hdi_logic.helium_depth))
+
