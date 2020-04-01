@@ -94,13 +94,7 @@ class TemperatureMonitorGUI(GUIBase):
         plot1.setLabel('left', 'Temperature', units='K', color=palette.c1.name())
         plot1.setLabel('bottom', 'Time', units=None)
 
-        plot2 = pg.ViewBox()
-        plot1.scene().addItem(plot2)
-        plot1.getAxis('right').linkToView(plot2)
-        plot2.setXLink(plot1)
-
         self.curves = {}
-        colorlist = (palette.c2, palette.c3, palette.c4, palette.c5, palette.c6)
         i = 0
         for name in self._tm_logic.data:
             if name != 'time':
@@ -114,16 +108,10 @@ class TemperatureMonitorGUI(GUIBase):
                 elif name == 'sample_temp':
                     curve.setPen(palette.c3)
                     plot1.addItem(curve)
-                else:
-                    curve.setPen(colorlist[(2 * i) % len(colorlist)])
-                    plot2.addItem(curve)
                 self.curves[name] = curve
                 i += 1
 
         self.plot1 = plot1
-        self.plot2 = plot2
-        self.updateViews()
-        self.plot1.vb.sigResized.connect(self.updateViews)
         self._tm_logic.sigUpdate.connect(self.updateGui)
 
     def on_deactivate(self):
@@ -149,16 +137,6 @@ class TemperatureMonitorGUI(GUIBase):
 
         # Arrange docks widgets
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(2), self._mw.plotDockWidget)
-
-    @QtCore.Slot()
-    def updateViews(self):
-        """ Keep plot views for left and right axis identical when resizing the plot widget. """
-        # view has resized; update auxiliary views to match
-        self.plot2.setGeometry(self.plot1.vb.sceneBoundingRect())
-
-        # need to re-update linked axes since this was called incorrectly while views had different
-        # shapes. (probably this should be handled in ViewBox.resizeEvent)
-        self.plot2.linkedViewChanged(self.plot1.vb, self.plot2.XAxis)
 
     @QtCore.Slot()
     def updateGui(self):
