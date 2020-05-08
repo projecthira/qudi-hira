@@ -92,6 +92,7 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
             @return: error code (0:OK, -1:error)
         """
         return 0
+
         try:
             self.log.info("LabView Save Dialog should be dealt with.")
             self.labview.Quit()

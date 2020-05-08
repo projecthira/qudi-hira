@@ -42,7 +42,7 @@ class ProcessInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-    def get_process_value__maximum(self):
+    def get_process_value_maximum(self):
         """ Return a measured value
 
         @param (int) channel: (Optional) The number of the channel
