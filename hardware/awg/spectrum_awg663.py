@@ -24,6 +24,7 @@ import pickle
 from hardware.awg import SpectrumAWG35 as SpectrumAWG35
 from hardware.awg.pyspcm import *
 from core.configoption import ConfigOption
+from core.util.modules import get_home_dir
 from core.module import Base
 from collections import OrderedDict
 from interface.pulser_interface import PulserInterface, PulserConstraints
@@ -39,13 +40,13 @@ class AWG663(Base, PulserInterface):
     # config options
     awg_ip_address = ConfigOption(name='awg_ip_address', missing='error')
     waveform_folder = ConfigOption(name="waveform_folder",
-                                   default=os.path.join(os.getcwd(), 'hardware', 'awg', 'waveform'),
+                                   default=os.path.join(get_home_dir(), 'saved_pulsed_assets', 'waveform'),
                                    missing="warn")
     sequence_folder = ConfigOption(name="sequence_folder",
-                                   default=os.path.join(os.getcwd(), 'hardware', 'awg', 'sequence'),
+                                   default=os.path.join(get_home_dir(), 'saved_pulsed_assets', 'sequence'),
                                    missing="warn")
     _tmp_work_dir = ConfigOption(name='tmp_work_dir',
-                                 default=os.path.join(os.getcwd(), 'hardware', 'awg', 'temp'),
+                                 default=os.path.join(get_home_dir(), 'saved_pulsed_assets', 'temp'),
                                  missing='warn')
 
     def __init__(self, config, **kwargs):
