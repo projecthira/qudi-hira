@@ -26,6 +26,11 @@ from core.meta import InterfaceMetaclass
 
 class ProcessInterface(metaclass=InterfaceMetaclass):
     """ A simple interface to measure one or multiple value(s).
+
+    This interface is in fact a very general/universal interface that can be used for a lot of things.
+    It can be used to interface any hardware where one to simply read one or multiple process value, like a temperature
+    sensor or much coffee there is in the coffee machine.
+
     """
 
     @abstract_interface_method
@@ -37,7 +42,7 @@ class ProcessInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-    def get_process_value__maximum(self):
+    def get_process_value_maximum(self):
         """ Return a measured value
 
         @param (int) channel: (Optional) The number of the channel

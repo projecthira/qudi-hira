@@ -56,6 +56,12 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self._scanner_hw = self.confocalscanner1()
         self._slowcounter_hw = self.counter1()
 
+    def pass_id_from_logic(self, labview_id_logic):
+        self._scanner_hw.get_id_from_logic(labview_id_logic)
+
+    def pass_id_from_gui(self, labview_id_gui):
+        self._scanner_hw.get_id_from_gui(labview_id_gui)
+
     def on_deactivate(self):
         self.reset_hardware()
         self._scanner_hw.deactivate_from_logic()

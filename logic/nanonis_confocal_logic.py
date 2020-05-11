@@ -308,12 +308,22 @@ class ConfocalLogic(GenericLogic):
         self.depth_scan_dir_is_xz = True
         self.depth_img_is_xz = True
         self.permanent_scan = False
+        import pythoncom
+        import win32com.client
+        # Initialize
+        pythoncom.CoInitialize()
+        # Get instance
+        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
+        # Create id
+        self.labview_id_logic = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
         self._scanning_device = self.confocalscanner1()
         self._save_logic = self.savelogic()
+
+        self._scanning_device.pass_id_from_logic(self.labview_id_logic)
 
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
         self.x_range = self._scanning_device.get_position_range()[0]
@@ -357,6 +367,9 @@ class ConfocalLogic(GenericLogic):
         self._signal_save_depth.connect(self._save_depth_data, QtCore.Qt.QueuedConnection)
 
         self._change_position('activation')
+
+    def pass_id_from_gui(self, labview_id_gui):
+        self._scanning_device.pass_id_from_gui(labview_id_gui)
 
     def get_scanner_position(self):
         self._scanning_device.get_scanner_position()
