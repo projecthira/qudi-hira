@@ -58,7 +58,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
     def on_deactivate(self):
         self.reset_hardware()
-        self._scanner_hw.deactivate_from_logic()
 
     def reset_hardware(self):
         """ Resets the hardware, so the connection is lost and other programs can access it.

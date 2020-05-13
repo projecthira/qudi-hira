@@ -21,7 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import numpy as np
 import pickle
-from hardware.awg import SpectrumAWG35 as SpectrumAWG35
+from hardware.awg import SpectrumAWG35
 from hardware.awg.pyspcm import *
 from core.configoption import ConfigOption
 from core.util.modules import get_home_dir
@@ -135,9 +135,9 @@ class AWG663(Base, PulserInterface):
         self.typeloaded = None
 
     def on_activate(self):
-        print('activate')
         self.instance = SpectrumAWG35.AWG(self.awg_ip_address, self.cards, self.hub, self.channel_setup)
         self.instance.init_all_channels()
+        # Set the amplitude of a channel in mV (into 50 Ohms)
         self.instance.cards[0].set_amplitude(0, 500)
         self.instance.cards[0].set_amplitude(1, 500)
         self.instance.cards[1].set_amplitude(0, 100)
@@ -171,8 +171,7 @@ class AWG663(Base, PulserInterface):
 
         activation_config = OrderedDict()
         activation_config['config1'] = {'a_ch0', 'a_ch1', 'd_ch0', 'd_ch1', 'd_ch2',
-                                        'a_ch2', 'a_ch3', 'd_ch3', 'd_ch4',
-                                        'd_ch5'}
+                                        'a_ch2', 'a_ch3', 'd_ch3', 'd_ch4', 'd_ch5'}
         constraints.activation_config = activation_config
         return constraints
 
@@ -195,7 +194,13 @@ class AWG663(Base, PulserInterface):
         return chan
 
     def load_waveform(self, load_dict):
-        """ Loads a waveform to the specified channel of the pulsing device.
+        """ Loads a waveform from the waveform folder on disk to all specified channels of the pulsing device.
+
+        The file on disk has to have the corresponding channel name in the file name. eg.
+            hahn_echo_a_ch0.pkl
+            hahn_echo_d_ch1.pkl
+        will be loaded into analog ch0 and digital ch1 respectively.
+
 
         @param dict|list load_dict: a dictionary with keys being one of the available channel
                                     index and values being the name of the already written
@@ -228,7 +233,7 @@ class AWG663(Base, PulserInterface):
         Please note that the channel index used here is not to be confused with the number suffix
         in the generic channel descriptors (i.e. 'd_ch1', 'a_ch1'). The channel index used here is
         highly hardware specific and corresponds to a collection of digital and analog channels
-        being associated to a SINGLE wavfeorm asset.
+        being associated to a SINGLE waveform asset.
         """
 
         # create new dictionary with keys = num_of_ch and item = waveform
@@ -241,6 +246,7 @@ class AWG663(Base, PulserInterface):
             for waveform in load_dict:
                 wave_name = waveform.rsplit('.pkl')[0]
                 channel_num = int(wave_name.rsplit('_ch', 1)[1])
+                # Map channel numbers to HW channel numbers
                 if not '_a_ch' in waveform:
                     channel = channel_num + 4
                 else:
@@ -252,17 +258,11 @@ class AWG663(Base, PulserInterface):
             print('No data to sent to awg')
             return -1
 
-        # load possible sequences
+        # Get a list of  all pkl waveforms in waveform folder
         path = self.waveform_folder
         wave_form_files = self.get_waveform_names()
+        # TODO: get_waveform_names() already removes .pkl extension?
         wave_form_list = [file.rsplit('.pkl')[0] for file in wave_form_files]
-        # with open(path,'w') as json_file:
-        #     wave_form_dict  = json.load(json_file)
-
-        # dict_path = os.path.join('awg', 'WaveFormDict.pkl')
-        # pkl_file = open(dict_path, 'rb')
-        # wave_form_dict = pickle.load(pkl_file)
-        # pkl_file.close()
 
         data_list = list()
         # this looks like 4 analog channels and 6 digital
@@ -285,27 +285,11 @@ class AWG663(Base, PulserInterface):
                     chan_name = 'd_ch{0}'.format(value.rsplit('d_ch')[1])
                     self.loaded_assets[chan_name] = value
             else:
-                print('waveform not found')
+                self.log.warn('Waveform {} not found in {}'.format(value, self.waveform_folder))
                 data_size = 0
 
-        # key_list = list()
-
-        # for key in wave_form_dict.keys():
-        # key_list.append(key.rsplit('_a',1)[0])
-
-        # find the given sequence in the dictionary and load to the wanted channel
-        # for chan, wave_name in load_dict.items():
-        #     wave_form = wave_form_dict.get(wave_name)
-        #     if wave_form is not None:
-        #         # prepare_ch(name=)
-        #         # self.instance.upload_wave_from_list(wave_form)
-        #         data = np.asarray(wave_form*(2**15-1), dtype=np.int16)
-        #         data_list[chan][0:len(wave_form)] = data
-        #         # plt.plot(data)
-        #         # plt.show()
-        #         data_size = len(wave_form)
-        #     else:
-        #         self.log.error(wave_name + ' not in dictionary')n
+        # If data sizes don't match the first file, append empty rows
+        # TODO: This will only work for the last size loaded as data_size is a variable, not a list?
         new_list = list()
         if data_size < len(data_list[0]):
             for row in data_list:
@@ -313,7 +297,7 @@ class AWG663(Base, PulserInterface):
                 new_list.append(new_row)
             data_list = new_list
 
-        # this is done in the spectrumAWG file, now both QUEST_AWG and spectrumAWG have the same output, see pg 80 in manual
+        # See pg 80 in manual
         count = 0
         while not data_size % 32 == 0:
             data_size += 1
@@ -327,20 +311,23 @@ class AWG663(Base, PulserInterface):
             data_list = new_list
 
         self.instance.set_memory_size(int(data_size))
-        self.log.info('Waveform sent to AWG')
+        self.log.info('Sending waveform to AWG')
 
+        # Runs a threaded method to upload to both cards simultaneously
+        # data_list is a list of analog and digital values
+        # data_list[0, 1, 4, 5, 6] goes to card 0
+        # data_list[2, 3, 7, 8, 9] goes to card 1
         if not data_size == 0:
             self.instance.upload(data_list, data_size, mem_offset=0)
             self.typeloaded = 'waveform'
-            print('data sent to awg')
             # print(data_list[0][0:5])
+        self.log.info('Finished sending waveform to AWG')
         return load_dict
 
-        # self.set_mode('continuous')
-        # self.instance.upload_wave_from_list(load_dict)
-
     def load_sequence(self, sequence_name):
-        """ Loads a sequence to the channels of the device in order to be ready for playback.
+        """
+        TODO: Does not appear to work as SequenceFile is left upmapped
+        Loads a sequence to the channels of the device in order to be ready for playback.
         For devices that have a workspace (i.e. AWG) this will load the sequence from the device
         workspace into the channels.
         For a device without mass memory this will make the waveform/pattern that has been
@@ -422,7 +409,7 @@ class AWG663(Base, PulserInterface):
                              respective asset loaded into the channel,
                              string describing the asset type ('waveform' or 'sequence')
         """
-
+        self.log.warn("Assets have been retrieved from memory, not the AWG.")
         return self.loaded_assets, self.typeloaded
 
     def clear_all(self):
@@ -430,7 +417,7 @@ class AWG663(Base, PulserInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.instance.awg.reset()
+        self.instance.reset()
 
     def get_status(self):
         """ Retrieves the status of the pulsing hardware
@@ -442,6 +429,7 @@ class AWG663(Base, PulserInterface):
         status_dic = {-1: 'no communication with device', 0: ' device is active and ready'}
         self.status_dic = status_dic
         num = 0
+        self.log.warn("Status not actually checked, returned 0 anyway")
         return num, status_dic
 
     def get_sample_rate(self):
@@ -635,6 +623,7 @@ class AWG663(Base, PulserInterface):
         Note: After setting the high and/or low values of the device, use the actual set return
               values for further processing.
         """
+        self.log.warn("Setting digital level does nothing.")
         pass
 
     def get_active_channels(self, ch=None):
@@ -832,38 +821,11 @@ class AWG663(Base, PulserInterface):
             waveforms.append(full_name)
             total_length = len(full_signal)
 
-        # with open(path,'r') as json_file:
-        #     wave_dict = json.load(json_file)
-
-        # for key, value in analog_samples.items():
-        #     # key_name = name
-        #     # key_name = name + '_' + key
-        #     if key_name in wave_dict.keys():
-        #         if is_first_chunk:
-        #             # new_value = np.concate(value,wave_dict[key_name])
-        #             new_value = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
-        #             wave_dict[key_name] = new_value
-        #             waveforms.append(key_name)
-        #             total_length = len(new_value)
-        #         elif is_last_chunk:
-        #             value = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
-        #             new_value = np.concatenate(wave_dict[key_name],value)
-        #             wave_dict[key_name] = new_value
-        #             waveforms.append(key_name)
-        #             total_length = len(new_value)
-        #         else:
-        #             total_length = 0
-        #             self.log.error('name exists, specify first or last chunk')
-        #     else:
-        #         wave_dict[key_name] = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
-        #         waveforms.append(key_name)
-        #         total_length = len(value)
-
         return total_length, waveforms
 
     def prepare_data_via_channel(self, channel, duration, sample_rate, start_position):
-
-        data = self.instance.get_data_from_channel(self, channel, duration, sample_rate, start_position)
+        # TODO: This function used to pass self as the first argument, for whatever reason
+        data = self.instance.get_data_from_channel(channel, duration, sample_rate, start_position)
         return data
 
     def write_sequence(self, name, sequence_parameters):
@@ -902,16 +864,8 @@ class AWG663(Base, PulserInterface):
 
         @return list: List of all uploaded waveform name strings in the device workspace.
         """
-        # path = os.path.join(os.getcwd(), 'awg','WaveFormDict.pkl')
-        # pkl_file = open(path, 'rb')
-        # wave_dict = pickle.load(pkl_file)
-        # pkl_file.close()
-        #
-        # names = wave_dict.keys()
-
         path = self.waveform_folder
         names = [f.rsplit('.pkl')[0] for f in os.listdir(path) if f.endswith(".pkl")]
-
         return names
 
     def get_sequence_names(self):
@@ -919,16 +873,8 @@ class AWG663(Base, PulserInterface):
 
         @return list: List of all uploaded sequence name strings in the device workspace.
         """
-        # path = os.path.join(os.getcwd(), 'awg','SequenceDict.pkl')
-        # pkl_file = open(path, 'rb')
-        # wave_dict = pickle.load(pkl_file)
-        # pkl_file.close()
-        #
-        # names = wave_dict.keys()
         path = self.sequence_folder
-
         names = [f for f in os.listdir(path) if f.endswith(".pkl")]
-
         return names
 
     def delete_waveform(self, waveform_name):
@@ -939,7 +885,8 @@ class AWG663(Base, PulserInterface):
 
         @return list: a list of deleted waveform names.
         """
-
+        # TODO: Seems to only delete waveforms from the awg folder, not the device itself
+        self.log.warn("Seems to only delete waveforms from the awg folder, not the device itself")
         path = os.path.join(os.getcwd(), 'awg', 'WaveFormDict.pkl')
         pkl_file = open(path, 'rb')
         wave_dict = pickle.load(pkl_file)
@@ -1028,20 +975,21 @@ class AWG663(Base, PulserInterface):
         return True
 
     def my_load_dict(self, filename):
-        # if file doesn't exist it create a file with this name
+        """ Load a waveform from disk into memory.
 
+        @param filename: Full path + name + extension of file to be loaded
+        @return: loaded pkl file dict
+        """
+        # if file doesn't exist it create a file with this name
+        # TODO: Why use rb+ (both reading and writing in binary), looks like rb (read binary) will suffice?
         with open(filename, 'rb+') as file:
             my_dictionary = pickle.load(file)
-
         return my_dictionary
 
     def my_save_dict(self, my_dictionary, filename):
         """ save dictionary to pkl file, will overwrite existing data"""
-
         with open(filename, 'wb+') as file:
-            data = pickle.dump(my_dictionary, file)
-
-        return data
+            pickle.dump(my_dictionary, file)
 
     def set_reps(self, reps):
         self.instance.set_loops(reps)
