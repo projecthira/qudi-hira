@@ -1,0 +1,1 @@
+git ls-files | grep -Ev 'documentation/|.jpg|.png|.lock|.jar|.bat|.otf|.woff|.js|.svg|.ico|.asc|.dat|.egg|.qss|thirdparty/|.dll|.lib|notebooks/|artwork/|tools/' | xargs wc -l
