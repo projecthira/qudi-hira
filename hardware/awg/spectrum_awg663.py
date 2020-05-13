@@ -22,7 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import numpy as np
 import pickle
 from hardware.awg import SpectrumAWG35
-from hardware.awg.pyspcm import *
+from thirdparty.spectrum.pyspcm import *
 from core.configoption import ConfigOption
 from core.util.modules import get_home_dir
 from core.module import Base

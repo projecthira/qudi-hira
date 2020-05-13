@@ -7,7 +7,7 @@
 #           changed the / in data /= 2 and data1 /= 4 to //. If data is integer then it is ok, otherwise very wrong
 #           (This is a true_divide issue between python 2 and python 3)
 
-from hardware.awg.pyspcm import *
+from thirdparty.spectrum.pyspcm import *
 import numpy as np
 import time
 import threading

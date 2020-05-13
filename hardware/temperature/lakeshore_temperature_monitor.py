@@ -27,7 +27,7 @@ from core.module import Base
 from core.configoption import ConfigOption
 
 from interface.process_interface import ProcessInterface
-from .Model224 import Model224, InstrumentException
+from thirdparty.lakeshore.Model224 import Model224, InstrumentException
 
 
 class Lakeshore224TM(Base, ProcessInterface):
