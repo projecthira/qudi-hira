@@ -1443,14 +1443,14 @@ class Card():
         self.set32(SPCM_X2_MODE, mrkr_mode)
 
     def open(self):
-        print(str(self.ip))
-        print(str(self.cardNo))
+        # print(str(self.ip))
+        # print(str(self.cardNo))
         if 1:
             address = "TCPIP::{0}::INST{1}::INSTR".format(self.ip, self.cardNo)
         else:
             address = "{0}{1}".format(self.ip, self.cardNo)
         self.handle = spcm_hOpen(create_string_buffer(bytes(address, 'utf8')))
-        print(str(self.handle))
+        # (str(self.handle))
 
     def close(self):
         spcm_vClose(self.handle)

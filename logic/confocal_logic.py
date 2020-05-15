@@ -103,15 +103,6 @@ class ConfocalHistoryEntry(QtCore.QObject):
         self.tilt_reference_x = 0
         self.tilt_reference_y = 0
 
-        import pythoncom
-        import win32com.client
-        # Initialize
-        pythoncom.CoInitialize()
-        # Get instance
-        labview_logic = win32com.client.dynamic.Dispatch('Labview.Application')
-        # Create id
-        self.labview_id = pythoncom.CoMarshalInterThreadInterfaceInStream(pythoncom.IID_IDispatch, labview_logic)
-
     def restore(self, confocal):
         """ Write data back into confocal logic and pull all the necessary strings """
         confocal._current_x = self.current_x
