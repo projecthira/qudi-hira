@@ -1,4 +1,6 @@
-# qudi
+# qudi-hira
+Project forked from the excellent [Ulm-IQO/qudi](https://github.com/Ulm-IQO/qudi)
+
 Qudi is a suite of tools for operating multi-instrument and multi-computer laboratory experiments.
 Originally built around a confocal fluorescence microscope experiments, it has grown to be a generally applicaple framework for controlling experiments.
 
@@ -21,11 +23,6 @@ You should cite our paper [Qudi: A modular python suite for experiment control a
 
 ## Documentation
 User and code documentation about Qudi is located at http://ulm-iqo.github.io/qudi-generated-docs/html-docs/ .
-
-## Continuous integration 
-[![Build Status](https://travis-ci.org/Ulm-IQO/qudi.svg?branch=master)](https://travis-ci.org/Ulm-IQO/qudi)
-[![Build status](https://ci.appveyor.com/api/projects/status/ma1a125b31cbl6tu/branch/master?svg=true)](https://ci.appveyor.com/project/InstituteforQuantumOptics/qudi/branch/master)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Ulm-IQO/qudi/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Ulm-IQO/qudi/?branch=master)
 
 ## Collaboration
 For development-related questions and discussion, please use the [qudi-dev mailing list](http://www.freelists.org/list/qudi-dev).
