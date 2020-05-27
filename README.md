@@ -7,11 +7,17 @@ Originally built around a confocal fluorescence microscope experiments, it has g
 ## Features
   * A modular and extendable architecture
   * Access to devices on other computers over network
-  * XYZ piezo or galvo control for confocal fluorescence microscopy via National Instruments X-Series devices
+  * XYZ piezo or galvo control for confocal fluorescence microscopy via Physik Instrumente or National Instruments X-Series devices
   * Position optimization for fluorescent spots
   * Tracking of fluorescent spots
+  * Spectrum AWG support for pulsed microwave experiments 
+  * Pfeiffer pressure and Lakeshore temperature monitor
+  * Liquid Helium depth indicators
+  * LabVIEW VI control (experimental)
+  * Nanonis coarse and fine positioning
+  * Toptica laser control
   * Tektronix AWG 5000 7000 and 70000 support for pulsed microwave experiments
-  * Anritsu MG37022A, MG3696B and MG3961C, R&S SMIQ and SMR support for ODMR measurements
+  * Anritsu MG37022A, MG3696B and MG3961C, R&S SMIQ, R&S SMF 100A and SMR support for ODMR measurements
   * Getting spectra from the WinSpec32 spectroscopy software
   * Thorlabs APT motor control
   * Magnetic field alignment for NV- in diamond via fluorescence, ODMR and nuclear spin

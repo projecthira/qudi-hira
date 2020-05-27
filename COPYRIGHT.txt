@@ -1,7 +1,11 @@
-qudi-hira Copyright 2019-2020
+qudi-hira
+---------
+Copyright 2019, 2020
 Dinesh Pinto <d.pinto@fkf.mpg.de>
 
 
+qudi
+----
 Copyright 2015-2016
 
 Jan M. Binder <jan-git@nlogn.org>
