@@ -362,6 +362,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if is_running:
             self.off()
 
+        self.log.warning("Parameter 'timing' in set_ext_trigger will be ignored.")
+
         if pol == TriggerEdge.RISING:
             edge = 'POS'
         elif pol == TriggerEdge.FALLING:
@@ -389,5 +391,5 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         self.inst.write(command_str)
         self.inst.write('*WAI')
         while int(float(self.inst.query('*OPC?'))) != 1:
-            time.sleep(0.2)
+            time.sleep(0.1)
         return
