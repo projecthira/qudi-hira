@@ -310,6 +310,9 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         self._command_wait(':TRIG:FSW:SOUR SING')
         self._command_wait(':SWE:FREQ:MODE AUTO')
 
+        if int(dwell) < 2:
+            self.inst.write("SYST:DISP:UPD OFF")
+
         actual_power = self.get_power()
         actual_start, actual_stop, actual_step = self.get_frequency()
         mode, _ = self.get_status()
@@ -321,25 +324,12 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         @return int: error code (0:OK, -1:error)
         """
         current_mode, is_running = self.get_status()
-        if is_running:
-            if current_mode == 'sweep':
-                return 0
-            else:
-                self.off()
 
         if current_mode != 'sweep':
             self._command_wait(':FREQ:MODE SWEEP')
 
-        if float(self.inst.query(":SWE:DWeLl?")) < 2.0:
-            self.inst.write("SYST:DISP:UPD OFF")
-
         self._command_wait(':SWE:FREQ:EXEC')
         self.inst.write(':OUTP:STAT 1')
-
-        _, is_running = self.get_status()
-        while not is_running:
-            time.sleep(0.2)
-            _, is_running = self.get_status()
         return 0
 
     def reset_sweeppos(self):

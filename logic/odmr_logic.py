@@ -578,7 +578,7 @@ class ODMRLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
+            # self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
 
             self.module_state.lock()
             self._clearOdmrData = False
@@ -596,7 +596,7 @@ class ODMRLogic(GenericLogic):
                 self.sigOutputStateUpdated.emit(mode, is_running)
                 self.module_state.unlock()
                 return -1
-
+            print("here")
             mode, is_running = self.mw_sweep_on()
             if not is_running:
                 self._stop_odmr_counter()
@@ -629,7 +629,7 @@ class ODMRLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
+            # self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
 
             self.module_state.lock()
             self.stopRequested = False
