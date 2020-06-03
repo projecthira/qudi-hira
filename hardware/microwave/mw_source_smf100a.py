@@ -192,8 +192,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         actual_power = self.get_power()
         return actual_freq, actual_power, mode
 
-    def set_list(self, frequency=None, power=None):
-
+    def set_list(self, frequency=None, power=None, dwell=5):
         mode, is_running = self.get_status()
         if is_running:
             self.off()
@@ -202,7 +201,11 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if mode != 'cw':
             self.set_cw()
 
-        self.inst.write(':LIST:SEL "QUDI"')
+        # Always delete old lists for safety
+        self.inst.write(':LIST:DEL "ODMR"')
+        self.inst.write('*WAI')
+        # If the list already contains data, it will be overwritten
+        self.inst.write(':LIST:SEL "ODMR"')
         self.inst.write('*WAI')
 
         # Set list frequencies
@@ -221,14 +224,21 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':LIST:POW {0:f}'.format(power))
             self.inst.write('*WAI')
 
+        self._command_wait(':LIST:DWEL {0:f}'.format(dwell))
+        self._command_wait(':LIST:MODE AUTO'.format(dwell))
         self._command_wait(':LIST:TRIG:SOUR EXT')
-        self._command_wait(':LIST:LEARN')
-        self._command_wait(':FREQ:MODE LIST')
+
+        # self._command_wait(':LIST:LEARN')
 
         mode, _ = self.get_status()
-        actual_freq = self.get_frequency()
+        # Checking if the list is loaded correctly onto the device, we only check the number of points.
+        # If that is correct, it is presumed that the list is correct.
+        num_points = int(float(self.inst.query(':LIST:FREQ:POIN?')))
+        if (num_points-1) != len(frequency):
+            self.log.error("LIST not loaded correctly.")
         actual_power = self.get_power()
-        return actual_freq, actual_power, mode
+        self._command_wait(':FREQ:MODE LIST')
+        return frequency, actual_power, mode
 
     def list_on(self):
         """
@@ -245,7 +255,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 self.off()
 
         self.cw_on()
-        self._command_wait(':FREQ:MODE LIST')
+        # self._command_wait(':FREQ:MODE LIST')
         self.inst.write(':LIST:TRIG:EXEC')
 
         _, is_running = self.get_status()
@@ -260,7 +270,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         self._command_wait(':LIST:RES')
         return 0
 
-    def set_sweep(self, start=None, stop=None, step=None, power=None, dwell=100):
+    def set_sweep(self, start=None, stop=None, step=None, power=None, dwell=5):
         """
         Configures the device for sweep-mode and optionally sets frequency start/stop/step
         and/or power
@@ -284,7 +294,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':FREQ:STAR {0:f}'.format(start))
             self.inst.write(':FREQ:STOP {0:f}'.format(stop))
             self.inst.write(':SWE:STEP {0:f}'.format(step))
-            self.inst.write(':SWE:DWeLl {0:f}'.format(dwell))
+            self.inst.write(':SWE:DWEL {0:f}'.format(dwell))
             self.inst.write('*WAI')
 
         if power is not None:
@@ -341,10 +351,13 @@ class MicrowaveSMF(Base, MicrowaveInterface):
           @return MicrowaveLimits: Microwave limits object
         """
         limits = MicrowaveLimits()
-        limits.supported_modes = (MicrowaveMode.CW, MicrowaveMode.LIST)
+        limits.supported_modes = (MicrowaveMode.CW, MicrowaveMode.SWEEP)
 
         limits.min_frequency = 1e9
         limits.max_frequency = 22e9
+
+        limits.sweep_minstep = 1.e-3
+        limits.sweep_maxstep = 22e9
 
         limits.min_power = -30
         limits.max_power = 30
