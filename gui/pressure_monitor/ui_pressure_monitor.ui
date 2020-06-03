@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Qudi: Pressure Monitor</string>
+   <string>qudi-hira: Pressure Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -169,7 +169,7 @@
      <x>0</x>
      <y>0</y>
      <width>667</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

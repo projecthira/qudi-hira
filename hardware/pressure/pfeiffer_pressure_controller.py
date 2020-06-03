@@ -248,5 +248,5 @@ class PfeifferTPG366(Base, ProcessInterface):
             response.append(this_response_line)
             time.sleep(0.05)
             response_len = self._tpg.inWaiting()
-
+        print(response)
         return response[1]

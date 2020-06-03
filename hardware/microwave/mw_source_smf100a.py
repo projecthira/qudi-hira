@@ -63,7 +63,9 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                            'is connected correctly.'.format(self._smf_visa_address))
 
         self._command_wait('*CLS')
-        self._command_wait('*RST')
+        # TODO: This appears to cause unnecessary timeouts, removed for now
+        # self._command_wait('*RST')
+        self.inst.write('*RST')
         self._command_wait('POW:ALC OFF')
 
     def on_deactivate(self):

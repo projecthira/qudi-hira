@@ -232,11 +232,11 @@ class LaserGUI(GUIBase):
         """ Logic told us to update our button states, so set the buttons accordingly. """
         self._mw.laserButton.setEnabled(self._laser_logic.laser_can_turn_on)
         if self._laser_logic.laser_state == LaserState.ON:
-            self._mw.laserButton.setText('Laser: ON')
+            self._mw.laserButton.setText('Emission: ON')
             self._mw.laserButton.setChecked(True)
             self._mw.laserButton.setStyleSheet('')
         elif self._laser_logic.laser_state == LaserState.OFF:
-            self._mw.laserButton.setText('Laser: OFF')
+            self._mw.laserButton.setText('Emission: OFF')
             self._mw.laserButton.setChecked(False)
         elif self._laser_logic.laser_state == LaserState.LOCKED:
             self._mw.laserButton.setText('INTERLOCK')

@@ -78,7 +78,8 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         else:
             self._communicate("ini la")
             self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
-            self.set_external_state(False)
+            self.init_channel_1()
+            self.set_external_state(True)
             return 0
 
     def on_deactivate(self):
@@ -102,6 +103,16 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """
         self.off()
         self.ibeam.close()
+
+    def init_channel_1(self):
+        """
+        Required for pulsing the laser externally. Pulsing only happens on channel 2 with channel 1 as the baseline.
+        It is thus set to a power of 0 mW.
+        @return:
+        """
+        self._communicate('en 1')
+        self._communicate('ch 1 pow 0')
+        self._communicate('en 2')
 
     def allowed_control_modes(self):
         """ Get available control mode of laser
@@ -135,12 +146,23 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         return power
 
     def get_power_setpoint(self):
-        """ Get the laser power setpoint.
+        """ Get the laser power setpoint for Channel 2.
 
         @return float: laser power setpoint in watts
         """
         # The present laser power level setting in watts (set level)
         response = self._communicate('sh level pow')
+        power = float(re.search('CH2, PWR: (.*)mW', response).group(1)) * 1e-3
+        return power
+
+    def get_ch1_power_setpoint(self):
+        """ Get the laser power setpoint for channel 1.
+
+          @return float: laser power setpoint in watts
+          """
+        # The present laser power level setting in watts (set level)
+        response = self._communicate('sh level pow')
+        print(response)
         power = float(re.search('CH1, PWR: (.*)mWCH2,', response).group(1)) * 1e-3
         return power
 
@@ -157,7 +179,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @param float power: desired laser power in watts
         """
         power *= 1e3
-        self._communicate('ch 1 pow {}'.format(power))
+        self._communicate('ch 2 pow {}'.format(power))
         return self.get_power()
 
     def get_current_unit(self):
@@ -195,7 +217,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @param float current: Laser current setpoint in amperes
         @return float: Laser current setpoint in amperes
         """
-        self._communicate('ch 1 cur {}'.format(current * 1e3))
+        self._communicate('ch 2 cur {}'.format(current * 1e3))
         return self.get_current()
 
     def get_shutter_state(self):

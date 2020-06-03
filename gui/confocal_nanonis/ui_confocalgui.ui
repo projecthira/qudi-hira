@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>qudi: Nanonis Confocal</string>
+   <string>qudi-hira: Nanonis Confocal</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_8"/>
@@ -2315,14 +2315,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ScienDSpinBox</class>
-   <extends>QDoubleSpinBox</extends>
-   <header>qtwidgets.scientific_spinbox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
+  </customwidget>
+  <customwidget>
+   <class>ScienDSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>qtwidgets.scientific_spinbox.h</header>
   </customwidget>
   <customwidget>
    <class>ScanPlotWidget</class>
