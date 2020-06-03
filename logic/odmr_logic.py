@@ -49,7 +49,7 @@ class ODMRLogic(GenericLogic):
     # config option
     mw_scanmode = ConfigOption(
                     'scanmode',
-                    'LIST',
+                    'SWEEP',
                     missing='warn',
                     converter=lambda x: MicrowaveMode[x.upper()])
 

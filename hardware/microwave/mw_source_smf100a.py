@@ -178,6 +178,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if is_running:
             self.off()
 
+        self._command_wait(':SYST:DISP:UPD ON')
+
         if mode != 'cw':
             self._command_wait(':FREQ:MODE CW')
         if freq is not None:
@@ -294,8 +296,12 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':FREQ:STAR {0:f}'.format(start))
             self.inst.write(':FREQ:STOP {0:f}'.format(stop))
             self.inst.write(':SWE:STEP {0:f}'.format(step))
-            self.inst.write(':SWE:DWEL {0:f}'.format(dwell))
+            self.inst.write(':SWE:DWEL {0:f} ms'.format(dwell))
             self.inst.write('*WAI')
+
+        # Switch of display update during fast sweeps, recommended by R&S
+        if dwell < 1000:
+            self._command_wait(':SYST:DISP:UPD OFF')
 
         if power is not None:
             self.inst.write(':POW {0:f}'.format(power))

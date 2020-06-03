@@ -91,7 +91,6 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
         self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
-
         self._channel_clicks = self._channel_apd_0
 
         if self._mode == 2:
