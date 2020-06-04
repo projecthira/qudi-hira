@@ -272,7 +272,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         self._command_wait(':LIST:RES')
         return 0
 
-    def set_sweep(self, start=None, stop=None, step=None, power=None, dwell=5):
+    def set_sweep(self, start=None, stop=None, step=None, power=None, dwell=10):
         """
         Configures the device for sweep-mode and optionally sets frequency start/stop/step
         and/or power
@@ -287,6 +287,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if is_running:
             self.off()
 
+        self._command_wait(':SWE:FREQ:MODE STEP')
+
         if mode != 'sweep':
             self._command_wait(':FREQ:MODE SWE')
 
@@ -296,7 +298,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':FREQ:STAR {0:f}'.format(start))
             self.inst.write(':FREQ:STOP {0:f}'.format(stop))
             self.inst.write(':SWE:STEP {0:f}'.format(step))
-            self.inst.write(':SWE:DWEL {0:f} ms'.format(dwell))
+            # self.inst.write(':SWE:DWEL {0:f} ms'.format(dwell))
             self.inst.write('*WAI')
 
         # Switch of display update during fast sweeps, recommended by R&S
@@ -307,11 +309,13 @@ class MicrowaveSMF(Base, MicrowaveInterface):
             self.inst.write(':POW {0:f}'.format(power))
             self.inst.write('*WAI')
 
-        self._command_wait(':TRIG:FSW:SOUR SING')
-        self._command_wait(':SWE:FREQ:MODE AUTO')
+        # To trigger with via GPIB
+        # self._command_wait(':TRIG:FSW:SOUR SING')
+        # self._command_wait(':SWE:FREQ:MODE AUTO')
 
-        if int(dwell) < 2:
-            self.inst.write("SYST:DISP:UPD OFF")
+        # To trigger externally, make sure to check set_ext_trigger for trigger polarity
+        self.inst.write(':TRIG:FSW:SOUR EXT')
+        self.inst.write(':FREQ:MODE SWE')
 
         actual_power = self.get_power()
         actual_start, actual_stop, actual_step = self.get_frequency()
@@ -328,7 +332,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if current_mode != 'sweep':
             self._command_wait(':FREQ:MODE SWEEP')
 
-        self._command_wait(':SWE:FREQ:EXEC')
+        # To trigger immediately (for testing)
+        # self._command_wait(':SWE:FREQ:EXEC')
         self.inst.write(':OUTP:STAT 1')
         return 0
 
@@ -369,8 +374,6 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         @return object, float: current trigger polarity [TriggerEdge.RISING, TriggerEdge.FALLING],
             trigger timing
         """
-        return TriggerEdge.RISING, timing
-
         mode, is_running = self.get_status()
         if is_running:
             self.off()
@@ -387,6 +390,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         if edge is not None:
             self._command_wait('INP:TRIG:SLOP {0}'.format(edge))
+
+        self.log.info('MW input trig set to {0}'.format(edge))
 
         polarity = self.inst.query(':TRIG:SLOP?')
         if 'NEG' in polarity:

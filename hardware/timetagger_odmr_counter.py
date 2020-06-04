@@ -61,7 +61,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
-        self._count_frequency = 50  # Hz
+        # self._count_frequency = 100  # Hz
 
         # Configuring if we are working with one APD or two
         if self._channel_apd_1 is None:
@@ -87,8 +87,8 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         """
 
         # Default trigger levels are 0.5V. The channel with the splitter needs a higher trigger to avoid ghost counts.
-        self._tagger.setTriggerLevel(self._channel_apd_0, 1.0)
-        self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
+        self._tagger.setTriggerLevel(self._channel_apd_0, 0.5)
+        self._tagger.setTriggerLevel(self._channel_apd_1, 0.5)
         self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
         self._channel_clicks = self._channel_apd_0
@@ -135,11 +135,11 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
 
         t0 = time.time()
         t = 0
-        while (not self.triggered_counter.ready()) and (t < 5):
+        while (not self.triggered_counter.ready()) and (t < 15):
             time.sleep(0.1)
             t = time.time()-t0
 
-        if t >= 5:
+        if t >= 15:
             self.log.error('ODMR measurement timed out after {:03.2f} seconds'.format(t))
             err = True
             count_rates = []
@@ -148,6 +148,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
             count_array = self.triggered_counter.getData()
             bin_widths = self.triggered_counter.getBinWidths()
             count_rates = np.divide(count_array, (bin_widths * 10 ** -12))
+
             # The count array intentionally discards the last bin because it isn't terminated by a pulse (at the end of
             # the average_factor number of repetitions. To allow for later reshaping of the array we add another cell
             # with zero. This should have very little effect on the counts.

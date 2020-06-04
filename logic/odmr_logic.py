@@ -225,7 +225,7 @@ class ODMRLogic(GenericLogic):
             frequency = frequency / self._oversampling
 
         if self.module_state() != 'locked':
-            self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 1/frequency)
+            self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 0)
         else:
             self.log.warning('set_trigger failed. Logic is locked.')
 
@@ -699,10 +699,10 @@ class ODMRLogic(GenericLogic):
 
             # reset position so every line starts from the same frequency
             self.reset_sweep()
-            self._mw_device.sweep_on()
 
             # Acquire count data
             error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
+            self._odmr_counter.clear_odmr()
 
             if error:
                 self.stopRequested = True
