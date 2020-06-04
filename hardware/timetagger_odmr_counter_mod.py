@@ -65,7 +65,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
-        self._count_frequency = 0.5  # Hz
+        self._count_frequency = 1  # Hz
 
         # self._mode can take 3 values:
         # 0: single channel, no summing

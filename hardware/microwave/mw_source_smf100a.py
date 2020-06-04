@@ -194,7 +194,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         actual_power = self.get_power()
         return actual_freq, actual_power, mode
 
-    def set_list(self, frequency=None, power=None, dwell=5):
+    def set_list(self, frequency=None, power=None, dwell=10):
         mode, is_running = self.get_status()
         if is_running:
             self.off()
@@ -369,6 +369,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         @return object, float: current trigger polarity [TriggerEdge.RISING, TriggerEdge.FALLING],
             trigger timing
         """
+        return TriggerEdge.RISING, timing
+
         mode, is_running = self.get_status()
         if is_running:
             self.off()
