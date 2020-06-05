@@ -378,7 +378,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         if is_running:
             self.off()
 
-        self.log.warning("Parameter 'timing' in set_ext_trigger will be ignored.")
+        # self.log.warning("Parameter 'timing' in set_ext_trigger will be ignored.")
 
         if pol == TriggerEdge.RISING:
             edge = 'POS'
