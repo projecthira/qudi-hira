@@ -57,11 +57,9 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
     sweep_length = 100
 
     def on_activate(self):
-        print('Time Tagger ODMR counter activated')
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
-        # self._count_frequency = 100  # Hz
 
         # Configuring if we are working with one APD or two
         if self._channel_apd_1 is None:
@@ -91,22 +89,21 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         self._tagger.setTriggerLevel(self._channel_apd_1, 0.5)
         self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
-        self._channel_clicks = self._channel_apd_0
-
+        if self._mode == 1:
+            self._channel_clicks = self._channel_apd_0
         if self._mode == 2:
             self.combined = tt.Combiner(tagger=self._tagger,
                                         channels=[self._channel_apd_0, self._channel_apd_1])
             self._channel_clicks = self.combined.getChannel()
-        print('Sweep length is ', self.sweep_length)
+
         self.triggered_counter = tt.CountBetweenMarkers(tagger=self._tagger,
                                                         click_channel=self._channel_clicks,
                                                         begin_channel=self._channel_trigger,
                                                         n_values=self.sweep_length)
-        self.log.info('set up counter with {0} channels'.format(self._mode))
+        self.log.info('set up counter with {0} channels and sweep length {1}'.format(self._mode, self.sweep_length))
         return 0
 
     def get_counter_channels(self):
-
         return self._channel_clicks
 
     def get_constraints(self):
@@ -184,8 +181,14 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         return 0
 
     def set_odmr_length(self, length=100):
+        """
+        Set length of ODMR in pixels. It should be called before set_up_odmr to ensure array is created correctly.
+
+        @param length: Length of ODMR in pixels
+        @return: int: error code (0:OK, -1:error)
+        """
         self.sweep_length = length
-        return
+        return 0
 
     # These are useless methods, but the interface requires them
 

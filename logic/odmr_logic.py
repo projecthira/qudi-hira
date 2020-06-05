@@ -546,6 +546,10 @@ class ODMRLogic(GenericLogic):
         if clock_status < 0:
             return -1
 
+        # Set the length of the ODMR measurement before setting up the ODMR counter
+        sweep_length = np.arange(self.mw_start, self.mw_stop + self.mw_step, self.mw_step).size
+        self._odmr_counter.set_odmr_length(length=sweep_length)
+
         counter_status = self._odmr_counter.set_up_odmr()
         if counter_status < 0:
             self._odmr_counter.close_odmr_clock()
