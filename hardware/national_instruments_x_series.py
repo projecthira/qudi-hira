@@ -32,9 +32,11 @@ from interface.slow_counter_interface import SlowCounterConstraints
 from interface.slow_counter_interface import CountingMode
 from interface.odmr_counter_interface import ODMRCounterInterface
 from interface.confocal_scanner_interface import ConfocalScannerInterface
+from interface.odmr_clock_interface import ODMRClockInterface
 
 
-class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInterface, ODMRCounterInterface):
+class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInterface, ODMRCounterInterface,
+                                 ODMRClockInterface):
     """ A National Instruments device that can count and control microvave generators.
 
     !!!!!! NI USB 63XX, NI PCIe 63XX and NI PXIe 63XX DEVICES ONLY !!!!!!
@@ -1448,6 +1450,9 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
         @return int: error code (0:OK, -1:error)
         """
+        # Default to ODMR trigger channel
+        if not clock_channel:
+            clock_channel = self._odmr_trigger_channel
 
         return self.set_up_clock(
             clock_frequency=clock_frequency,
@@ -1923,7 +1928,7 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
         @return int: error code (0:OK, -1:error)
         """
-        return self.close_clock(scanner=True)
+        return self.close_clock(scanner=False)
 
     # ================== End ODMRCounterInterface Commands ====================
 

@@ -41,6 +41,7 @@ class ODMRLogic(GenericLogic):
 
     # declare connectors
     odmrcounter = Connector(interface='ODMRCounterInterface')
+    odmrclock = Connector(interface='ODMRClockInterface')
     fitlogic = Connector(interface='FitLogic')
     microwave1 = Connector(interface='MicrowaveInterface')
     savelogic = Connector(interface='SaveLogic')
@@ -89,6 +90,7 @@ class ODMRLogic(GenericLogic):
         self._mw_device = self.microwave1()
         self._fit_logic = self.fitlogic()
         self._odmr_counter = self.odmrcounter()
+        self._odmr_clock = self.odmrclock()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
 
@@ -540,7 +542,7 @@ class ODMRLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
 
-        clock_status = self._odmr_counter.set_up_odmr_clock(clock_frequency=self.clock_frequency)
+        clock_status = self._odmr_clock.set_up_odmr_clock(clock_frequency=self.clock_frequency)
         if clock_status < 0:
             return -1
 
