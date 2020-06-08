@@ -549,10 +549,9 @@ class ODMRLogic(GenericLogic):
         # Set the length of the ODMR measurement before setting up the ODMR counter
         sweep_length = np.arange(self.mw_start, self.mw_stop + self.mw_step, self.mw_step).size
         self._odmr_counter.set_odmr_length(length=sweep_length)
-
         counter_status = self._odmr_counter.set_up_odmr()
         if counter_status < 0:
-            self._odmr_counter.close_odmr_clock()
+            self._odmr_clock.close_odmr_clock()
             return -1
 
         return 0
@@ -567,7 +566,7 @@ class ODMRLogic(GenericLogic):
         ret_val1 = self._odmr_counter.close_odmr()
         if ret_val1 != 0:
             self.log.error('ODMR counter could not be stopped!')
-        ret_val2 = self._odmr_counter.close_odmr_clock()
+        ret_val2 = self._odmr_clock.close_odmr_clock()
         if ret_val2 != 0:
             self.log.error('ODMR clock could not be stopped!')
 
@@ -704,11 +703,10 @@ class ODMRLogic(GenericLogic):
                 self._startTime = time.time()
 
             # reset position so every line starts from the same frequency
-            self.reset_sweep()
+            # self.reset_sweep()
 
             # Acquire count data
             error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
-            self._odmr_counter.clear_odmr()
 
             if error:
                 self.stopRequested = True
@@ -760,6 +758,9 @@ class ODMRLogic(GenericLogic):
             self.elapsed_time = time.time() - self._startTime
             if self.elapsed_time >= self.run_time:
                 self.stopRequested = True
+
+            self._odmr_counter.clear_odmr()
+
             # Fire update signals
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
             self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y, self.odmr_plot_xy)

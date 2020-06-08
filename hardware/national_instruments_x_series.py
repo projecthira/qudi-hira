@@ -1450,15 +1450,23 @@ class NationalInstrumentsXSeries(Base, SlowCounterInterface, ConfocalScannerInte
 
         @return int: error code (0:OK, -1:error)
         """
-        # Default to ODMR trigger channel
-        if not clock_channel:
-            clock_channel = self._odmr_trigger_channel
+        try:
+            self.set_up_clock(
+                clock_frequency=clock_frequency,
+                clock_channel=clock_channel,
+                scanner=False,
+                idle=False)
 
-        return self.set_up_clock(
-            clock_frequency=clock_frequency,
-            clock_channel=clock_channel,
-            scanner=True,
-            idle=False)
+            # connect the clock to the trigger channel to give triggers for the
+            # microwave
+            daq.DAQmxConnectTerms(
+                self._clock_channel + 'InternalOutput',
+                self._odmr_trigger_channel,
+                daq.DAQmx_Val_DoNotInvertPolarity)
+            return 0
+        except:
+            self.log.exception('Error while setting up the clock of ODMR scan.')
+            return -1
 
     def set_up_odmr(self, counter_channel=None, photon_source=None,
                     clock_channel=None, odmr_trigger_channel=None):

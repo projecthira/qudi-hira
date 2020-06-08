@@ -343,7 +343,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._command_wait(':SWE:RES')
+        self.inst.write(':SWE:RES')
         return 0
 
     def get_limits(self):

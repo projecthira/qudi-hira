@@ -85,8 +85,8 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         """
 
         # Default trigger levels are 0.5V. The channel with the splitter needs a higher trigger to avoid ghost counts.
-        self._tagger.setTriggerLevel(self._channel_apd_0, 0.5)
-        self._tagger.setTriggerLevel(self._channel_apd_1, 0.5)
+        self._tagger.setTriggerLevel(self._channel_apd_0, 1.0)
+        self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
         self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
         if self._mode == 1:
@@ -149,7 +149,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
             # The count array intentionally discards the last bin because it isn't terminated by a pulse (at the end of
             # the average_factor number of repetitions. To allow for later reshaping of the array we add another cell
             # with zero. This should have very little effect on the counts.
-            count_rates = np.append(count_rates, [0])
+            # count_rates = np.append(count_rates, [0])
 
         return err, count_rates
 
