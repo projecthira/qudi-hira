@@ -132,11 +132,11 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
 
         t0 = time.time()
         t = 0
-        while (not self.triggered_counter.ready()) and (t < 15):
+        while (not self.triggered_counter.ready()) and (t < 5):
             time.sleep(0.1)
             t = time.time()-t0
 
-        if t >= 15:
+        if t >= 5:
             self.log.error('ODMR measurement timed out after {:03.2f} seconds'.format(t))
             err = True
             count_rates = []
