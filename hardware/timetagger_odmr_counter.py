@@ -85,9 +85,9 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         """
 
         # Default trigger levels are 0.5V. The channel with the splitter needs a higher trigger to avoid ghost counts.
-        self._tagger.setTriggerLevel(self._channel_apd_0, 1.0)
-        self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
-        self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
+        # self._tagger.setTriggerLevel(self._channel_apd_0, 1.0)
+        # self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
+        # self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
         if self._mode == 1:
             self._channel_clicks = self._channel_apd_0
