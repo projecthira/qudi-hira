@@ -20,6 +20,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
+import scipy.signal as sp
 import pickle
 from hardware.awg import SpectrumAWG35
 from thirdparty.spectrum.pyspcm import *
@@ -426,10 +427,15 @@ class AWG663(Base, PulserInterface):
                              dictionary containing status description for all the possible status
                              variables of the pulse generator hardware.
         """
-        status_dic = {-1: 'no communication with device', 0: ' device is active and ready'}
+        state_card1 = self.instance.cards[0].get_state()
+        state_card2 = self.instance.cards[1].get_state()
+        if state_card1 == "Ready" and state_card2 == "Ready":
+            num = 0
+        else:
+            num = -1
+
+        status_dic = {-1: 'no communication with device', 0: 'device is active and ready'}
         self.status_dic = status_dic
-        num = 0
-        self.log.warn("Status not actually checked, returned 0 anyway")
         return num, status_dic
 
     def get_sample_rate(self):
@@ -993,3 +999,99 @@ class AWG663(Base, PulserInterface):
 
     def set_reps(self, reps):
         self.instance.set_loops(reps)
+
+    #############
+    # FOR TESTING
+    #############
+    def generate_sine(self):
+        # For TESTING
+        sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
+        freq_duration = 2e-3  # Duration of each frequency set to 3 μsec
+        average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
+        samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
+
+        x = np.linspace(start=0, stop=int(samples_per_freq) - 1, num=samples_per_freq)
+        analog_samples = {'a_ch0': [], 'a_ch1': []}
+        digital_samples = {}
+        freq = 100e6
+        norm_freq = freq / sample_rate
+        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
+
+        freq = 200e6
+        norm_freq = freq / sample_rate
+        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x))
+
+        self.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
+
+        num_of_samples, waveform_names = self.write_waveform(name='testing_sine',
+                                                             analog_samples=analog_samples,
+                                                             digital_samples=digital_samples,
+                                                             is_first_chunk=True,
+                                                             is_last_chunk=True,
+                                                             total_number_of_samples=len(analog_samples['a_ch0']))
+        self.load_waveform(load_dict=waveform_names)
+        self.set_reps(average_factor)
+
+    def generate_rect(self, freq1=100e3, freq2=50e3, pow1=250, pow2=260):
+        """
+        Default values set to generate 1 V p-p square waves on analog channels 0 and 1.
+
+        @param freq1:
+        @param freq2:
+        @param pow1:
+        @param pow2:
+        @return:
+        """
+        # import numpy as np
+        # import matplotlib.pyplot as plt
+        # For TESTING
+        sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
+        freq_duration = 2e-3  # Duration of each frequency set to 3 μsec
+        average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
+        samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
+
+        x = np.linspace(start=0, stop=int(samples_per_freq) - 1, num=samples_per_freq)
+        analog_samples = {'a_ch0': [], 'a_ch1': []}
+        digital_samples = {}
+
+        norm_freq = freq1 / sample_rate
+        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], sp.square(2 * np.pi * norm_freq * x, duty=0.5))
+        # plt.plot(x, analog_samples['a_ch0'])
+
+        norm_freq = freq2 / sample_rate
+        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], sp.square(2 * np.pi * norm_freq * x, duty=0.5))
+
+        self.set_analog_level(amplitude={'a_ch0': pow1, 'a_ch1': pow2})
+
+        num_of_samples, waveform_names = self.write_waveform(name='testing_rect',
+                                                             analog_samples=analog_samples,
+                                                             digital_samples=digital_samples,
+                                                             is_first_chunk=True,
+                                                             is_last_chunk=True,
+                                                             total_number_of_samples=len(analog_samples['a_ch0']))
+        self.load_waveform(load_dict=waveform_names)
+        self.set_reps(average_factor)
+
+    def generate_sine_ch0(self, freq=100e6, power=500):
+        # For TESTING
+        sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
+        freq_duration = 2e-3  # Duration of each frequency set to 3 μsec
+        average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
+        samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
+
+        x = np.linspace(start=0, stop=int(samples_per_freq) - 1, num=samples_per_freq)
+        analog_samples = {'a_ch0': []}
+        digital_samples = {}
+        norm_freq = freq / sample_rate
+        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
+
+        self.set_analog_level(amplitude={'a_ch0': power})
+
+        num_of_samples, waveform_names = self.write_waveform(name='testing_sine',
+                                                             analog_samples=analog_samples,
+                                                             digital_samples=digital_samples,
+                                                             is_first_chunk=True,
+                                                             is_last_chunk=True,
+                                                             total_number_of_samples=len(analog_samples['a_ch0']))
+        self.load_waveform(load_dict=waveform_names)
+        self.set_reps(average_factor)
