@@ -324,6 +324,18 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         mode, _ = self.get_status()
         return actual_start, actual_stop, actual_step, actual_power, mode
 
+    def set_pulse_mod(self):
+        self.inst.write(':PULM:SOUR EXT')
+        self.inst.write(':PULM:POL NORM')
+        self.inst.write(':PULM:SYNC OFF')
+
+        self.inst.write(':PULM:TRIG:EXT:LEV P0V5')
+        self.inst.write(':PULM:TRIG:EXT:IMP G50')
+        self.inst.write(':PULM:STAT ON')
+
+    def pulse_mod_on(self):
+        self.inst.write(':OUTP:STAT 1')
+
     def sweep_on(self):
         """ Switches on the sweep mode.
 
