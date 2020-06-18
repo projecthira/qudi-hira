@@ -97,7 +97,7 @@ class ODMRAWGLogic(GenericLogic):
 
     # Stuff I added - Dan
     sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
-    freq_duration = 2e-6  # Duration of each frequency set to 3 μsec
+    freq_duration = 1e-6  # Duration of each frequency set to 3 μsec
     samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
     awg_samples_limit = 5e6
     average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
@@ -479,15 +479,16 @@ class ODMRAWGLogic(GenericLogic):
         analog_samples = {'a_ch0': [], 'a_ch1': []}
         digital_samples = {'d_ch0': [], 'd_ch2': []}
         print('CW freq is ', self.cw_mw_frequency)
-        # TODO: Take care of negative and positive shifts, at the moment we are assuming the CW frequency is always higher
-        shifted_freq_list = self.cw_mw_frequency - freq_list
+        # TODO: Take care of negative and positive shifts, at the moment we are assuming the
+        #  CW frequency is always higher
+        self.shifted_freq_list = self.cw_mw_frequency - freq_list
+        self.norm_freq_list = self.shifted_freq_list / self.sample_rate
 
         x = np.linspace(start=0, stop=int(self.samples_per_freq) - 1, num=self.samples_per_freq)
         single_digital_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
                                                np.zeros(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
 
-        for freq in shifted_freq_list:
-            norm_freq = freq / self.sample_rate
+        for norm_freq in self.norm_freq_list:
             analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
             analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
             digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], single_digital_pulse)
@@ -641,9 +642,6 @@ class ODMRAWGLogic(GenericLogic):
 
             sweep_bin_num = self.average_factor * len(self.freq_list) - 1
             self._odmr_counter.set_odmr_length(length=sweep_bin_num)
-
-            self.mw_sweep_on()
-
             odmr_status = self._start_odmr_counter()
             if odmr_status < 0:
                 mode, is_running = self._mw_device.get_status()

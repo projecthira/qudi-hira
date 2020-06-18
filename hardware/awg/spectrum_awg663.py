@@ -136,7 +136,12 @@ class AWG663(Base, PulserInterface):
         self.typeloaded = None
 
     def on_activate(self):
-        self.instance = SpectrumAWG35.AWG(self.awg_ip_address, self.cards, self.hub, self.channel_setup)
+        try:
+            self.instance = SpectrumAWG35.AWG(self.awg_ip_address, self.cards, self.hub, self.channel_setup)
+        except ValueError:
+            self.log.error("Unable to connect to Spectrum AWG. It may be locked by another program.")
+            return -1
+
         self.instance.init_all_channels()
         # Set the amplitude of a channel in mV (into 50 Ohms)
         self.instance.cards[0].set_amplitude(0, 500)
