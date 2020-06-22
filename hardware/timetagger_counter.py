@@ -43,6 +43,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         timetagger_sum_channels: 2
 
     """
+
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
     _sum_channels = ConfigOption('timetagger_sum_channels', False)
@@ -62,11 +63,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         # 2: dual channel for apd_0 and apd_1
         if self._sum_channels:
             self._mode = 1
-            self.channel_combined = tt.Combiner(self._tagger, channels=[self._channel_apd_0, self._channel_apd_1])
-            self._channel_apd = self.channel_combined.getChannel()
         elif self._channel_apd_1 is None:
             self._mode = 0
-            self._channel_apd = self._channel_apd_0
         else:
             self._mode = 2
 
@@ -114,8 +112,10 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         # currently, parameters passed to this function are ignored -- the channels used and clock frequency are
         # set at startup
-
         if self._mode == 1:
+            self.channel_combined = tt.Combiner(self._tagger, channels=[self._channel_apd_0, self._channel_apd_1])
+            self._channel_apd = self.channel_combined.getChannel()
+
             self.counter = tt.Counter(
                 self._tagger,
                 channels=[self._channel_apd],
@@ -137,6 +137,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
                 n_values=1
             )
         else:
+            self._channel_apd = self._channel_apd_0
             self.counter = tt.Counter(
                 self._tagger,
                 channels=[self._channel_apd],
@@ -148,8 +149,12 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         return 0
 
     def get_counter_channels(self):
+        """
+        This just returns the number of channels in a list.
+        @return: list of channels
+        """
         if self._mode < 2:
-            return [self._channel_apd]
+            return [self._channel_apd_0]
         else:
             return [self._channel_apd_0, self._channel_apd_1]
 
