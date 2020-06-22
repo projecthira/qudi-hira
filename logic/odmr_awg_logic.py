@@ -36,7 +36,7 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import lmfit
-
+from datetime import datetime
 from logic.generic_logic import GenericLogic
 from core.util.mutex import Mutex
 from core.module import Connector
@@ -101,8 +101,9 @@ class ODMRAWGLogic(GenericLogic):
     samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
     awg_samples_limit = 5e6
     average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
-    digital_pulse_length = 2e-8  # How long will the digital pulse be
+    digital_pulse_length = 500e-9  # How long will the digital pulse be
     one_sweep_time = 0.5  # How long will a sweep be
+    digital_sync_length = 7e-9
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -404,6 +405,7 @@ class ODMRAWGLogic(GenericLogic):
             power_to_set = constraints.power_in_range(power)
             self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
                                                                                    power_to_set)
+            self._mw_device.set_pulse_mod()
         else:
             self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
                              'no integer or float.')
@@ -476,7 +478,7 @@ class ODMRAWGLogic(GenericLogic):
         digital_pulse_samples = int(np.floor(self.sample_rate * self.digital_pulse_length))
         # analog_samples = {'a_ch0': np.zeros(digital_pulse_samples, dtype=int),'a_ch1': np.zeros(digital_pulse_samples, dtype=int)}
         # digital_samples = {'d_ch0': [], 'd_ch1': []}
-        analog_samples = {'a_ch0': [], 'a_ch1': []}
+        analog_samples = {'a_ch0': [], 'a_ch1': [], 'a_ch2': []}
         digital_samples = {'d_ch0': [], 'd_ch2': []}
         print('CW freq is ', self.cw_mw_frequency)
         # TODO: Take care of negative and positive shifts, at the moment we are assuming the
@@ -487,19 +489,32 @@ class ODMRAWGLogic(GenericLogic):
         x = np.linspace(start=0, stop=int(self.samples_per_freq) - 1, num=self.samples_per_freq)
         single_digital_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
                                                np.zeros(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
+        digital_sync_samples = int(np.floor(self.sample_rate * self.digital_sync_length))
+        digital_sync_pulse = np.zeros(int(digital_sync_samples), dtype=int)
+        digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], digital_sync_pulse)
+        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], digital_sync_pulse)
 
         for norm_freq in self.norm_freq_list:
             analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
             analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
             digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], single_digital_pulse)
+            analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.sin(2 * np.pi * 0 * x))
+            # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], single_digital_pulse)
 
-        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.zeros(2 * digital_pulse_samples))
-        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.zeros(2 * digital_pulse_samples))
+        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+        analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+
+        # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.ones(digital_pulse_samples, dtype=int))
+        # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.zeros(digital_pulse_samples, dtype=int))
+
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.ones(digital_pulse_samples, dtype=int))
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.zeros(digital_pulse_samples, dtype=int))
 
         digital_samples['d_ch5'] = digital_samples['d_ch0']
-        digital_samples['d_ch2'] = np.ones(len(analog_samples['a_ch0']), dtype=int)
+
+        # digital_samples['a_ch2'] = np.zeros(len(analog_samples['a_ch0']), dtype=int)
+        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], np.ones(len(analog_samples['a_ch0']) - len(digital_sync_pulse), dtype=int))
 
         print('Analog sample array size is', np.size(analog_samples['a_ch0']))
         print('d_ch0 array size is', np.size(digital_samples['d_ch0']))
@@ -532,20 +547,21 @@ class ODMRAWGLogic(GenericLogic):
         """
         # TODO: Disable the Sweep option, add an error in case it is enabled.
 
-        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
+        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500, 'a_ch2': 2500})
         analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
         print(digital_samples)
-        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR_sweeper',
+        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR1_',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
                                                                          is_first_chunk=True,
                                                                          is_last_chunk=True,
                                                                          total_number_of_samples=len(
                                                                              analog_samples['a_ch0']))
-
         self._awg_device.load_waveform(load_dict=waveform_names)
         self._awg_device.set_reps(self.average_factor)
-        self._mw_device.cw_on()
+        # self._mw_device.cw_on()
+        self._mw_device.pulse_mod_on()
+
         # Following lines update the corrected parameters to the GUI
         param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
                       'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}

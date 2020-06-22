@@ -29,6 +29,7 @@ from core.util.modules import get_home_dir
 from core.module import Base
 from collections import OrderedDict
 from interface.pulser_interface import PulserInterface, PulserConstraints
+from interface.microwave_interface import MicrowaveMode, MicrowaveLimits
 
 
 class AWG663(Base, PulserInterface):
@@ -180,6 +181,21 @@ class AWG663(Base, PulserInterface):
                                         'a_ch2', 'a_ch3', 'd_ch3', 'd_ch4', 'd_ch5'}
         constraints.activation_config = activation_config
         return constraints
+
+    def get_limits(self):
+        limits = MicrowaveLimits()
+        limits.supported_modes = (MicrowaveMode.SWEEP)
+
+        limits.min_frequency = 1
+        limits.max_frequency = 400e6
+
+        limits.min_power = 80
+        limits.max_power = 2500
+
+        limits.sweep_minstep = 1
+        limits.sweep_maxstep = 400e6
+
+        return limits
 
     def pulser_on(self):
         """ Switches the pulsing device on.
