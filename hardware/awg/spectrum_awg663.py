@@ -189,8 +189,8 @@ class AWG663(Base, PulserInterface):
         limits.min_frequency = 1
         limits.max_frequency = 400e6
 
-        limits.min_power = 80
-        limits.max_power = 2500
+        limits.min_power = 100
+        limits.max_power = 2000
 
         limits.sweep_minstep = 1
         limits.sweep_maxstep = 400e6
@@ -1050,6 +1050,30 @@ class AWG663(Base, PulserInterface):
                                                              is_first_chunk=True,
                                                              is_last_chunk=True,
                                                              total_number_of_samples=len(analog_samples['a_ch0']))
+        self.load_waveform(load_dict=waveform_names)
+        self.set_reps(average_factor)
+
+    def testing_generate_sine(self, ch='a_ch2', power=500, freq=100e6):
+        # For TESTING
+        sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
+        freq_duration = 2e-3  # Duration of each frequency set to 3 μsec
+        average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
+        samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
+
+        x = np.linspace(start=0, stop=int(samples_per_freq) - 1, num=samples_per_freq)
+        analog_samples = {ch: []}
+        digital_samples = {}
+        norm_freq = freq / sample_rate
+        analog_samples[ch] = np.append(analog_samples[ch], np.sin(2 * np.pi * norm_freq * x))
+
+        self.set_analog_level(amplitude={ch: power})
+
+        num_of_samples, waveform_names = self.write_waveform(name='testing_sine',
+                                                             analog_samples=analog_samples,
+                                                             digital_samples=digital_samples,
+                                                             is_first_chunk=True,
+                                                             is_last_chunk=True,
+                                                             total_number_of_samples=len(analog_samples[ch]))
         self.load_waveform(load_dict=waveform_names)
         self.set_reps(average_factor)
 

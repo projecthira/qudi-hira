@@ -478,7 +478,7 @@ class ODMRAWGLogic(GenericLogic):
         digital_pulse_samples = int(np.floor(self.sample_rate * self.digital_pulse_length))
         # analog_samples = {'a_ch0': np.zeros(digital_pulse_samples, dtype=int),'a_ch1': np.zeros(digital_pulse_samples, dtype=int)}
         # digital_samples = {'d_ch0': [], 'd_ch1': []}
-        analog_samples = {'a_ch0': [], 'a_ch1': [], 'a_ch2': []}
+        analog_samples = {'a_ch0': [], 'a_ch1': []}
         digital_samples = {'d_ch0': [], 'd_ch2': []}
         print('CW freq is ', self.cw_mw_frequency)
         # TODO: Take care of negative and positive shifts, at the moment we are assuming the
@@ -494,29 +494,22 @@ class ODMRAWGLogic(GenericLogic):
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], digital_sync_pulse)
         digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], digital_sync_pulse)
         single_bias_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
-                                                -1 * np.ones(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
+                                            -1 * np.ones(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
         # single_bias_pulse = np.concatenate([-1 * np.ones(int(self.samples_per_freq), dtype=int)])
 
         for norm_freq in self.norm_freq_list:
             analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
             analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
             digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], single_digital_pulse)
-            analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], single_bias_pulse)
-            # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], single_digital_pulse)
 
         analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
         analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
-        analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
-
-        # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.ones(digital_pulse_samples, dtype=int))
-        # analog_samples['a_ch2'] = np.append(analog_samples['a_ch2'], np.zeros(digital_pulse_samples, dtype=int))
 
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.ones(digital_pulse_samples, dtype=int))
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.zeros(digital_pulse_samples, dtype=int))
 
         digital_samples['d_ch5'] = digital_samples['d_ch0']
 
-        # digital_samples['a_ch2'] = np.zeros(len(analog_samples['a_ch0']), dtype=int)
         digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], np.ones(len(analog_samples['a_ch0']) - len(digital_sync_pulse), dtype=int))
 
         print('Analog sample array size is', np.size(analog_samples['a_ch0']))
@@ -540,6 +533,20 @@ class ODMRAWGLogic(GenericLogic):
         self.freq_list = np.linspace(self.mw_start, end_freq, num_steps + 1)
         return 0
 
+    def test_write_waveform(self):
+        self.sweep_list()
+        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
+        analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
+        print(digital_samples)
+        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR',
+                                                                         analog_samples=analog_samples,
+                                                                         digital_samples=digital_samples,
+                                                                         is_first_chunk=True,
+                                                                         is_last_chunk=True,
+                                                                         total_number_of_samples=len(
+                                                                             analog_samples['a_ch0']))
+        return num_of_samples, waveform_names
+
     def mw_sweep_on(self):
         """
         Switching on the mw source in list/sweep mode.
@@ -550,10 +557,10 @@ class ODMRAWGLogic(GenericLogic):
         """
         # TODO: Disable the Sweep option, add an error in case it is enabled.
 
-        self._awg_device.set_analog_level(amplitude={'a_ch0': 1000, 'a_ch1': 1000, 'a_ch2': 1000})
+        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
         analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
         print(digital_samples)
-        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR1_',
+        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
                                                                          is_first_chunk=True,
