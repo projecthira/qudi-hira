@@ -778,7 +778,7 @@ class ODMRAWGLogic(GenericLogic):
             self._odmr_counter.clear_odmr()
             # Acquire count data
             time.sleep(self.one_sweep_time + 0.05)
-            err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
+            err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size, pulsed=True)
 
             if err:
                 self.stopRequested = True

@@ -53,7 +53,8 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
 
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
-    _channel_trigger = ConfigOption('timetagger_channel_trigger', missing='error')
+    _cw_channel_trigger = ConfigOption('cw_timetagger_channel_trigger', missing='error')
+    _pulsed_channel_trigger = ConfigOption('pulsed_timetagger_channel_trigger', missing='error')
     sweep_length = 100
 
     def on_activate(self):
@@ -89,6 +90,11 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         # self._tagger.setTriggerLevel(self._channel_apd_1, 1.0)
         # self._tagger.setTriggerLevel(self._channel_trigger, 1.0)
 
+        # Combine channel internally for both continuous and pulsed measurements
+        self.trigger_combined = tt.Combiner(tagger=self._tagger,
+                                    channels=[self._cw_channel_trigger, self._pulsed_channel_trigger])
+        self._channel_trigger = self.trigger_combined.getChannel()
+
         if self._mode == 1:
             self._channel_clicks = self._channel_apd_0
         if self._mode == 2:
@@ -122,7 +128,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
         constraints.counting_mode = [CountingMode.CONTINUOUS]
         return constraints
 
-    def count_odmr(self, length=100):
+    def count_odmr(self, length=100, pulsed=False):
         """ Obtains the counts from the count between markers method of the Time Tagger. Each bin belongs to a different
         frequency in the sweep.
         Returns the counts per second for each bin.
@@ -149,7 +155,8 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
             # The count array intentionally discards the last bin because it isn't terminated by a pulse (at the end of
             # the average_factor number of repetitions. To allow for later reshaping of the array we add another cell
             # with zero. This should have very little effect on the counts.
-            # count_rates = np.append(count_rates, [0])
+            if pulsed:
+                count_rates = np.append(count_rates, [0])
 
         return err, count_rates
 

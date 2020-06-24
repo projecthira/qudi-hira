@@ -67,7 +67,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         # self._command_wait('*RST')
         self.inst.write('*RST')
         # Fix issue of timeout during first time startup
-        time.sleep(0.4)
+        time.sleep(0.5)
         self.inst.write('POW:ALC OFF')
 
     def on_deactivate(self):
