@@ -65,6 +65,8 @@ class TwickenhamHDI(Base, ProcessInterface):
             )
         except serial.SerialException as e:
             self.log.error(e)
+            return -1
+        return 0
 
     def on_deactivate(self):
         """ Deactivate module.
