@@ -149,7 +149,7 @@ class AWG663(Base, PulserInterface):
         self.instance.cards[0].set_amplitude(1, 500)
         self.instance.cards[1].set_amplitude(0, 100)
         self.instance.cards[1].set_amplitude(1, 100)
-        active_chan = self.get_constraints().activation_config['config1']
+        active_chan = self.get_constraints().activation_config['hira_config']
         self.loaded_assets = dict.fromkeys(active_chan)
 
     def on_deactivate(self):
@@ -161,6 +161,12 @@ class AWG663(Base, PulserInterface):
         self.instance.close()
         del self.instance
 
+    def __mV_to_V(self, voltage_in_mV):
+        return voltage_in_mV / 1e3
+
+    def __V_to_mV(self, voltage_in_V):
+        return voltage_in_V * 1e3
+
     def get_constraints(self):
         """
         Retrieve the hardware constrains from the Pulsing device.
@@ -168,17 +174,38 @@ class AWG663(Base, PulserInterface):
         """
         constraints = PulserConstraints()
 
-        constraints.a_ch_amplitude.min = 80
-        constraints.a_ch_amplitude.max = 2500
-        constraints.a_ch_amplitude.step = 1
-        constraints.a_ch_amplitude.default = 500
+        # sample rate, i.e. the time base of the pulser
+        constraints.sample_rate.min = 50e6
+        constraints.sample_rate.max = 1.25e9
+        constraints.sample_rate.step = 1e6
+        constraints.sample_rate.default = 1.25e9
 
+        # The peak-to-peak amplitude and voltage offset of the analog channels
+        # This should be in Volts for qudi
+        constraints.a_ch_amplitude.min = self.__mV_to_V(80)
+        constraints.a_ch_amplitude.max = self.__mV_to_V(2000)
+        constraints.a_ch_amplitude.step = self.__mV_to_V(1)
+        constraints.a_ch_amplitude.default = self.__mV_to_V(500)
+        constraints.a_ch_offset.min = 0
+        constraints.a_ch_offset.max = 0
+        constraints.a_ch_offset.default = 0
+
+        # length of the created waveform in samples
         constraints.waveform_length.step = 1
         constraints.waveform_length.default = 1
 
+        # Low and high voltage level of the digital channels
+        constraints.d_ch_low.default = 0.0
+        constraints.d_ch_low.min = 0.0
+        constraints.d_ch_low.max = 0.0
+
+        constraints.d_ch_high.default = 3.3
+        constraints.d_ch_high.min = 3.3
+        constraints.d_ch_high.max = 3.3
+
         activation_config = OrderedDict()
-        activation_config['config1'] = {'a_ch0', 'a_ch1', 'd_ch0', 'd_ch1', 'd_ch2',
-                                        'a_ch2', 'a_ch3', 'd_ch3', 'd_ch4', 'd_ch5'}
+        activation_config['hira_config'] = {'a_ch0', 'a_ch1', 'd_ch0', 'd_ch1', 'd_ch2',
+                                            'a_ch2', 'a_ch3', 'd_ch3', 'd_ch4', 'd_ch5'}
         constraints.activation_config = activation_config
         return constraints
 
@@ -469,7 +496,7 @@ class AWG663(Base, PulserInterface):
         sample rate directly from the device.
         """
         rate = self.instance.get_samplerate()
-        return rate
+        return float(rate)
 
     def set_sample_rate(self, sample_rate):
         """ Set the sample rate of the pulse generator hardware.
@@ -481,8 +508,10 @@ class AWG663(Base, PulserInterface):
         Note: After setting the sampling rate of the device, use the actually set return value for
               further processing.
         """
-        rate = self.instance.set_samplerate(sample_rate)
-        return rate
+        # Integer conversion required by AWG
+        self.instance.set_samplerate(int(sample_rate))
+        actual_rate = self.get_sample_rate()
+        return actual_rate
 
     def get_analog_level(self, amplitude=None, offset=None):
         """ Retrieve the analog amplitude and offset of the provided channels.
@@ -514,7 +543,7 @@ class AWG663(Base, PulserInterface):
 
         """
 
-        channels = self.get_constraints().activation_config['config1']
+        channels = self.get_constraints().activation_config['hira_config']
         a_ch = [ch for ch in channels if 'a' in ch]
 
         AllAmp = dict()
@@ -523,13 +552,13 @@ class AWG663(Base, PulserInterface):
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
                 state = self.instance.cards[chInd[0]].get_amplitude(chInd[1])
-                AllAmp[chan] = state
+                AllAmp[chan] = self.__mV_to_V(state)
         else:
             for channel in range(4):
                 chInd = self.channels[channel]
                 state = self.instance.cards[chInd[0]].get_amplitude(chInd[1])
                 chan = "a_ch{0}".format(channel)
-                AllAmp[chan] = state
+                AllAmp[chan] = self.__mV_to_V(state)
 
         AllOffset = dict()
         if offset is not None:
@@ -537,13 +566,13 @@ class AWG663(Base, PulserInterface):
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
                 state = self.instance.cards[chInd[0]].get_offset(chInd[1])
-                AllOffset[chan] = state
+                AllOffset[chan] = self.__mV_to_V(state)
         else:
             for ch in a_ch:
                 ch_num = int(ch.rsplit('_ch')[1])
                 chInd = self.channels[ch_num]
                 state = self.instance.cards[chInd[0]].get_offset(chInd[1])
-                AllOffset[ch] = state
+                AllOffset[ch] = self.__mV_to_V(state)
 
         return AllAmp, AllOffset
 
@@ -571,15 +600,15 @@ class AWG663(Base, PulserInterface):
             for chan in amplitude:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
-                amp = amplitude[chan]
-                state = self.instance.cards[chInd[0]].set_amplitude(chInd[1], amp)
+                amp = self.__V_to_mV(amplitude[chan])
+                state = self.instance.cards[chInd[0]].set_amplitude(chInd[1], int(amp))
 
         if offset is not None:
             for chan in offset:
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
-                off = offset[chan]
-                state = self.instance.cards[chInd[0]].set_offset(chInd[1], off)
+                off = self.__V_to_mV(offset[chan])
+                state = self.instance.cards[chInd[0]].set_offset(chInd[1], int(off))
 
         AllAmp, AllOffset = self.get_analog_level()
 
@@ -608,7 +637,7 @@ class AWG663(Base, PulserInterface):
         Since no high request was performed, the high values for ALL channels are returned (here 4).
         """
 
-        channels = self.get_constraints().activation_config['config1']
+        channels = self.get_constraints().activation_config['hira_config']
         d_ch = [ch for ch in channels if 'd' in ch]
 
         if low is None:
@@ -621,8 +650,8 @@ class AWG663(Base, PulserInterface):
 
         if (low == []) and (high == []):
             for ch in d_ch:
-                low_val[ch] = 0
-                high_val[ch] = 1
+                low_val[ch] = 0.0
+                high_val[ch] = 3.3
 
         for d_ch in low:
             low_val[d_ch] = 0
@@ -651,8 +680,7 @@ class AWG663(Base, PulserInterface):
         Note: After setting the high and/or low values of the device, use the actual set return
               values for further processing.
         """
-        self.log.warn("Setting digital level does nothing.")
-        pass
+        return self.get_digital_level()
 
     def get_active_channels(self, ch=None):
         """ Get the active channels of the pulse generator hardware.
@@ -676,7 +704,7 @@ class AWG663(Base, PulserInterface):
 
         all_state = dict()
         all_constraints = self.get_constraints()
-        all_options = all_constraints.activation_config['config1']
+        all_options = all_constraints.activation_config['hira_config']
         # ['a_ch0', 'a_ch1', 'a_ch2', 'a_ch3', 'd_ch0', 'd_ch1', 'd_ch2', 'd_ch3', 'd_ch4', 'd_ch5']
         count = 0
         #
