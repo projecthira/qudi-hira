@@ -732,7 +732,7 @@ class AWG:
 
             segment.append(([], LaserWait))
             for pulse2 in eval(mwsequence):
-                print(pulse2)
+                # print(pulse2)
                 segment.append(pulse2)
             segment.append(([], laser_prewait))
             segment.append(([ch('laser'), ch('aom')], LaserOn))
@@ -746,7 +746,7 @@ class AWG:
 
                 segment.append(([], LaserWait))
                 for pulse2 in eval(imwsequence):
-                    print(pulse2)
+                    # print(pulse2)
                     segment.append(pulse2)
                 segment.append(([], laser_prewait))
                 segment.append(([ch('laser'), ch('aom')], LaserOn))
@@ -1212,18 +1212,14 @@ class AWG:
         del data
         t1.start()
         t2.start()
-        print('Waiting for uploads to be finished...')
         t1.join()
         t2.join()
 
         self.finish_time = time.time()
-        print('All uploads finished!')
         # self.uploading = False
 
         if not hasattr(self, 'start_time'):
             return
-        print('Total time: ' + str(self.finish_time - self.start_time))
-        print('Upload time: ' + str(self.finish_time - self.start_upload_time))
 
     def wait_upload(self):
         while self.uploading:

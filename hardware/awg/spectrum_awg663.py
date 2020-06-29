@@ -265,6 +265,7 @@ class AWG663(Base, PulserInterface):
 
         if isinstance(load_dict, list):
             new_dict = dict()
+            self.log.info('Using waveform set "{}" from "{}"'.format(load_dict[0], self.waveform_folder))
             for waveform in load_dict:
                 wave_name = waveform.rsplit('.pkl')[0]
                 channel_num = int(wave_name.rsplit('_ch', 1)[1])
@@ -276,8 +277,8 @@ class AWG663(Base, PulserInterface):
                 new_dict[channel] = wave_name
             load_dict = new_dict
 
-        if not bool(dict):
-            print('No data to sent to awg')
+        if not load_dict:
+            self.log.error('No data to send to AWG')
             return -1
 
         # Get a list of  all pkl waveforms in waveform folder
@@ -333,17 +334,17 @@ class AWG663(Base, PulserInterface):
             data_list = new_list
 
         self.instance.set_memory_size(int(data_size))
-        self.log.info('Sending waveform to AWG')
 
         # Runs a threaded method to upload to both cards simultaneously
         # data_list is a list of analog and digital values
         # data_list[0, 1, 4, 5, 6] goes to card 0
         # data_list[2, 3, 7, 8, 9] goes to card 1
+        self.log.info('Uploading waveform to AWG...')
         if not data_size == 0:
             self.instance.upload(data_list, data_size, mem_offset=0)
             self.typeloaded = 'waveform'
             # print(data_list[0][0:5])
-        self.log.info('Finished sending waveform to AWG')
+        self.log.info('Upload to AWG complete')
         return load_dict
 
     def load_sequence(self, sequence_name):
@@ -431,7 +432,7 @@ class AWG663(Base, PulserInterface):
                              respective asset loaded into the channel,
                              string describing the asset type ('waveform' or 'sequence')
         """
-        self.log.warn("Assets have been retrieved from memory, not the AWG.")
+        self.log.info("Assets have been retrieved from memory, not the AWG.")
         return self.loaded_assets, self.typeloaded
 
     def clear_all(self):
@@ -830,7 +831,7 @@ class AWG663(Base, PulserInterface):
                 value = convert
             if is_first_chunk:
                 full_signal = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
-                print(value[0:5])
+                # print(value[0:5])
             else:
                 old_part = self.my_load_dict(path)
                 new_part = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
@@ -925,7 +926,7 @@ class AWG663(Base, PulserInterface):
                 wave_dict.pop(wave, "None")
                 names.append = wave
             else:
-                print("waveform {0} not in list".format(wave))
+                self.log.error("Unable to delete {}. Waveform not in list. ".format(wave))
 
         path = os.path.join(os.getcwd(), 'awg', 'WaveFormDict.pkl')
         output = open(path, 'wb')
@@ -953,7 +954,7 @@ class AWG663(Base, PulserInterface):
                 wave_dict.pop(wave, "None")
                 names.append = wave
             else:
-                print("waveform {0} not in list".format(wave))
+                self.log.error("Unable to delete {}. Waveform not in list. ".format(wave))
 
         output = open(path, 'wb')
         pickle.dump(wave_dict, output)
