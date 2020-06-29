@@ -98,7 +98,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         for mw_freq in freq_array:
             mw_element = self._get_iq_mix_element(length=self.rabi_period / 2,
                                                   increment=0,
-                                                  amp=self.microwave_amplitude,
+                                                  amp=self.iq_amplitude,
                                                   freq=mw_freq,
                                                   phase=0)
             pulsedodmr_block.append(mw_element)

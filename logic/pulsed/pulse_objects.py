@@ -1093,6 +1093,10 @@ class PredefinedGeneratorBase:
         return self.generation_parameters.get('rabi_period')
 
     @property
+    def iq_amplitude(self):
+        return self.generation_parameters.get('iq_amplitude')
+
+    @property
     def sample_rate(self):
         return self.pulse_generator_settings.get('sample_rate')
 
@@ -1454,11 +1458,9 @@ class PredefinedGeneratorBase:
                 length += blocks[block_name].increment_s * ((reps ** 2 + reps) / 2)
         return length
 
-    def _get_iq_mix_element(self, length, increment, amp=None, freq = None, phase = None):
-
-        i_ch = self.generation_parameters.get('i_ch')
-        q_ch = self.generation_parameters.get('q_ch')
-
+    def _get_iq_mix_element(self, length, increment, amp=None, freq=None, phase=None):
+        i_ch = self.generation_parameters.get('i_channel')
+        q_ch = self.generation_parameters.get('q_channel')
         iq_element = self._get_idle_element(length=length, increment=increment)
 
         # The Sin function is defined in pulsed/sampling_function_defs/basic_sampling_functions
@@ -1466,7 +1468,6 @@ class PredefinedGeneratorBase:
             amplitude=amp,
             frequency=freq,
             phase=phase)
-        print(amp)
         iq_element.pulse_function[q_ch] = SamplingFunctions.Sin(
             amplitude=amp,
             frequency=freq,
