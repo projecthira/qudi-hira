@@ -1810,9 +1810,12 @@ class SequenceGeneratorLogic(GenericLogic):
                             digital_samples[chnl][array_write_index:array_write_index + samples_to_add] = digital_high[
                                 chnl]
                         for chnl in pulse_function:
-                            analog_samples[chnl][array_write_index:array_write_index + samples_to_add] = pulse_function[
-                                                                                                             chnl].get_samples(
-                                time_arr) / (self.__analog_levels[0][chnl] / 2)
+                            analog_samples[chnl][array_write_index:array_write_index + samples_to_add] = \
+                                pulse_function[chnl].get_samples(time_arr) / (self.__analog_levels[0][chnl] / 2)
+                            # Above is the old version, what is the purpose of diving by analog levels here?
+                            # Dividing completely breaks the output waveforms
+                            # analog_samples[chnl][array_write_index:array_write_index + samples_to_add] = \
+                            #     pulse_function[chnl].get_samples(time_arr)
 
                         # Free memory
                         if pulse_function:
