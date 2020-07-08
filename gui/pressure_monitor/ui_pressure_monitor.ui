@@ -217,6 +217,21 @@
     <layout class="QGridLayout" name="gridLayout_3"/>
    </widget>
   </widget>
+  <widget class="QToolBar" name="pressureToolbar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="record_pressure_Action"/>
+  </widget>
   <action name="actionClose">
    <property name="icon">
     <iconset>
@@ -257,6 +272,21 @@
    </property>
    <property name="text">
     <string>Reset View</string>
+   </property>
+  </action>
+  <action name="record_pressure_Action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Record pressure</string>
+   </property>
+   <property name="toolTip">
+    <string>Save pressure to file</string>
    </property>
   </action>
  </widget>

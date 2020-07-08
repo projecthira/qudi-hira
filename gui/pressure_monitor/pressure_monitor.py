@@ -111,13 +111,19 @@ class PressureMonitorGUI(GUIBase):
                 i += 1
 
         self.plot1 = plot1
+
+        self._mw.record_pressure_Action.triggered.connect(self.save_clicked)
+
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
+        self._pm_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         self._pm_logic.sigUpdate.connect(self.updateGui)
 
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
+        self._pm_logic.sigSavingStatusChanged.disconnect()
+        self._mw.record_pressure_Action.triggered.disconnect()
         self._mw.close()
 
     def show(self):
@@ -140,6 +146,11 @@ class PressureMonitorGUI(GUIBase):
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
+        if self._pm_logic.get_saving_state():
+            self._mw.record_pressure_Action.setText('Save')
+        else:
+            self._mw.record_pressure_Action.setText('Start Saving Data')
+
         if self._mw.maincheckBox.isChecked():
             if not isinstance(self._pm_logic.main_pressure, float):
                 self._mw.mainPressure.setText('{}'.format(self._pm_logic.main_pressure))
@@ -180,3 +191,25 @@ class PressureMonitorGUI(GUIBase):
             self._mw.backPressure.setText('-')
             self.curves['back_pressure'].hide()
 
+    def save_clicked(self):
+        """ Handling the save button to save the data into a file.
+        """
+        if self._pm_logic.get_saving_state():
+            self._mw.record_pressure_Action.setText('Start Saving Data')
+            self._pm_logic.save_data()
+        else:
+            self._mw.record_pressure_Action.setText('Save')
+            self._pm_logic.start_saving()
+        return self._pm_logic.get_saving_state()
+
+    def update_saving_Action(self, start):
+        """Function to ensure that the GUI-save_action displays the current status
+
+        @param bool start: True if the measurment saving is started
+        @return bool start: see above
+        """
+        if start:
+            self._mw.record_pressure_Action.setText('Save')
+        else:
+            self._mw.record_pressure_Action.setText('Start Saving Data')
+        return start

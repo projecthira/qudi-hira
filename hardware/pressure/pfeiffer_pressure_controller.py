@@ -245,7 +245,7 @@ class PfeifferTPG366(Base, ProcessInterface):
         we keep querying it until it gives reasonable data.
 
         @param string message: message to be delivered to the TPG
-        @returns string response: message received from the TPG
+        @return string response: message received from the TPG
         """
         response = []
         while True:

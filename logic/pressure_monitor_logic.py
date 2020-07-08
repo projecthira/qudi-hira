@@ -24,8 +24,10 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import time
 import numpy as np
 from qtpy import QtCore
+from collections import OrderedDict
 
 from core.connector import Connector
+from core.statusvariable import StatusVar
 from core.configoption import ConfigOption
 from logic.generic_logic import GenericLogic
 
@@ -36,14 +38,20 @@ class PressureMonitorLogic(GenericLogic):
 
     # waiting time between queries im milliseconds
     pm = Connector(interface='ProcessInterface')
+    savelogic = Connector(interface='SaveLogic')
+
     queryInterval = ConfigOption('query_interval', 5000)
 
     sigUpdate = QtCore.Signal()
+    sigSavingStatusChanged = QtCore.Signal(bool)
+    _saving = StatusVar('saving', False)
 
     def on_activate(self):
         """ Prepare module for work.
         """
         self._pm = self.pm()
+        self._save_logic = self.savelogic()
+
         self.stopRequest = False
         self.bufferLength = 100
         self.data = {}
@@ -58,6 +66,7 @@ class PressureMonitorLogic(GenericLogic):
 
         self.init_data_logging()
         self.start_query_loop()
+        self._data_to_save = []
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -66,6 +75,13 @@ class PressureMonitorLogic(GenericLogic):
         for i in range(5):
             time.sleep(self.queryInterval / 1000)
             QtCore.QCoreApplication.processEvents()
+
+    def get_saving_state(self):
+        """ Returns if the data is saved in the moment.
+
+        @return bool: saving state
+        """
+        return self._saving
 
     @QtCore.Slot()
     def check_pressure_loop(self):
@@ -102,6 +118,16 @@ class PressureMonitorLogic(GenericLogic):
             qi = 3000
             self.log.exception("Exception in PM status loop, throttling refresh rate.")
 
+        # save the data if necessary
+        if self._saving:
+            newdata = np.empty((4, ))
+            newdata[0] = time.time() - self._saving_start_time
+            newdata[1] = self.data['main_pressure'][-1]
+            newdata[2] = self.data['prep_pressure'][-1]
+            newdata[3] = self.data['back_pressure'][-1]
+
+            self._data_to_save.append(newdata)
+
         self.queryTimer.start(qi)
         self.sigUpdate.emit()
 
@@ -127,3 +153,57 @@ class PressureMonitorLogic(GenericLogic):
         self.data['prep_pressure'] = np.zeros(self.bufferLength)
         self.data['back_pressure'] = np.zeros(self.bufferLength)
         self.data['time'] = np.ones(self.bufferLength) * time.time()
+
+    def start_saving(self, resume=False):
+        """
+        Sets up start-time and initializes data array, if not resuming, and changes saving state.
+        If the counter is not running it will be started in order to have data to save.
+
+        @return bool: saving state
+        """
+        if not resume:
+            self._data_to_save = []
+            self._saving_start_time = time.time()
+
+        self._saving = True
+
+        self.sigSavingStatusChanged.emit(self._saving)
+        return self._saving
+
+    def save_data(self, to_file=True, postfix='', save_figure=True):
+        """ Save the counter trace data and writes it to a file.
+
+        @param bool to_file: indicate, whether data have to be saved to file
+        @param str postfix: an additional tag, which will be added to the filename upon save
+        @param bool save_figure: select whether png and pdf should be saved
+
+        @return dict parameters: Dictionary which contains the saving parameters
+        """
+        # stop saving thus saving state has to be set to False
+        self._saving = False
+        self._saving_stop_time = time.time()
+
+        # write the parameters:
+        parameters = OrderedDict()
+        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
+        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
+
+        if to_file:
+            # If there is a postfix then add separating underscore
+            if postfix == '':
+                filelabel = 'pressure_'
+            else:
+                filelabel = 'pressure_' + postfix
+
+            # prepare the data in a dict or in an OrderedDict:
+            header = 'Time (s)' + ",main_pressure (mbar)" + ",prep_pressure (mbar)" + ",back_pressure (mbar)"
+
+            data = {header: self._data_to_save}
+            filepath = self._save_logic.get_path_for_module(module_name='Pressure')
+
+            self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
+                                       filelabel=filelabel, plotfig=None, delimiter='\t')
+            self.log.info('Pressure data saved to:\n{0}'.format(filepath))
+
+        self.sigSavingStatusChanged.emit(self._saving)
+        return self._data_to_save, parameters
