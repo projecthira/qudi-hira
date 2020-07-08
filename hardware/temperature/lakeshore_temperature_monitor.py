@@ -71,16 +71,14 @@ class Lakeshore224TM(Base, ProcessInterface):
         self._inst.disconnect_tcp()
         return 0
 
+    def get_channels(self):
+        """ A dict of the temperature monitor channels """
+        return {"baseplate": self._baseplate_channel, "tip": self._tip_channel, "sample": self._sample_channel}
+
     def get_temperature(self, channel):
         """ Get temperature of a specific channel """
-        if channel == "baseplate":
-            channel = self._baseplate_channel
-        elif channel == "tip":
-            channel = self._tip_channel
-        elif channel == "sample":
-            channel = self._sample_channel
-
-        temperature = float(self._inst.query('KRDG? {}'.format(channel)))
+        channel_number = self.get_channels()[channel]
+        temperature = float(self._inst.query('KRDG? {}'.format(channel_number)))
         return temperature
 
     # ProcessInterface methods

@@ -99,13 +99,13 @@ class TemperatureMonitorGUI(GUIBase):
         for name in self._tm_logic.data:
             if name != 'time':
                 curve = pg.PlotDataItem()
-                if name == 'baseplate_temp':
+                if name == 'baseplate':
                     curve.setPen(palette.c1)
                     plot1.addItem(curve)
-                elif name == 'tip_temp':
+                elif name == 'tip':
                     curve.setPen(palette.c2)
                     plot1.addItem(curve)
-                elif name == 'sample_temp':
+                elif name == 'sample':
                     curve.setPen(palette.c3)
                     plot1.addItem(curve)
                 self.curves[name] = curve
@@ -148,30 +148,30 @@ class TemperatureMonitorGUI(GUIBase):
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
+
         if self._mw.baseplatecheckBox.isChecked():
-            self.curves['baseplate_temp'].show()
-            self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._tm_logic.baseplate_temp))
-            self.curves['baseplate_temp'].setData(x=self._tm_logic.data['time'],
-                                                  y=self._tm_logic.data['baseplate_temp'])
+            self.curves['baseplate'].show()
+            self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['baseplate'][-1]))
+            self.curves['baseplate'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['baseplate'])
         else:
-            self.curves['baseplate_temp'].hide()
+            self.curves['baseplate'].hide()
             self._mw.baseplateTemperature.setText('-')
 
-        if self._mw.samplecheckBox.isChecked():
-            self.curves['sample_temp'].show()
-            self._mw.sampleTemperature.setText('{0:6.3f} K'.format(self._tm_logic.sample_temp))
-            self.curves['sample_temp'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['sample_temp'])
-        else:
-            self.curves['sample_temp'].hide()
-            self._mw.sampleTemperature.setText('-')
-
         if self._mw.tipcheckBox.isChecked():
-            self.curves['tip_temp'].show()
-            self._mw.tipTemperature.setText('{0:6.3f} K'.format(self._tm_logic.tip_temp))
-            self.curves['tip_temp'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['tip_temp'])
+            self.curves['tip'].show()
+            self._mw.tipTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['tip'][-1]))
+            self.curves['tip'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['tip'])
         else:
-            self.curves['tip_temp'].hide()
+            self.curves['tip'].hide()
             self._mw.tipTemperature.setText('-')
+
+        if self._mw.samplecheckBox.isChecked():
+            self.curves['sample'].show()
+            self._mw.sampleTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['sample'][-1]))
+            self.curves['sample'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['sample'])
+        else:
+            self.curves['sample'].hide()
+            self._mw.sampleTemperature.setText('-')
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.

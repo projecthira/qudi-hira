@@ -86,6 +86,13 @@ class TemperatureMonitorLogic(GenericLogic):
         """
         return self._saving
 
+    def get_channels(self):
+        """ Shortcut for hardware get_counter_channels.
+
+            @return list(str): return list of active counter channel names
+        """
+        return self._tm.get_channels()
+
     @QtCore.Slot()
     def check_temperature_loop(self):
         """ Get temperatures from monitor. """
@@ -96,16 +103,13 @@ class TemperatureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-            self.baseplate_temp = self._tm.get_process_value(channel="baseplate")
-            self.tip_temp = self._tm.get_process_value(channel="tip")
-            self.sample_temp = self._tm.get_process_value(channel="sample")
 
             for k in self.data:
                 self.data[k] = np.roll(self.data[k], -1)
 
-            self.data['baseplate_temp'][-1] = self.baseplate_temp
-            self.data['tip_temp'][-1] = self.tip_temp
-            self.data['sample_temp'][-1] = self.sample_temp
+            for i, channel in enumerate(self.get_channels()):
+                self.data[channel][-1] = self._tm.get_process_value(channel=channel)
+
             self.data['time'][-1] = time.time()
         except:
             qi = 3000
@@ -113,12 +117,10 @@ class TemperatureMonitorLogic(GenericLogic):
 
         # save the data if necessary
         if self._saving:
-            newdata = np.empty((4, ))
+            newdata = np.empty((len(self.get_channels()) + 1), )
             newdata[0] = time.time() - self._saving_start_time
-            newdata[1] = self.data['baseplate_temp'][-1]
-            newdata[2] = self.data['tip_temp'][-1]
-            newdata[3] = self.data['sample_temp'][-1]
-
+            for i, channel in enumerate(self.get_channels()):
+                newdata[i+1] = self.data[channel][-1]
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -142,10 +144,9 @@ class TemperatureMonitorLogic(GenericLogic):
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['baseplate_temp'] = np.zeros(self.bufferLength)
-        self.data['tip_temp'] = np.zeros(self.bufferLength)
-        self.data['sample_temp'] = np.zeros(self.bufferLength)
         self.data['time'] = np.ones(self.bufferLength) * time.time()
+        for i, channel in enumerate(self.get_channels()):
+            self.data[channel] = np.zeros(self.bufferLength)
 
     def start_saving(self, resume=False):
         """
@@ -171,26 +172,17 @@ class TemperatureMonitorLogic(GenericLogic):
         @return: fig fig: a matplotlib figure object to be saved to file.
         """
         time_data = data[:, 0]
-        baseplate_temp = data[:, 1]
-        tip_temp = data[:, 2]
-        sample_temp = data[:, 3]
 
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qd_style)
 
         # Create figure
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
-        ax1.plot(time_data, baseplate_temp, linestyle=':', linewidth=0.5)
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Baseplate T (K)')
+        fig, ax = plt.subplots(nrows=len(self.get_channels()), ncols=1, sharex=True)
 
-        ax2.plot(time_data, tip_temp, linestyle=':', linewidth=0.5)
-        ax2.set_xlabel('Time (s)')
-        ax2.set_ylabel('Tip T (K)')
-
-        ax3.plot(time_data, sample_temp, linestyle=':', linewidth=0.5)
-        ax3.set_xlabel('Time (s)')
-        ax3.set_ylabel('Sample T (K)')
+        for i, channel in enumerate(self.get_channels()):
+            ax[i].plot(time_data, data[:, i+1], linestyle=':', linewidth=0.5)
+            ax[i].set_xlabel('Time (s)')
+            ax[i].set_ylabel(channel + ' T (K)')
 
         plt.tight_layout()
 
@@ -222,7 +214,10 @@ class TemperatureMonitorLogic(GenericLogic):
                 filelabel = 'temperature_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)' + ",baseplate_temp (K)" + ",tip_temp (K)" + ",sample_temp (K)"
+            header = 'Time (s)'
+
+            for i, channel in enumerate(self.get_channels()):
+                header += ',{}_temp (K)'.format(channel)
 
             data = {header: self._data_to_save}
             filepath = self._save_logic.get_path_for_module(module_name='Temperature')
