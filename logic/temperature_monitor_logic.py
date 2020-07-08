@@ -179,10 +179,13 @@ class TemperatureMonitorLogic(GenericLogic):
         # Create figure
         fig, ax = plt.subplots(nrows=len(self.get_channels()), ncols=1, sharex=True)
 
+        if len(self.get_channels()) == 1:
+            ax = [ax]
+
         for i, channel in enumerate(self.get_channels()):
             ax[i].plot(time_data, data[:, i+1], linestyle=':', linewidth=0.5)
             ax[i].set_xlabel('Time (s)')
-            ax[i].set_ylabel(channel + ' T (K)')
+            ax[i].set_ylabel(channel.title() + ' T (K)')
 
         plt.tight_layout()
 
