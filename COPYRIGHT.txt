@@ -1,6 +1,6 @@
 qudi-hira
 ---------
-Copyright 2019, 2020
+Copyright(c) 2019, 2020
 Dinesh Pinto <d.pinto@fkf.mpg.de>
 
 
