@@ -189,15 +189,15 @@ class PressureMonitorLogic(GenericLogic):
 
         # Create figure
         fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
-        ax1.plot(time_data, main_pressure, linestyle=':', linewidth=0.5)
+        ax1.plot(time_data, main_pressure, '.-')
         ax1.set_xlabel('Time (s)')
         ax1.set_ylabel('Main P (mbar)')
 
-        ax2.plot(time_data, prep_pressure, linestyle=':', linewidth=0.5)
+        ax2.plot(time_data, prep_pressure, '.-')
         ax2.set_xlabel('Time (s)')
         ax2.set_ylabel('Prep P (mbar)')
 
-        ax3.plot(time_data, back_pressure, linestyle=':', linewidth=0.5)
+        ax3.plot(time_data, back_pressure, '.-')
         ax3.set_xlabel('Time (s)')
         ax3.set_ylabel('Back P (mbar)')
 

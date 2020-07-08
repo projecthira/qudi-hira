@@ -174,7 +174,7 @@ class TemperatureMonitorLogic(GenericLogic):
         time_data = data[:, 0]
 
         # Use qudi style
-        plt.style.use(self._save_logic.mpl_qd_style)
+        plt.style.use(self._save_logic.mpl_qudihira_style)
 
         # Create figure
         fig, ax = plt.subplots(nrows=len(self.get_channels()), ncols=1, sharex=True)
@@ -183,7 +183,7 @@ class TemperatureMonitorLogic(GenericLogic):
             ax = [ax]
 
         for i, channel in enumerate(self.get_channels()):
-            ax[i].plot(time_data, data[:, i+1], linestyle=':', linewidth=0.5)
+            ax[i].plot(time_data, data[:, i+1], '.-')
             ax[i].set_xlabel('Time (s)')
             ax[i].set_ylabel(channel.title() + ' T (K)')
 

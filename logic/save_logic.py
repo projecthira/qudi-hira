@@ -165,6 +165,26 @@ class SaveLogic(GenericLogic):
         'savefig.dpi': '180'
         }
 
+    # Matplotlib style definition for saving plots
+    # Better than the default!
+    mpl_qudihira_style = {
+        'axes.linewidth': 0.5,
+        'axes.labelweight': 'light',
+        'lines.linewidth': 0.5,
+        'xtick.major.width': 0.5,
+        'ytick.major.width': 0.5,
+        'font.weight': 'light',
+        'font.sans-serif': 'Calibri',
+        'mathtext.fontset': 'stixsans',
+        'mathtext.default': 'regular',
+        'axes.spines.right': True,
+        'axes.spines.top': True,
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'savefig.dpi': '200',
+        'figure.figsize': '12, 6',
+    }
+
     _additional_parameters = {}
 
     def __init__(self, config, **kwargs):
