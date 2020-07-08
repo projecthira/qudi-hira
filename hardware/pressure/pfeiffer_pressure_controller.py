@@ -29,12 +29,14 @@ from core.configoption import ConfigOption
 from interface.process_interface import ProcessInterface
 import time
 
+# Unicode characters returned by device
 ETX = chr(3)  # \x03
 CR = chr(13)
 LF = chr(10)
 ENQ = chr(5)  # \x05
 ACK = chr(6)  # \x06
 NAK = chr(21)  # \x15
+ERR = "0001"
 
 # Code translations constants
 MEASUREMENT_STATUS = {
@@ -44,7 +46,8 @@ MEASUREMENT_STATUS = {
     3: 'Sensor error',
     4: 'Sensor off (IKR, PKR, IMR, PBR)',
     5: 'No sensor',
-    6: 'Identification error'
+    6: 'Identification error',
+    7: 'Data error'
 }
 GAUGE_IDS = {
     'TPR': 'Pirani Gauge or Pirani Capacitive gauge',
@@ -65,11 +68,17 @@ class PfeifferTPG366(Base, ProcessInterface):
     """
     Hardware control class to control Pfeiffer TPG366 devices.
 
+    The easiest way to connect the device is to use Ethernet.
+    - Install a Virtual COM driver, such as
+            NetBurner: https://www.netburner.com/download/virtual-comm-port-driver-windows-xp-10/
+    - Map the device <IP> with port 8000 to an unused serial port within the software.
+    - Enter the com_port in the config.
+
     Example config for copy-paste:
 
     pfeiffer_tpg366:
         module.Class: 'pressure.pfeiffer_pressure_controller.PfeifferTPG266'
-        com_port : 'COM2'
+        com_port : 'COM11'
         timeout : 2
         main_gauge : 1
         prep_gauge : 2
@@ -163,17 +172,17 @@ class PfeifferTPG366(Base, ProcessInterface):
     def get_pressure(self, channel):
         """ Get pressure of a specific channel
 
-        @param channel: TPG366 channel to query
+        @param channel_number: TPG366 channel to query
         @return float: channel pressure in mbar
         """
         if channel == "main_gauge":
-            channel = self._main_guage_number
+            channel_number = self._main_guage_number
         elif channel == "prep_gauge":
-            channel = self._prep_guage_number
+            channel_number = self._prep_guage_number
         elif channel == "back_gauge":
-            channel = self._back_guage_number
+            channel_number = self._back_guage_number
 
-        response = self._communicate('PR{}'.format(channel))
+        response = self._communicate('PR{}'.format(channel_number))
         status, pressure = response.split(",")
 
         if status == "0":
@@ -231,21 +240,40 @@ class PfeifferTPG366(Base, ProcessInterface):
         self._tpg.write(new_message.encode())
 
     def _communicate(self, message):
-        """ Sends and receive messages with the TPG
+        """ Sends and receive messages with the TPG.
+        Since the TPG often seems to reply with nonsensical messages,
+        we keep querying it until it gives reasonable data.
 
         @param string message: message to be delivered to the TPG
         @returns string response: message received from the TPG
         """
-        self._send(message)
-        time.sleep(0.05)
-        self._send(ENQ)
-
-        response_len = self._tpg.inWaiting()
         response = []
+        while True:
+            try:
+                self._send(message)
+                # TODO: Listen for ACKnowledgement from device instead of sleeping
+                time.sleep(0.05)
+                self._send(ENQ)
 
-        while response_len > 0:
-            this_response_line = self._tpg.readline().decode().strip("\r\n")
-            response.append(this_response_line)
-            time.sleep(0.05)
-            response_len = self._tpg.inWaiting()
+                response_len = self._tpg.inWaiting()
+                response = []
+
+                if response_len == 0:
+                    # If there is no data in the device buffer
+                    raise ValueError
+
+                while response_len > 0:
+                    this_response_line = self._tpg.readline().decode().strip("\r\n")
+                    response.append(this_response_line)
+                    time.sleep(0.05)
+                    response_len = self._tpg.inWaiting()
+                if response[1] == ACK or response[1] == NAK or response[1] == ERR:
+                    # If the response just consists of an ACKnowledge or No ACKnowlegde or ERRor
+                    raise ValueError
+            except Exception as exc:
+                # This message doesn't really mean anything, but its still good to have it in the debug log
+                self.log.debug(exc)
+                continue
+            break
+
         return response[1]
