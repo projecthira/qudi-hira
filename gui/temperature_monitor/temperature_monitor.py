@@ -47,7 +47,7 @@ class TimeAxisItem(pg.AxisItem):
         return [time.strftime("%H:%M:%S", time.localtime(value)) for value in values]
 
 
-class LaserWindow(QtWidgets.QMainWindow):
+class MainGUIWindow(QtWidgets.QMainWindow):
     """ Create the Main Window based on the *.ui file. """
 
     def __init__(self):
@@ -79,7 +79,7 @@ class TemperatureMonitorGUI(GUIBase):
         #####################
         # Configuring the dock widgets
         # Use the inherited class 'CounterMainWindow' to create the GUI window
-        self._mw = LaserWindow()
+        self._mw = MainGUIWindow()
 
         # Setup dock widgets
         self._mw.setDockNestingEnabled(True)
@@ -112,11 +112,18 @@ class TemperatureMonitorGUI(GUIBase):
                 i += 1
 
         self.plot1 = plot1
+        self._mw.record_temperature_Action.triggered.connect(self.save_clicked)
+
+        # self.updateViews()
+        # self.plot1.vb.sigResized.connect(self.updateViews)
+        self._tm_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         self._tm_logic.sigUpdate.connect(self.updateGui)
 
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
+        self._tm_logic.sigSavingStatusChanged.disconnect()
+        self._mw.record_temperature_Action.triggered.disconnect()
         self._mw.close()
 
     def show(self):
@@ -165,3 +172,26 @@ class TemperatureMonitorGUI(GUIBase):
         else:
             self.curves['tip_temp'].hide()
             self._mw.tipTemperature.setText('-')
+
+    def save_clicked(self):
+        """ Handling the save button to save the data into a file.
+        """
+        if self._tm_logic.get_saving_state():
+            self._mw.record_temperature_Action.setText('Start Saving Data')
+            self._tm_logic.save_data()
+        else:
+            self._mw.record_temperature_Action.setText('Save')
+            self._tm_logic.start_saving()
+        return self._tm_logic.get_saving_state()
+
+    def update_saving_Action(self, start):
+        """Function to ensure that the GUI-save_action displays the current status
+
+        @param bool start: True if the measurment saving is started
+        @return bool start: see above
+        """
+        if start:
+            self._mw.record_temperature_Action.setText('Save')
+        else:
+            self._mw.record_temperature_Action.setText('Start Saving Data')
+        return start

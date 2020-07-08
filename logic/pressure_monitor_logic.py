@@ -25,6 +25,8 @@ import time
 import numpy as np
 from qtpy import QtCore
 from collections import OrderedDict
+import matplotlib.pyplot as plt
+
 
 from core.connector import Connector
 from core.statusvariable import StatusVar
@@ -170,6 +172,39 @@ class PressureMonitorLogic(GenericLogic):
         self.sigSavingStatusChanged.emit(self._saving)
         return self._saving
 
+    def draw_figure(self, data):
+        """ Draw figure to save with data file.
+
+        @param: nparray data: a numpy array containing counts vs time for all detectors
+
+        @return: fig fig: a matplotlib figure object to be saved to file.
+        """
+        time_data = data[:, 0]
+        main_pressure = data[:, 1]
+        prep_pressure = data[:, 2]
+        back_pressure = data[:, 3]
+
+        # Use qudi style
+        plt.style.use(self._save_logic.mpl_qd_style)
+
+        # Create figure
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
+        ax1.plot(time_data, main_pressure, linestyle=':', linewidth=0.5)
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('Main P (mbar)')
+
+        ax2.plot(time_data, prep_pressure, linestyle=':', linewidth=0.5)
+        ax2.set_xlabel('Time (s)')
+        ax2.set_ylabel('Prep P (mbar)')
+
+        ax3.plot(time_data, back_pressure, linestyle=':', linewidth=0.5)
+        ax3.set_xlabel('Time (s)')
+        ax3.set_ylabel('Back P (mbar)')
+
+        plt.tight_layout()
+
+        return fig
+
     def save_data(self, to_file=True, postfix='', save_figure=True):
         """ Save the counter trace data and writes it to a file.
 
@@ -191,7 +226,7 @@ class PressureMonitorLogic(GenericLogic):
         if to_file:
             # If there is a postfix then add separating underscore
             if postfix == '':
-                filelabel = 'pressure_'
+                filelabel = 'pressure'
             else:
                 filelabel = 'pressure_' + postfix
 
@@ -201,8 +236,13 @@ class PressureMonitorLogic(GenericLogic):
             data = {header: self._data_to_save}
             filepath = self._save_logic.get_path_for_module(module_name='Pressure')
 
+            if save_figure:
+                fig = self.draw_figure(data=np.array(self._data_to_save))
+            else:
+                fig = None
+
             self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, plotfig=None, delimiter='\t')
+                                       filelabel=filelabel, plotfig=fig, delimiter='\t')
             self.log.info('Pressure data saved to:\n{0}'.format(filepath))
 
         self.sigSavingStatusChanged.emit(self._saving)
