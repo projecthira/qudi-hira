@@ -95,6 +95,17 @@ class PressureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
+
+
+            for k in self.data:
+                self.data[k] = np.roll(self.data[k], -1)
+
+            for i, channel in enumerate(self.get_channels()):
+                self.data[channel][-1] = self._tm.get_process_value(channel=channel)
+
+            self.data['time'][-1] = time.time()
+
+
             self.main_pressure = self._pm.get_process_value(channel="main_gauge")
             self.prep_pressure = self._pm.get_process_value(channel="prep_gauge")
             self.back_pressure = self._pm.get_process_value(channel="back_gauge")
@@ -185,7 +196,7 @@ class PressureMonitorLogic(GenericLogic):
         back_pressure = data[:, 3]
 
         # Use qudi style
-        plt.style.use(self._save_logic.mpl_qd_style)
+        plt.style.use(self._save_logic.mpl_qudihira_style)
 
         # Create figure
         fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
