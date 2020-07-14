@@ -42,7 +42,7 @@ class PressureMonitorLogic(GenericLogic):
     pm = Connector(interface='ProcessInterface')
     savelogic = Connector(interface='SaveLogic')
 
-    queryInterval = ConfigOption('query_interval', 5000)
+    queryInterval = ConfigOption('query_interval', 1000)
 
     sigUpdate = QtCore.Signal()
     sigSavingStatusChanged = QtCore.Signal(bool)
@@ -106,7 +106,7 @@ class PressureMonitorLogic(GenericLogic):
                 self.data[k] = np.roll(self.data[k], -1)
 
             for i, channel in enumerate(self.get_channels()):
-                pressure = self._tm.get_process_value(channel=channel)
+                pressure = self._pm.get_process_value(channel=channel)
                 if isinstance(pressure, float):
                     self.data[channel][-1] = pressure
                 else:
@@ -147,10 +147,9 @@ class PressureMonitorLogic(GenericLogic):
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['main_pressure'] = np.zeros(self.bufferLength)
-        self.data['prep_pressure'] = np.zeros(self.bufferLength)
-        self.data['back_pressure'] = np.zeros(self.bufferLength)
         self.data['time'] = np.ones(self.bufferLength) * time.time()
+        for i, channel in enumerate(self.get_channels()):
+            self.data[channel] = np.zeros(self.bufferLength)
 
     def start_saving(self, resume=False):
         """
@@ -221,7 +220,10 @@ class PressureMonitorLogic(GenericLogic):
                 filelabel = 'pressure_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)' + ",main_pressure (mbar)" + ",prep_pressure (mbar)" + ",back_pressure (mbar)"
+            header = 'Time (s)'
+
+            for i, channel in enumerate(self.get_channels()):
+                header += ',{}_pressure (mbar)'.format(channel)
 
             data = {header: self._data_to_save}
             filepath = self._save_logic.get_path_for_module(module_name='Pressure')

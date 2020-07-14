@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
 This file contains a gui for the temperature monitor logic.
+author: Dinesh Pinto
+email: d.pinto@fkf.mpg.de
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

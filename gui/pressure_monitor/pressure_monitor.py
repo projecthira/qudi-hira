@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains a gui for the temperature monitor logic.
+This file contains a gui for the pressure monitor logic.
+author: Dinesh Pinto
+email: d.pinto@fkf.mpg.de
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -98,13 +98,13 @@ class PressureMonitorGUI(GUIBase):
         for name in self._pm_logic.data:
             if name != 'time':
                 curve = pg.PlotDataItem()
-                if name == 'main_pressure':
+                if name == 'main':
                     curve.setPen(palette.c1)
                     plot1.addItem(curve)
-                elif name == 'prep_pressure':
+                elif name == 'prep':
                     curve.setPen(palette.c2)
                     plot1.addItem(curve)
-                elif name == 'back_pressure':
+                elif name == 'back':
                     curve.setPen(palette.c3)
                     plot1.addItem(curve)
                 self.curves[name] = curve
@@ -146,10 +146,6 @@ class PressureMonitorGUI(GUIBase):
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
-        if self._pm_logic.get_saving_state():
-            self._mw.record_pressure_Action.setText('Save')
-        else:
-            self._mw.record_pressure_Action.setText('Start Saving Data')
 
         if self._mw.maincheckBox.isChecked():
             pressure = self._pm_logic.data['main'][-1]
@@ -176,7 +172,7 @@ class PressureMonitorGUI(GUIBase):
                 self.curves['prep'].setData(x=self._pm_logic.data['time'],
                                             y=self._pm_logic.data['prep'])
         else:
-            self.curves['main'].hide()
+            self.curves['prep'].hide()
             self._mw.prepPressure.setText('-')
 
         if self._mw.backcheckBox.isChecked():
