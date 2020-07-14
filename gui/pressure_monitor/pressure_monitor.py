@@ -152,44 +152,46 @@ class PressureMonitorGUI(GUIBase):
             self._mw.record_pressure_Action.setText('Start Saving Data')
 
         if self._mw.maincheckBox.isChecked():
-            if not isinstance(self._pm_logic.main_pressure, float):
-                self._mw.mainPressure.setText('{}'.format(self._pm_logic.main_pressure))
-                self.curves['prep_pressure'].hide()
+            pressure = self._pm_logic.data['main'][-1]
+            if pressure == -1:
+                self._mw.mainPressure.setText('{}'.format(self._pm_logic.pressure_state))
+                self.curves['main'].hide()
             else:
-                self._mw.mainPressure.setText('{} mbar'.format(self._pm_logic.main_pressure))
-                self.curves['main_pressure'].show()
-                self.curves['main_pressure'].setData(x=self._pm_logic.data['time'],
-                                                     y=self._pm_logic.data['main_pressure'])
+                self._mw.mainPressure.setText('{} mbar'.format(pressure))
+                self.curves['main'].show()
+                self.curves['main'].setData(x=self._pm_logic.data['time'],
+                                            y=self._pm_logic.data['main'])
         else:
-            self.curves['main_pressure'].hide()
+            self.curves['main'].hide()
             self._mw.mainPressure.setText('-')
 
         if self._mw.prepcheckBox.isChecked():
-            if not isinstance(self._pm_logic.prep_pressure, float):
-                self._mw.prepPressure.setText('{}'.format(self._pm_logic.prep_pressure))
-                self.curves['prep_pressure'].hide()
+            pressure = self._pm_logic.data['prep'][-1]
+            if pressure == -1:
+                self._mw.prepPressure.setText('{}'.format(self._pm_logic.pressure_state))
+                self.curves['prep'].hide()
             else:
-                self._mw.prepPressure.setText('{} mbar'.format(self._pm_logic.prep_pressure))
-                self.curves['prep_pressure'].show()
-                self.curves['prep_pressure'].setData(x=self._pm_logic.data['time'],
-                                                     y=self._pm_logic.data['prep_pressure'])
+                self._mw.prepPressure.setText('{} mbar'.format(pressure))
+                self.curves['prep'].show()
+                self.curves['prep'].setData(x=self._pm_logic.data['time'],
+                                            y=self._pm_logic.data['prep'])
         else:
+            self.curves['main'].hide()
             self._mw.prepPressure.setText('-')
-            self.curves['prep_pressure'].hide()
 
         if self._mw.backcheckBox.isChecked():
-            if not isinstance(self._pm_logic.back_pressure, float):
-                self._mw.backPressure.setText('{}'.format(self._pm_logic.back_pressure))
-                self.curves['back_pressure'].hide()
-
+            pressure = self._pm_logic.data['back'][-1]
+            if pressure == -1:
+                self._mw.backPressure.setText('{}'.format(self._pm_logic.pressure_state))
+                self.curves['back'].hide()
             else:
-                self._mw.backPressure.setText('{} mbar'.format(self._pm_logic.back_pressure))
-                self.curves['back_pressure'].show()
-                self.curves['back_pressure'].setData(x=self._pm_logic.data['time'],
-                                                     y=self._pm_logic.data['back_pressure'])
+                self._mw.backPressure.setText('{} mbar'.format(pressure))
+                self.curves['back'].show()
+                self.curves['back'].setData(x=self._pm_logic.data['time'],
+                                            y=self._pm_logic.data['back'])
         else:
+            self.curves['back'].hide()
             self._mw.backPressure.setText('-')
-            self.curves['back_pressure'].hide()
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.

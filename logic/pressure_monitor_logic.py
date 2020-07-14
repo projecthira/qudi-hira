@@ -85,6 +85,13 @@ class PressureMonitorLogic(GenericLogic):
         """
         return self._saving
 
+    def get_channels(self):
+        """ Shortcut for hardware get_counter_channels.
+
+            @return list(str): return list of active counter channel names
+        """
+        return self._pm.get_channels()
+
     @QtCore.Slot()
     def check_pressure_loop(self):
         """ Get pressures from monitor. """
@@ -95,36 +102,16 @@ class PressureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-
-
             for k in self.data:
                 self.data[k] = np.roll(self.data[k], -1)
 
             for i, channel in enumerate(self.get_channels()):
-                self.data[channel][-1] = self._tm.get_process_value(channel=channel)
-
-            self.data['time'][-1] = time.time()
-
-
-            self.main_pressure = self._pm.get_process_value(channel="main_gauge")
-            self.prep_pressure = self._pm.get_process_value(channel="prep_gauge")
-            self.back_pressure = self._pm.get_process_value(channel="back_gauge")
-
-            for k in self.data:
-                self.data[k] = np.roll(self.data[k], -1)
-
-            if isinstance(self.main_pressure, float):
-                self.data['main_pressure'][-1] = self.main_pressure
-            else:
-                self.data['main_pressure'][-1] = -1
-            if isinstance(self.prep_pressure, float):
-                self.data['prep_pressure'][-1] = self.prep_pressure
-            else:
-                self.data['prep_pressure'][-1] = -1
-            if isinstance(self.back_pressure, float):
-                self.data['back_pressure'][-1] = self.back_pressure
-            else:
-                self.data['back_pressure'][-1] = -1
+                pressure = self._tm.get_process_value(channel=channel)
+                if isinstance(pressure, float):
+                    self.data[channel][-1] = pressure
+                else:
+                    self.data[channel][-1] = -1
+                    self.pressure_state = pressure
 
             self.data['time'][-1] = time.time()
         except:
@@ -133,12 +120,10 @@ class PressureMonitorLogic(GenericLogic):
 
         # save the data if necessary
         if self._saving:
-            newdata = np.empty((4, ))
+            newdata = np.empty((len(self.get_channels()) + 1), )
             newdata[0] = time.time() - self._saving_start_time
-            newdata[1] = self.data['main_pressure'][-1]
-            newdata[2] = self.data['prep_pressure'][-1]
-            newdata[3] = self.data['back_pressure'][-1]
-
+            for i, channel in enumerate(self.get_channels()):
+                newdata[i+1] = self.data[channel][-1]
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -191,26 +176,20 @@ class PressureMonitorLogic(GenericLogic):
         @return: fig fig: a matplotlib figure object to be saved to file.
         """
         time_data = data[:, 0]
-        main_pressure = data[:, 1]
-        prep_pressure = data[:, 2]
-        back_pressure = data[:, 3]
 
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qudihira_style)
 
         # Create figure
-        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
-        ax1.plot(time_data, main_pressure, '.-')
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Main P (mbar)')
+        fig, ax = plt.subplots(nrows=len(self.get_channels()), ncols=1, sharex=True)
 
-        ax2.plot(time_data, prep_pressure, '.-')
-        ax2.set_xlabel('Time (s)')
-        ax2.set_ylabel('Prep P (mbar)')
+        if len(self.get_channels()) == 1:
+            ax = [ax]
 
-        ax3.plot(time_data, back_pressure, '.-')
-        ax3.set_xlabel('Time (s)')
-        ax3.set_ylabel('Back P (mbar)')
+        for i, channel in enumerate(self.get_channels()):
+            ax[i].plot(time_data, data[:, i+1], 'o-')
+            ax[i].set_xlabel('Time (s)')
+            ax[i].set_ylabel(channel.title() + ' P (mbar)')
 
         plt.tight_layout()
 

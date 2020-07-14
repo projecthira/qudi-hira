@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi hardware file to control R&S SMF100a devices.
+This file contains the Qudi module to control the TPG366 pressure gauge from Pfeiffer.
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.de
 
@@ -109,6 +109,10 @@ class PfeifferTPG366(Base, ProcessInterface):
         """
         self._tpg.close()
 
+    def get_channels(self):
+        """ A dict of the temperature monitor channels """
+        return {"main": self._main_guage_number, "prep": self._prep_guage_number, "back": self._back_guage_number}
+
     def off(self, gauge=None):
         """"
         Switch off specific pressure gauges, or all if gauge=None
@@ -170,16 +174,10 @@ class PfeifferTPG366(Base, ProcessInterface):
     def get_pressure(self, channel):
         """ Get pressure of a specific channel
 
-        @param channel_number: TPG366 channel to query
+        @param channel: String for which channel to query
         @return float: channel pressure in mbar
         """
-        if channel == "main_gauge":
-            channel_number = self._main_guage_number
-        elif channel == "prep_gauge":
-            channel_number = self._prep_guage_number
-        elif channel == "back_gauge":
-            channel_number = self._back_guage_number
-
+        channel_number = self.get_channels()[channel]
         response = self._communicate('PR{}'.format(channel_number))
         status, pressure = response.split(",")
 
