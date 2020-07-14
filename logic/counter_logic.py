@@ -66,7 +66,6 @@ class CounterLogic(GenericLogic):
     _count_frequency = StatusVar('count_frequency', 50)
     _saving = StatusVar('saving', False)
 
-
     def __init__(self, config, **kwargs):
         """ Create CounterLogic object with connectors.
 

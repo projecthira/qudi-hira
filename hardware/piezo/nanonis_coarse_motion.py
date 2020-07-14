@@ -29,8 +29,6 @@ from core.configoption import ConfigOption
 import win32com.client
 import subprocess
 
-from core.util.modules import get_main_dir, get_home_dir
-
 
 def _get_lv_axis(axis):
     if axis == "X" or axis == "x":
