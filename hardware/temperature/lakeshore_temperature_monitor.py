@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains the Qudi hardware file to control Lakeshore 224 Temperature Monitor.
+This file contains the Qudi hardware module to control Lakeshore 224 Temperature Monitor.
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.de
 

@@ -3,6 +3,7 @@ qudi-hira
 Copyright(c) 2019, 2020
 Dinesh Pinto <d.pinto@fkf.mpg.de>
 
+The code stored in "thirdparty/" is under the respective thirdparty license.
 
 qudi
 ----

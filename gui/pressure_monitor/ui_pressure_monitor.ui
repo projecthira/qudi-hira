@@ -36,7 +36,10 @@
        </font>
       </property>
       <property name="text">
-       <string>Prep</string>
+       <string>Preparation chamber</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -61,7 +64,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Main</string>
+       <string>Main chamber</string>
       </property>
       <property name="checked">
        <bool>true</bool>
@@ -76,7 +79,7 @@
        </font>
       </property>
       <property name="text">
-       <string>0 K</string>
+       <string>0 mbar</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -91,7 +94,7 @@
        </font>
       </property>
       <property name="text">
-       <string>0 K</string>
+       <string>0 mbar</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -106,7 +109,10 @@
        </font>
       </property>
       <property name="text">
-       <string>Back</string>
+       <string>Backing stage</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -144,7 +150,7 @@
        </font>
       </property>
       <property name="text">
-       <string>0 K</string>
+       <string>0 mbar</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -169,7 +175,7 @@
      <x>0</x>
      <y>0</y>
      <width>667</width>
-     <height>21</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

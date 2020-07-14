@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the PI Piezo hardware module for Qudi
-through official python module "PIPython" created by PI.
+This file contains the PI Piezo hardware module for Qudi through official python module "PIPython" created by PI.
 author: Dinesh Pinto
-email: d.pinto@fkf.mpg.de
+email: d.pinto@fkf.mpg.d
+
+* Requires PIPython: https://github.com/git-anonymous/PIPython
+pip install --upgrade git+https://github.com/git-anonymous/PIPython.git
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

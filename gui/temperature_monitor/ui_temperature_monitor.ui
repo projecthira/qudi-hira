@@ -38,6 +38,9 @@
       <property name="text">
        <string>Tip</string>
       </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
     <item row="4" column="1">
@@ -59,6 +62,9 @@
        <font>
         <pointsize>18</pointsize>
        </font>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
       </property>
       <property name="text">
        <string>Baseplate</string>
@@ -107,6 +113,9 @@
       </property>
       <property name="text">
        <string>Sample</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -169,7 +178,7 @@
      <x>0</x>
      <y>0</y>
      <width>667</width>
-     <height>21</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

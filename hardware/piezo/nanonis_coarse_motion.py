@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains the Nanonis LabView controller module for Qudi
-using the official LabView VI files from SPECS. Requires 64-bit LabView with server configured to output to Nanonis
+This file contains the Nanonis LabView controller module for Qudi using the official LabView VI files from SPECS.
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.de
+
+* Requires 64-bit LabView with server configured to output to Nanonis
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

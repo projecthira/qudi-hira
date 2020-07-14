@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
 This file contains the Qudi hardware file to control R&S SMF100a devices.
 author: Dinesh Pinto

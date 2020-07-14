@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-__author__ = "Dinesh Pinto"
-__email__ = "d.pinto@fkf.mpg.de"
 """
-This file contains the Qudi hardware file to control the Toptica iBeam Smart Laser.
+This file contains the Qudi hardware module to control the Toptica iBeam Smart Laser.
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.de
 
