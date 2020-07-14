@@ -150,7 +150,6 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """
         # The present laser power level setting in watts (set level)
         response = self._communicate('sh level pow')
-        print(response)
         power = float(re.search('CH2, PWR:(.*) mW', response).group(1)) * 1e-3
         return power
 
