@@ -22,10 +22,14 @@ along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
+
+import os
 from core.module import Base
 from core.configoption import ConfigOption
 import win32com.client
 import subprocess
+
+from core.util.modules import get_main_dir, get_home_dir
 
 
 def _get_lv_axis(axis):
@@ -60,24 +64,40 @@ def _get_lv_direction(direction):
 class NanonisCoarseMotion(Base):
     """Provides software interface to the Nanonis Coarse Motion via LabView.
     """
-    _labview_path = ConfigOption('labview_path', missing='error')
-    _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha', missing='error')
-    _vi_path_motor_frequency_amplitude_get = ConfigOption('vi_path_motor_frequency_amplitude_get', missing='error')
-    _vi_path_motor_frequency_amplitude_set = ConfigOption('vi_path_motor_frequency_amplitude_set', missing='error')
-    _vi_path_motor_start_move = ConfigOption('vi_path_motor_start_move', missing='error')
-    _vi_path_motor_step_counter_get = ConfigOption('vi_path_motor_step_counter_get', missing='error')
-    _vi_path_motor_stop_move = ConfigOption('vi_path_motor_stop_move', missing='error')
+    _labview_executable = ConfigOption('labview_executable', missing='error')
+    _labview_progint_path = ConfigOption('labview_progint_path', missing='error')
+    _vi_casestruct_tcp_alpha = ConfigOption('vi_casestruct_tcp_alpha', default="test\\case_struct_tcp_alpha.vi",
+                                            missing='warn')
+    _vi_motor_frequency_amplitude_get = ConfigOption('vi_motor_frequency_amplitude_get',
+                                                     default="Coarse motion\\Motor Frequency Amplitude Get.vi",
+                                                     missing='warn')
+    _vi_motor_frequency_amplitude_set = ConfigOption('vi_motor_frequency_amplitude_set',
+                                                     default="Coarse motion\\Motor Frequency Amplitude Set.vi",
+                                                     missing='warn')
+    _vi_motor_start_move = ConfigOption('vi_motor_start_move', default="Coarse motion\\Motor Start Move.vi",
+                                        missing='warn')
+    _vi_motor_step_counter_get = ConfigOption('vi_motor_step_counter_get',
+                                              default="Coarse motion\\Motor Step Counter Get.vi", missing='warn')
+    _vi_motor_stop_move = ConfigOption('vi_motor_stop_move', default="Coarse motion\\Motor Stop Move.vi",
+                                       missing='warn')
     _sample_group = ConfigOption('sample_group', default=0, missing='warn')
     _tip_group = ConfigOption('tip_group', default=1, missing='warn')
-
-    # _host = ConfigOption('host', default='localhost', missing='error')
-    # _port = ConfigOption('port', default=3353, missing='error')
 
     def on_activate(self):
         """ Initialise and activate the hardware module.
 
             @return: error code (0:OK, -1:error)
         """
+        # Combine paths together (this needs to be done with self., otherwise the ConfigOption does not reveal itself)
+        self._vi_path_casestruct_tcp_alpha = os.path.join(self._labview_progint_path, self._vi_casestruct_tcp_alpha)
+        self._vi_path_motor_frequency_amplitude_get = os.path.join(self._labview_progint_path,
+                                                                   self._vi_motor_frequency_amplitude_get)
+        self._vi_path_motor_frequency_amplitude_set = os.path.join(self._labview_progint_path,
+                                                                   self._vi_motor_frequency_amplitude_set)
+        self._vi_path_motor_start_move = os.path.join(self._labview_progint_path, self._vi_motor_start_move)
+        self._vi_path_motor_step_counter_get = os.path.join(self._labview_progint_path, self._vi_motor_step_counter_get)
+        self._vi_path_motor_stop_move = os.path.join(self._labview_progint_path, self._vi_motor_stop_move)
+
         try:
             # Dispatches a signal to open 64-bit LabView
             # dynamic dispatch is required to ensure late-binding of application, otherwise the code will not be
@@ -116,7 +136,7 @@ class NanonisCoarseMotion(Base):
 
         :return: 0 if successful
         """
-        self.process = subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
+        self.process = subprocess.Popen([self._labview_executable, self._vi_path_casestruct_tcp_alpha])
         self.log.info("Launching LabView in a subprocess PID = {}.".format(self.process.pid))
         return 0
 

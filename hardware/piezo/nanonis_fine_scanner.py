@@ -22,6 +22,7 @@ along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
+import os
 from core.module import Base
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 from core.configoption import ConfigOption
@@ -45,14 +46,15 @@ def _limit_precision(number):
 class NanonisFineScanner(Base, ConfocalScannerInterface):
     """Provides software interface to the Nanonis Fine Scanner via LabView.
     """
+    _labview_executable = ConfigOption('labview_executable', missing='error')
+    _labview_progint_path = ConfigOption('labview_progint_path',  missing='error')
+    _vi_casestruct_tcp_alpha = ConfigOption('vi_casestruct_tcp_alpha', default="test\\case_struct_tcp_alpha.vi", missing='warn')
+    _vi_folme_speed_set = ConfigOption('vi_folme_speed_set', default="Scan\\Follow Me\\FolMe Speed Set.vi", missing='warn')
+    _vi_folme_speed_get = ConfigOption('vi_folme_speed_get', default="Scan\\Follow Me\\FolMe Speed Get.vi", missing='warn')
+    _vi_xy_pos_set_fast = ConfigOption('vi_xy_pos_set_fast', default="Scan\\Follow Me\\XY-Pos Set - Fast.vi", missing='warn')
+    _vi_folme_stop_movement = ConfigOption('vi_folme_stop_movement', default="Scan\\Follow Me\\FolMe Stop Movement.vi", missing='warn')
+    _vi_xy_pos_get = ConfigOption('vi_xy_pos_get', default="Scan\\XY-Pos Get.vi", missing='warn')
     _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
-    _labview_path = ConfigOption('labview_path', missing='error')
-    _vi_path_casestruct_tcp_alpha = ConfigOption('vi_path_casestruct_tcp_alpha', missing='error')
-    _vi_path_folme_speed_set = ConfigOption('vi_path_folme_speed_set', missing='error')
-    _vi_path_folme_speed_get = ConfigOption('vi_path_folme_speed_get', missing='error')
-    _vi_path_xy_pos_set_fast = ConfigOption('vi_path_xy_pos_set_fast', missing='error')
-    _vi_path_xy_pos_get = ConfigOption('vi_path_xy_pos_get', missing='error')
-    _vi_path_folme_stop_movement = ConfigOption('vi_path_folme_stop_movement', missing='error')
 
     # _host = ConfigOption('host', default='localhost', missing='error')
     # _port = ConfigOption('port', default=3353, missing='error')
@@ -62,6 +64,14 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
+        # Combine paths together (this needs to be done with self., otherwise the ConfigOption does not reveal itself)
+        self._vi_path_casestruct_tcp_alpha = os.path.join(self._labview_progint_path, self._vi_casestruct_tcp_alpha)
+        self._vi_path_folme_speed_set = os.path.join(self._labview_progint_path, self._vi_folme_speed_set)
+        self._vi_path_folme_speed_get = os.path.join(self._labview_progint_path, self._vi_folme_speed_get)
+        self._vi_path_xy_pos_set_fast = os.path.join(self._labview_progint_path, self._vi_xy_pos_set_fast)
+        self._vi_path_xy_pos_get = os.path.join(self._labview_progint_path, self._vi_xy_pos_get)
+        self._vi_path_folme_stop_movement = os.path.join(self._labview_progint_path, self._vi_folme_stop_movement)
+
         self.run_casestruct_tcp_alpha()
 
         return 0
@@ -163,7 +173,7 @@ class NanonisFineScanner(Base, ConfocalScannerInterface):
 
         :return: 0 if successful
         """
-        self.process = subprocess.Popen([self._labview_path, self._vi_path_casestruct_tcp_alpha])
+        self.process = subprocess.Popen([self._labview_executable, self._vi_path_casestruct_tcp_alpha])
         self.log.info("Launching LabView in a subprocess PID = {}.".format(self.process.pid))
         return 0
 
