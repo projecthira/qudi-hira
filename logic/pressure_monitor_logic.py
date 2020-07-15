@@ -145,6 +145,12 @@ class PressureMonitorLogic(GenericLogic):
             QtCore.QCoreApplication.processEvents()
             time.sleep(self.queryInterval / 1000)
 
+    def change_query_interval(self, interval):
+        self.stop_query_loop()
+        self.queryInterval = interval
+        self.queryTimer.setInterval(self.queryInterval)
+        self.start_query_loop()
+
     def init_data_logging(self):
         """ Zero all log buffers. """
         self.data['time'] = np.ones(self.bufferLength) * time.time()
