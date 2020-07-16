@@ -340,7 +340,7 @@ class CounterLogic(GenericLogic):
         counts_prefix = prefix[prefix_index]
 
         # Use qudi style
-        plt.style.use(self._save_logic.mpl_qd_style)
+        plt.style.use(self._save_logic.mpl_qudihira_style)
 
         # Create figure
         fig, ax = plt.subplots()
