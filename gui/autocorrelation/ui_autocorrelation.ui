@@ -85,7 +85,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="count_freq_SpinBox">
+      <widget class="QSpinBox" name="count_binwidth_SpinBox">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -144,7 +144,7 @@
      <x>0</x>
      <y>0</y>
      <width>681</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

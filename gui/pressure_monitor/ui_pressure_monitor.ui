@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>667</width>
+    <width>702</width>
     <height>470</height>
    </rect>
   </property>
@@ -112,7 +112,7 @@
        <string>Backing stage</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -174,8 +174,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>667</width>
-     <height>18</height>
+     <width>702</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">

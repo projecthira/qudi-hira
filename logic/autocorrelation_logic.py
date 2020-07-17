@@ -133,6 +133,9 @@ class AutocorrelationLogic(GenericLogic):
         self.sigCountLengthChanged.emit(self._count_length)
         return self._count_length
 
+    def _get_hardware_constraints(self):
+        return self._correlation_device.get_constraints()
+
     def set_bin_width(self, bin_width=1000):
         """ Sets the frequency with which the data is acquired.
 
@@ -151,7 +154,7 @@ class AutocorrelationLogic(GenericLogic):
             restart = False
 
         if constraints.min_bin_width <= bin_width:
-            self.stop_correlation_wait()
+            self._stop_correlation_wait()
             self._bin_width = bin_width
             # if the counter was running, restart it
             if restart:
@@ -241,7 +244,7 @@ class AutocorrelationLogic(GenericLogic):
                 # self.delay = np.arange(-1 * ((self.get_count_length() / 2) * self.get_bin_width() / 1e12),
                 #                            (self.get_count_length() / 2) * self.get_bin_width() / 1e12,
                 #                            self.get_bin_width() / 1e12)
-                self.delay = self._correlation_device.get_bin_lengths()
+                self.delay = self._correlation_device.get_bin_times()
                 self.rawdata = self._correlation_device.get_data_trace()
                 self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
 
@@ -328,7 +331,7 @@ class AutocorrelationLogic(GenericLogic):
         @return: fig fig: a matplotlib figure object to be saved to file.
         """
 
-        count_data = data['g2(t) norm']
+        count_data = data['g2(t)']
         time_data = data['Time (ns)']
 
         # Use qudi style
@@ -336,7 +339,7 @@ class AutocorrelationLogic(GenericLogic):
 
         # Create figure
         fig, ax = plt.subplots()
-        ax.plot(time_data, count_data, linestyle=':', linewidth=0.5)
+        ax.plot(time_data, count_data, 'o', linewidth=0.5)
         ax.set_xlabel('Delay $\\tau$ (ns)')
         ax.set_ylabel('Counts')
         return fig

@@ -27,7 +27,6 @@ from qtpy import QtCore
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 
-
 from core.connector import Connector
 from core.statusvariable import StatusVar
 from core.configoption import ConfigOption
@@ -123,7 +122,7 @@ class PressureMonitorLogic(GenericLogic):
             newdata = np.empty((len(self.get_channels()) + 1), )
             newdata[0] = time.time() - self._saving_start_time
             for i, channel in enumerate(self.get_channels()):
-                newdata[i+1] = self.data[channel][-1]
+                newdata[i + 1] = self.data[channel][-1]
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -144,12 +143,6 @@ class PressureMonitorLogic(GenericLogic):
                 return
             QtCore.QCoreApplication.processEvents()
             time.sleep(self.queryInterval / 1000)
-
-    def change_query_interval(self, interval):
-        self.stop_query_loop()
-        self.queryInterval = interval
-        self.queryTimer.setInterval(self.queryInterval)
-        self.start_query_loop()
 
     def init_data_logging(self):
         """ Zero all log buffers. """
@@ -192,7 +185,7 @@ class PressureMonitorLogic(GenericLogic):
             ax = [ax]
 
         for i, channel in enumerate(self.get_channels()):
-            ax[i].plot(time_data, data[:, i+1], 'o-')
+            ax[i].plot(time_data, data[:, i + 1], 'o-')
             ax[i].set_xlabel('Time (s)')
             ax[i].set_ylabel(channel.title() + ' P (mbar)')
 
@@ -215,8 +208,10 @@ class PressureMonitorLogic(GenericLogic):
 
         # write the parameters:
         parameters = OrderedDict()
-        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
+        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+                                                          time.localtime(self._saving_start_time))
+        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+                                                         time.localtime(self._saving_stop_time))
 
         if to_file:
             # If there is a postfix then add separating underscore

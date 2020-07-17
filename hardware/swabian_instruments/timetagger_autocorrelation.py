@@ -60,7 +60,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
     def on_deactivate(self):
         """ Deactivate the FPGA.
         """
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             self.correlation.stop()
         self.correlation.clear()
         self.correlation = None
@@ -74,7 +74,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         constraints.max_channels = 2
         constraints.min_channels = 2
         constraints.min_count_length = 1
-        constraints.min_bin_width = 100
+        constraints.min_bin_width = 0
 
         return constraints
 
@@ -125,7 +125,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
     def start_measure(self):
         """ Start the fast counter. """
-        if self.getState() != 'locked':
+        if self.module_state() != 'locked':
             self.lock()
             self.correlation.clear()
             self.correlation.start()
@@ -134,9 +134,9 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
     def stop_measure(self):
         """ Stop the fast counter. """
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             self.correlation.stop()
-            self.unlock()
+            self.module_state.unlock()
         self.statusvar = 1
         return 0
 
@@ -145,7 +145,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
         Fast counter must be initially in the run state to make it pause.
         """
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             self.correlation.stop()
             self.statusvar = 3
         return 0
@@ -155,7 +155,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
         If fast counter is in pause state, then fast counter will be continued.
         """
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             self.correlation.start()
             self.statusvar = 2
         return 0

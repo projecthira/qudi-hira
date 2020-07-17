@@ -108,7 +108,7 @@ class AutocorrelationGui(GUIBase):
         # Setting default parameters for
         # SpinBoxes
         self._mw.count_length_SpinBox.setValue(self._correlation_logic.get_count_length())
-        self._mw.count_freq_SpinBox.setValue(self._correlation_logic.get_bin_width())
+        self._mw.count_binwidth_SpinBox.setValue(self._correlation_logic.get_bin_width())
         self._mw.count_refreshtime_SpinBox.setValue(self._correlation_logic.get_refresh_time())
         # Actions
         self._mw.start_counter_Action.setEnabled(True)
@@ -126,7 +126,7 @@ class AutocorrelationGui(GUIBase):
         self._mw.record_counts_Action.triggered.connect(self.save_clicked)
         # SpinBoxes
         self._mw.count_length_SpinBox.valueChanged.connect(self.count_length_changed)
-        self._mw.count_freq_SpinBox.valueChanged.connect(self.count_frequency_changed)
+        self._mw.count_binwidth_SpinBox.valueChanged.connect(self.count_bin_width_changed)
         self._mw.count_refreshtime_SpinBox.valueChanged.connect(self.count_refreshtime_changed)
 
         #####################
@@ -165,7 +165,7 @@ class AutocorrelationGui(GUIBase):
         # disconnect signals from main window
         self._mw.start_counter_Action.triggered.disconnect()
         self._mw.count_length_SpinBox.valueChanged.disconnect()
-        self._mw.count_freq_SpinBox.valueChanged.disconnect()
+        self._mw.count_binwidth_SpinBox.valueChanged.disconnect()
         self._mw.restore_default_view_Action_2.triggered.disconnect()
         # disconnect signals from gui
         self.sigStartCounter.disconnect()
@@ -237,14 +237,12 @@ class AutocorrelationGui(GUIBase):
             (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
         return self._mw.count_length_SpinBox.value()
 
-    def count_frequency_changed(self):
-        """ Handling the change of the count_frequency and sending it to the measurement.
-        """
-        self._correlation_logic.set_bin_width(self._mw.count_freq_SpinBox.value())
+    def count_bin_width_changed(self):
+        self._correlation_logic.set_bin_width(self._mw.count_binwidth_SpinBox.value())
         self._pw.setXRange(
             -1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
             (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
-        return self._mw.count_freq_SpinBox.value()
+        return self._mw.count_binwidth_SpinBox.value()
 
     def count_refreshtime_changed(self):
 
@@ -301,27 +299,24 @@ class AutocorrelationGui(GUIBase):
                             self._mw.counting_control_ToolBar)
         return 0
 
-
     def update_count_bin_width_SpinBox(self, count_freq):
         """Function to ensure that the GUI displays the current value of the logic
 
         @param float count_freq: adjusted count frequency in Hz
         @return float count_freq: see above
         """
-        self._mw.count_freq_SpinBox.blockSignals(True)
-        self._mw.count_freq_SpinBox.setValue(count_freq)
+        self._mw.count_binwidth_SpinBox.blockSignals(True)
+        self._mw.count_binwidth_SpinBox.setValue(count_freq)
         self._pw.setXRange(
             -1 * (((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width()) / (1e12)),
             (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
-        self._mw.count_freq_SpinBox.blockSignals(False)
+        self._mw.count_binwidth_SpinBox.blockSignals(False)
         return count_freq
 
     def update_refresh_time_SpinBox(self, refresh_time):
-
         self._mw.count_refreshtime_SpinBox.blockSignals(True)
         self._mw.count_refreshtime_SpinBox.setValue(refresh_time)
         self._mw.count_refreshtime_SpinBox.blockSignals(False)
-
         return refresh_time
 
     def update_count_length_SpinBox(self, count_length):
@@ -362,13 +357,13 @@ class AutocorrelationGui(GUIBase):
         if self._correlation_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Start Saving Data')
             self._mw.count_length_SpinBox.setEnabled(True)
-            self._mw.count_freq_SpinBox.setEnabled(True)
+            self._mw.count_binwidth_SpinBox.setEnabled(True)
             self._mw.count_refreshtime_SpinBox.setEnabled(True)
             self._correlation_logic.save_data()
         else:
             self._mw.record_counts_Action.setText('Save')
             self._mw.count_length_SpinBox.setEnabled(False)
-            self._mw.count_freq_SpinBox.setEnabled(False)
+            self._mw.count_binwidth_SpinBox.setEnabled(False)
             self._mw.count_refreshtime_SpinBox.setEnabled(False)
             self._correlation_logic.start_saving()
         return self._correlation_logic.get_saving_state()
