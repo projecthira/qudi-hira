@@ -189,11 +189,11 @@ class AutocorrelationGui(GUIBase):
         """ The function that grabs the data and sends it to the plot.
         """
         if self._correlation_logic.module_state() == 'locked':
-            x_vals = (
-                np.arange(-1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
-                         (self._correlation_logic.get_count_length()/2)*self._correlation_logic.get_bin_width()/(1e12),
-                          self._correlation_logic.get_bin_width()/(1e12))
-            )
+            # x_vals = (
+            #     np.arange(-1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
+            #              (self._correlation_logic.get_count_length()/2)*self._correlation_logic.get_bin_width()/(1e12),
+            #               self._correlation_logic.get_bin_width()/(1e12))
+            # )
             self.curves[0].setData(y=self._correlation_logic.rawdata, x=self._correlation_logic.delay)
 
         return

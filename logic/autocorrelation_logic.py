@@ -238,20 +238,16 @@ class AutocorrelationLogic(GenericLogic):
                     self.sigCorrelationUpdated.emit()
                     return
                 time.sleep(self._refresh_time / 1000)  # sleep in seconds
-                self.delay = np.arange(-1 * ((self.get_count_length() / 2) * self.get_bin_width() / 1e12),
-                                           (self.get_count_length() / 2) * self.get_bin_width() / 1e12,
-                                           self.get_bin_width() / 1e12)
+                # self.delay = np.arange(-1 * ((self.get_count_length() / 2) * self.get_bin_width() / 1e12),
+                #                            (self.get_count_length() / 2) * self.get_bin_width() / 1e12,
+                #                            self.get_bin_width() / 1e12)
+                self.delay = self._correlation_device.get_bin_lengths()
                 self.rawdata = self._correlation_device.get_data_trace()
+                self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
 
                 if self.rawdata[0] < 0:
                     self.log.error('The correlation went wrong, killing the correlator.')
                     self.stopRequested = True
-
-                # save the data if necessary
-                if self._saving:
-                    self._data_to_save = np.empty((2, self.get_count_length()))
-                    self._data_to_save[0, :] = self.delay
-                    self._data_to_save[1, :] = self.rawdata
 
             # call this again from event loop
             self.sigCorrelationUpdated.emit()
@@ -297,26 +293,27 @@ class AutocorrelationLogic(GenericLogic):
         filepath = self._save_logic.get_path_for_module(module_name='Autocorrelation')
 
         if len(tag) > 0:
-            filelabel = '{0}_count_trace'.format(tag)
+            filelabel = '{0}_autocorrelation'.format(tag)
         else:
-            filelabel = 'count_trace'
+            filelabel = 'autocorrelation'
 
         # write the parameters:
         parameters = OrderedDict()
-        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
-                                                          time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
-                                                         time.localtime(self._saving_stop_time))
+        # parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+        #                                                   time.localtime(self._saving_start_time))
+        # parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+        #                                                  time.localtime(self._saving_stop_time))
         parameters['Count length'] = self._count_length
         parameters['Bin width'] = self._bin_width
 
         data = OrderedDict()
-        data['Delay (ps)'] = self.odmr_plot_x
-        data['Correlation'] = self.odmr_plot_y
+        data['Time (ns)'] = np.array(self.delay)
+        data['g2(t)'] = np.array(self.rawdata)
+        data['g2(t) norm'] = np.array(self.rawdata_norm)
 
-        fig = self.draw_figure(data=np.array(self._data_to_save))
-        self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
-                                   filelabel=filelabel, plotfig=fig, delimiter='\t')
+        fig = self.draw_figure(data=data)
+        self._save_logic.save_data(data, filepath=filepath, parameters=parameters, filelabel=filelabel,
+                                   timestamp=timestamp, plotfig=fig, delimiter='\t')
         self.log.info('Autocorrealtion Trace saved to:\n{0}'.format(filepath))
 
         self.sigSavingStatusChanged.emit(self._saving)
@@ -331,8 +328,8 @@ class AutocorrelationLogic(GenericLogic):
         @return: fig fig: a matplotlib figure object to be saved to file.
         """
 
-        count_data = data[:, 1]
-        time_data = data[:, 0] * 1e9
+        count_data = data['g2(t) norm']
+        time_data = data['Time (ns)']
 
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qudihira_style)

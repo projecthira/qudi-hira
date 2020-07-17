@@ -192,6 +192,9 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         """
         return self.correlation.getDataNormalized()
 
+    def get_bin_times(self):
+        return self.correlation.getIndex()
+
     def close_correlation(self):
         """ Closes the counter and cleans up afterwards.
 
