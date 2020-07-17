@@ -310,7 +310,7 @@ class AutocorrelationLogic(GenericLogic):
         parameters['Bin width'] = self._bin_width
 
         data = OrderedDict()
-        data['Time (ns)'] = np.array(self.delay)
+        data['Time (ps)'] = np.array(self.delay)
         data['g2(t)'] = np.array(self.rawdata)
         data['g2(t) norm'] = np.array(self.rawdata_norm)
 
@@ -332,7 +332,7 @@ class AutocorrelationLogic(GenericLogic):
         """
 
         count_data = data['g2(t)']
-        time_data = data['Time (ns)']
+        time_data = data['Time (ps)']
 
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qudihira_style)
@@ -340,7 +340,7 @@ class AutocorrelationLogic(GenericLogic):
         # Create figure
         fig, ax = plt.subplots()
         ax.plot(time_data, count_data, 'o', linewidth=0.5)
-        ax.set_xlabel('Delay $\\tau$ (ns)')
+        ax.set_xlabel('Time (ps)')
         ax.set_ylabel('Counts')
         return fig
 

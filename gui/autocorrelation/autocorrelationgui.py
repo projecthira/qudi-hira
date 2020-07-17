@@ -100,9 +100,8 @@ class AutocorrelationGui(GUIBase):
 
         self._pw.addItem(self.curves[0])
         # setting the x axis length correctly
-        self._pw.setXRange(
-            -1*((self._correlation_logic.get_count_length()/2)*self._correlation_logic.get_bin_width()/(1e12)),
-            (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
+        xmin, xmax = self.get_x_range()
+        self._pw.setXRange(xmin, xmax)
 
         #####################
         # Setting default parameters for
@@ -194,7 +193,7 @@ class AutocorrelationGui(GUIBase):
             #              (self._correlation_logic.get_count_length()/2)*self._correlation_logic.get_bin_width()/(1e12),
             #               self._correlation_logic.get_bin_width()/(1e12))
             # )
-            self.curves[0].setData(y=self._correlation_logic.rawdata, x=self._correlation_logic.delay)
+            self.curves[0].setData(y=self._correlation_logic.rawdata, x=self._correlation_logic.delay/1e12)
 
         return
 
@@ -228,20 +227,22 @@ class AutocorrelationGui(GUIBase):
 
         return
 
+    def get_x_range(self):
+        xlim = (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / 1e12
+        return (-1 * xlim, xlim)
+
     def count_length_changed(self):
         """ Handling the change of the count_length and sending it to the measurement.
         """
         self._correlation_logic.set_count_length(self._mw.count_length_SpinBox.value())
-        self._pw.setXRange(
-            -1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
-            (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
+        xmin, xmax = self.get_x_range()
+        self._pw.setXRange(xmin, xmax)
         return self._mw.count_length_SpinBox.value()
 
     def count_bin_width_changed(self):
         self._correlation_logic.set_bin_width(self._mw.count_binwidth_SpinBox.value())
-        self._pw.setXRange(
-            -1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
-            (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
+        xmin, xmax = self.get_x_range()
+        self._pw.setXRange(xmin, xmax)
         return self._mw.count_binwidth_SpinBox.value()
 
     def count_refreshtime_changed(self):
@@ -307,9 +308,8 @@ class AutocorrelationGui(GUIBase):
         """
         self._mw.count_binwidth_SpinBox.blockSignals(True)
         self._mw.count_binwidth_SpinBox.setValue(count_freq)
-        self._pw.setXRange(
-            -1 * (((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width()) / (1e12)),
-            (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
+        xmin, xmax = self.get_x_range()
+        self._pw.setXRange(xmin, xmax)
         self._mw.count_binwidth_SpinBox.blockSignals(False)
         return count_freq
 
@@ -327,9 +327,8 @@ class AutocorrelationGui(GUIBase):
         """
         self._mw.count_length_SpinBox.blockSignals(True)
         self._mw.count_length_SpinBox.setValue(count_length)
-        self._pw.setXRange(
-            -1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
-            (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12))
+        xmin, xmax = self.get_x_range()
+        self._pw.setXRange(xmin, xmax)
         self._mw.count_length_SpinBox.blockSignals(False)
         return count_length
 
