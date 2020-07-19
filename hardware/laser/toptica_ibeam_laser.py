@@ -83,7 +83,8 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
     def on_deactivate(self):
         """ Deactivate module.
         """
-        self._disconnect_laser()
+        self.off()
+        self.ibeam.close()
 
     def _connect_laser(self):
         """ Connect to Instrument.
@@ -95,12 +96,6 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             return True
         else:
             return False
-
-    def _disconnect_laser(self):
-        """ Close the connection to the instrument.
-        """
-        self.off()
-        self.ibeam.close()
 
     def init_channel_1(self):
         """
@@ -352,24 +347,36 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @returns string response: message received from the laser
         """
-        self._send(message)
-        time.sleep(0.05)
-        response_len = self.ibeam.inWaiting()
-        response = []
+        full_response = []
+        while True:
+            try:
+                self._send(message)
+                time.sleep(0.05)
 
-        while response_len > 0:
-            this_response_line = self.ibeam.readline().decode().strip()
-            response.append(this_response_line)
-            time.sleep(0.05)
-
-            response_len = self.ibeam.inWaiting()
-            if response_len == 5:
-                response.append('')
-                self.ibeam.flushInput()
-                self.ibeam.flushOutput()
                 response_len = self.ibeam.inWaiting()
+                response = []
 
-        full_response = ''.join(response)
+                if response_len == 0:
+                    raise ValueError
+
+                while response_len > 0:
+                    this_response_line = self.ibeam.readline().decode().strip()
+                    response.append(this_response_line)
+                    time.sleep(0.05)
+                    response_len = self.ibeam.inWaiting()
+                    if response_len == 5:
+                        response.append('')
+                        self.ibeam.flushInput()
+                        self.ibeam.flushOutput()
+                        response_len = self.ibeam.inWaiting()
+                if response is None or response == '':
+                    raise ValueError
+
+                full_response = ''.join(response)
+            except Exception as exc:
+                self.log.debug(exc)
+                continue
+            break
         return full_response
 
     """
