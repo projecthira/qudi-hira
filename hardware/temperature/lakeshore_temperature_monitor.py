@@ -26,6 +26,9 @@ from core.configoption import ConfigOption
 
 from interface.process_interface import ProcessInterface
 from thirdparty.lakeshore.Model224 import Model224, InstrumentException
+# TODO: Alternatively use the Lakeshore Python Driver from PyPI
+# pip install lakeshore
+# from lakeshore import Model224
 
 
 class Lakeshore224TM(Base, ProcessInterface):
