@@ -22,7 +22,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import os
 
-import numpy as np
 import pyqtgraph as pg
 from qtpy import QtCore
 from qtpy import QtWidgets
@@ -61,6 +60,7 @@ class AutocorrelationGui(GUIBase):
     sigResumeActionChanged = QtCore.Signal(bool)
     sigStopActionChanged = QtCore.Signal(bool)
     sigStartActionChanged = QtCore.Signal(bool)
+    sigSaveMeasurement = QtCore.Signal(str)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -114,6 +114,14 @@ class AutocorrelationGui(GUIBase):
         self._mw.resume_counter_Action.setEnabled(False)
         self._mw.stop_counter_Action.setEnabled(False)
 
+        # Add save file tag input box
+        self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
+        self._mw.save_tag_LineEdit.setMaximumWidth(500)
+        self._mw.save_tag_LineEdit.setMinimumWidth(200)
+        self._mw.save_tag_LineEdit.setToolTip('Enter a nametag which will be\n'
+                                              'added to the filename.')
+        self._mw.save_ToolBar.addWidget(self._mw.save_tag_LineEdit)
+
         #####################
         # Connecting user interaction of
         # Action
@@ -122,7 +130,8 @@ class AutocorrelationGui(GUIBase):
         self._mw.resume_counter_Action.triggered.connect(self.resume_clicked)
 
         self._mw.restore_default_view_Action_2.triggered.connect(self.restore_default_view)
-        self._mw.record_counts_Action.triggered.connect(self.save_clicked)
+        self._mw.action_Save.triggered.connect(self.save_data)
+
         # SpinBoxes
         self._mw.count_length_SpinBox.valueChanged.connect(self.count_length_changed)
         self._mw.count_binwidth_SpinBox.valueChanged.connect(self.count_bin_width_changed)
@@ -142,6 +151,7 @@ class AutocorrelationGui(GUIBase):
         self.sigStartCounter.connect(self._correlation_logic.start_correlation)
         self.sigStopCounter.connect(self._correlation_logic.stop_correlation)
         self.sigResumeCounter.connect(self._correlation_logic.continue_correlation)
+        self.sigSaveMeasurement.connect(self._correlation_logic.save_data, QtCore.Qt.QueuedConnection)
         # gui:
         self.sigResumeActionChanged.connect(self.change_resume_state)
         self.sigStopActionChanged.connect(self.change_stop_state)
@@ -173,6 +183,7 @@ class AutocorrelationGui(GUIBase):
         self.sigResumeActionChanged.disconnect()
         self.sigStopActionChanged.disconnect()
         self.sigStartActionChanged.disconnect()
+        self.sigSaveMeasurement.disconnect()
         # disconnect signals from logic
         self._correlation_logic.sigCorrelationStatusChanged.disconnect()
         self._correlation_logic.sigCorrelationDataNext.disconnect()
@@ -350,19 +361,9 @@ class AutocorrelationGui(GUIBase):
             self.sigStopActionChanged.emit(False)
         return running
 
-    def save_clicked(self):
-        """ Handling the save button to save the data into a file.
-        """
-        if self._correlation_logic.get_saving_state():
-            self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_length_SpinBox.setEnabled(True)
-            self._mw.count_binwidth_SpinBox.setEnabled(True)
-            self._mw.count_refreshtime_SpinBox.setEnabled(True)
-            self._correlation_logic.save_data()
-        else:
-            self._mw.record_counts_Action.setText('Save')
-            self._mw.count_length_SpinBox.setEnabled(False)
-            self._mw.count_binwidth_SpinBox.setEnabled(False)
-            self._mw.count_refreshtime_SpinBox.setEnabled(False)
-            self._correlation_logic.start_saving()
-        return self._correlation_logic.get_saving_state()
+    def save_data(self):
+        """ Save the sum plot, the scan marix plot and the scan data """
+        filetag = self._mw.save_tag_LineEdit.text()
+
+        self.sigSaveMeasurement.emit(filetag)
+        return
