@@ -56,7 +56,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 timeout=self._smf_timeout)
             self.log.info('MW SMF100A initialised and connected to hardware.')
             self.model = self.inst.query('*IDN?').split(',')[1]
-        except:
+        except Exception as e:
             self.log.error('SMF100A could not connect to LAN address {}. Check NI-MAX settings to see if device '
                            'is connected correctly.'.format(self._smf_visa_address))
 
@@ -236,7 +236,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         # Checking if the list is loaded correctly onto the device, we only check the number of points.
         # If that is correct, it is presumed that the list is correct.
         num_points = int(float(self.inst.query(':LIST:FREQ:POIN?')))
-        if (num_points-1) != len(frequency):
+        if (num_points - 1) != len(frequency):
             self.log.error("LIST not loaded correctly.")
         actual_power = self.get_power()
         self._command_wait(':FREQ:MODE LIST')

@@ -64,6 +64,8 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
             self.correlation.stop()
         self.correlation.clear()
         self.correlation = None
+        self._tagger.reset()
+        return 0
 
     def get_constraints(self):
         """ Get hardware limits of TimeTagger autocorrelation device.
