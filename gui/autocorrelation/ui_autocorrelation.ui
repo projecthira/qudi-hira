@@ -136,7 +136,6 @@
    <addaction name="start_counter_Action"/>
    <addaction name="stop_counter_Action"/>
    <addaction name="resume_counter_Action"/>
-   <addaction name="record_counts_Action"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -151,6 +150,8 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="action_Save"/>
+    <addaction name="actionClose"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -160,6 +161,18 @@
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+  </widget>
+  <widget class="QToolBar" name="save_ToolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_Save"/>
   </widget>
   <action name="start_counter_Action">
    <property name="checkable">
@@ -264,19 +277,16 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;stops the measurement&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </action>
-  <action name="record_counts_Action">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="action_Save">
    <property name="icon">
     <iconset>
-     <normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/document-save.png</normaloff>../../artwork/icons/oxygen/22x22/document-save.png</iconset>
    </property>
    <property name="text">
-    <string>Record counts</string>
+    <string>&amp;Save</string>
    </property>
    <property name="toolTip">
-    <string>Save count trace to file</string>
+    <string>Save autocorrelation data</string>
    </property>
   </action>
  </widget>

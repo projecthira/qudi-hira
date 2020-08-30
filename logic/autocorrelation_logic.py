@@ -47,7 +47,6 @@ class AutocorrelationLogic(GenericLogic):
     sigCountingRefreshTimeChanged = QtCore.Signal(int)
     sigSavingStatusChanged = QtCore.Signal(bool)
 
-
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 
