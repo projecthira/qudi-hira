@@ -71,8 +71,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     def on_deactivate(self):
         """ Shut down the TimeTagger.
         """
-        #self.reset_hardware()
-        pass
+        self._tagger.reset()
+        return 0
 
     def set_up_clock(self, clock_frequency=None, clock_channel=None):
         """ Configures the hardware clock of the TimeTagger for timing

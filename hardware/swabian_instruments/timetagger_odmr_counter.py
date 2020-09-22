@@ -71,8 +71,8 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
     def on_deactivate(self):
         """ Shut down the TimeTagger.
         """
-        #self.reset_hardware()
-        pass
+        self._tagger.reset()
+        return 0
 
     def set_up_odmr(self, counter_channel=None, photon_source=None,
                     clock_channel=None, odmr_trigger_channel=None):
