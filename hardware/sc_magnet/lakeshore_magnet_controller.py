@@ -28,7 +28,6 @@ from core.configoption import ConfigOption
 import numpy as np
 from interface.magnet_interface import MagnetInterface
 from collections import OrderedDict
-import re
 import serial
 import time
 
@@ -41,29 +40,32 @@ class Lakeshore625SMPS(Base, MagnetInterface):
 
     lakeshore_625smps:
         module.Class: 'sc_magnet.lakeshore_magnet_controller.Lakeshore625SMPS'
-        ip_address : '192.168.0.12'
-        ip_port : 7777
-        timeout : 2
+        magnet_COM_port_x : 'COM4'
+        magnet_COM_port_y : 'COM10'
+        magnet_COM_port_z : 'COM3'
+        magnet_waitingtime : 0.01
+        magnet_x_constr_tesla : 0.01
+        magnet_y_constr_tesla : 0.01
+        magnet_z_constr_tesla : 0.02
+        magnet_rho_constr_tesla : 0.02
     """
     # config opts
-    port = ConfigOption('magnet_port', missing='error')
-
     com_port_x = ConfigOption('magnet_COM_port_x', missing='error')
     com_port_y = ConfigOption('magnet_COM_port_y', missing='error')
     com_port_z = ConfigOption('magnet_COM_port_z', missing='error')
 
     # default waiting time of the pc after a message was sent to the magnet
-    waitingtime = ConfigOption('magnet_waitingtime', 0.01)
+    waitingtime = ConfigOption('magnet_waitingtime_seconds', 0.01)
 
     # Constraints of the superconducting magnet in T
     # Normally you should get and set constraints in the
     # function get_constraints(). The problem is here that
     # the constraint rho is no constant and is dependent on the
     # current theta and phi value.
-    x_constr = ConfigOption('magnet_x_constr', 0.01)
-    y_constr = ConfigOption('magnet_y_constr', 0.01)
-    z_constr = ConfigOption('magnet_z_constr', 0.02)
-    rho_constr = ConfigOption('magnet_rho_constr', 0.02)
+    x_constr = ConfigOption('magnet_x_constr_tesla', 0.01)
+    y_constr = ConfigOption('magnet_y_constr_tesla', 0.01)
+    z_constr = ConfigOption('magnet_z_constr_tesla', 0.02)
+    rho_constr = ConfigOption('magnet_rho_constr_tesla', 0.02)
 
     def on_activate(self):
         """
@@ -131,9 +133,9 @@ class Lakeshore625SMPS(Base, MagnetInterface):
             return -1
 
         ids = self.get_ids()
-        self.log.info(ids)
+        for axis, id in ids.items():
+            self.log.info("Connected {} control to {}.".format(axis, id))
 
-        self.heat_all_switches()
         self.set_magnetic_field_constant(0.07377)
         self.set_quench_detection()
 
