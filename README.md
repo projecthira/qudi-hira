@@ -10,9 +10,9 @@ Originally built around a confocal fluorescence microscope experiments, it has g
   * XYZ piezo or galvo control for confocal fluorescence microscopy via **Physik Instrumente** or National Instruments X-Series devices
   * Position optimization for fluorescent spots
   * Tracking of fluorescent spots
-  * **Spectrum AWG** support for pulsed microwave experiments 
-  * **Pfeiffer pressuremonitors**
-  * **Lakeshore temperature monitor**
+  * **Spectrum AWG** for pulsed microwave experiments
+  * **Pfeiffer pressure monitors**
+  * **Lakeshore temperature monitors**
   * **Twickenham liquid Helium depth indicators**
   * **LabVIEW VI control (experimental)**
   * **Nanonis coarse and fine positioning (using LabVIEW VI)**
