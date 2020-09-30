@@ -47,6 +47,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
     _com_port = ConfigOption('com_port', 'COM1', missing='error')
     _maxpower = ConfigOption('maxpower', 0.1, missing='warn')
     _maxcurrent = ConfigOption('maxcurrent', 0.246, missing='warn')
+    ibeam = None
 
     def on_activate(self):
         """ Activate module.
@@ -120,7 +121,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         # self.log.warning(self._model_name + ' only has power control.')
         return ControlMode.POWER
 
-    def set_control_mode(self, mode):
+    def set_control_mode(self, control_mode):
         """ Set laser control mode.
           @param enum control_mode: desired control mode
           @return enum ControlMode: actual control mode
@@ -278,11 +279,11 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
     def set_laser_state(self, status):
         """ Set laser state.
-          @param enum state: desired laser state
+          @param enum status: desired laser state
           @return enum LaserState: actual laser state
         """
-        actstat = self.get_laser_state()
-        if actstat != status:
+        actual_state = self.get_laser_state()
+        if actual_state != status:
             if status == LaserState.ON:
                 self._communicate('la on')
                 # return self.get_laser_state()
@@ -313,14 +314,14 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """ Show dianostic information about lasers.
           @return str: diagnostic info as a string
         """
-        serial = re.search('SN: (.*)', self._communicate('serial')).group(1)
+        serial_num = re.search('SN: (.*)', self._communicate('serial')).group(1)
         firmware = self._communicate('ver')
         uptime = self._communicate("sh tim")
         system_uptime = str(float(re.search('PowerUP: (.*) sLaserUP', uptime).group(1)))
         laser_uptime = str(float(re.search('LaserUP: (.*) s', uptime).group(1)))
 
         extra = (
-                'System Serial Number: ' + serial +
+                'System Serial Number: ' + serial_num +
                 '\n' + 'Firmware version: ' + firmware +
                 '\n' + 'System Uptime (s): ' + system_uptime +
                 '\n' + 'Laser Uptime (s): ' + laser_uptime
@@ -411,9 +412,10 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         """ Set FINE mode on
         :return:
         """
+        self._communicate("fine on")
         return 0
 
-    def _fine_on(self):
+    def _fine_off(self):
         """ Set FINE mode off
         :return:
         """

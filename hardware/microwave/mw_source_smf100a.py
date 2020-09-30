@@ -44,6 +44,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
     _modtype = 'hardware'
     _smf_visa_address = ConfigOption('smf_visa_address', missing='error')
     _smf_timeout = ConfigOption('smf_timeout', 5000, missing='warn')
+    inst = None
 
     def on_activate(self):
         """ Initialization performed during activation of the module. """
@@ -56,7 +57,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
                 timeout=self._smf_timeout)
             self.log.info('MW SMF100A initialised and connected to hardware.')
             self.model = self.inst.query('*IDN?').split(',')[1]
-        except Exception as e:
+        except Exception:
             self.log.error('SMF100A could not connect to LAN address {}. Check NI-MAX settings to see if device '
                            'is connected correctly.'.format(self._smf_visa_address))
 

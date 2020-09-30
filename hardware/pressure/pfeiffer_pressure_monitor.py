@@ -90,6 +90,7 @@ class PfeifferTPG366(Base, ProcessInterface):
     _main_guage_number = ConfigOption('main_gauge_number', default=1, missing='warn')
     _prep_guage_number = ConfigOption('prep_gauge_number', default=2, missing='warn')
     _back_guage_number = ConfigOption('back_gauge_number', default=3, missing='warn')
+    _tpg = None
 
     def on_activate(self):
         self._tpg = serial.Serial(
