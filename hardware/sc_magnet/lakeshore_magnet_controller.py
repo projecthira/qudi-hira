@@ -23,13 +23,14 @@ Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
 
-from core.module import Base
-from core.configoption import ConfigOption
-import numpy as np
-from interface.magnet_interface import MagnetInterface
 from collections import OrderedDict
+
+import numpy as np
 import serial
-import time
+
+from core.configoption import ConfigOption
+from core.module import Base
+from interface.magnet_interface import MagnetInterface
 
 
 class Lakeshore625SMPS(Base, MagnetInterface):

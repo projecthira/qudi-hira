@@ -47,6 +47,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
     _controllername = 'E-727'
     _refmodes = None
+    pidevice = None
 
     def on_activate(self):
         """ Initialise and activate the hardware module.
@@ -90,8 +91,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             self.log.info("PI Device has been reset")
             return 0
         except GCSError as error:
-           self.log.error(error)
-           return -1
+            self.log.error(error)
+            return -1
 
     def get_position_range(self):
         """ Returns the physical range of the scanner.
@@ -258,4 +259,3 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         pass
-

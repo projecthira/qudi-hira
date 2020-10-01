@@ -21,14 +21,11 @@ Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
 
-from core.module import Base
-from core.configoption import ConfigOption
+from lakeshore import Model224, InstrumentException
 
+from core.configoption import ConfigOption
+from core.module import Base
 from interface.process_interface import ProcessInterface
-from thirdparty.lakeshore.Model224 import Model224, InstrumentException
-# TODO: Alternatively use the Lakeshore Python Driver from PyPI
-# pip install lakeshore
-# from lakeshore import Model224
 
 
 class Lakeshore224TM(Base, ProcessInterface):

@@ -19,17 +19,19 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file atgeneral cleanup 
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+import pickle
+from collections import OrderedDict
+
 import numpy as np
 import scipy.signal as sp
-import pickle
-from hardware.awg import SpectrumAWG35
-from thirdparty.spectrum.pyspcm import *
+
 from core.configoption import ConfigOption
-from core.util.modules import get_home_dir
 from core.module import Base
-from collections import OrderedDict
-from interface.pulser_interface import PulserInterface, PulserConstraints
+from core.util.modules import get_home_dir
+from hardware.awg import SpectrumAWG35
 from interface.microwave_interface import MicrowaveMode, MicrowaveLimits
+from interface.pulser_interface import PulserInterface, PulserConstraints
+from thirdparty.spectrum.pyspcm import *
 
 
 class AWG663(Base, PulserInterface):
@@ -47,7 +49,6 @@ class AWG663(Base, PulserInterface):
     sequence_folder = ConfigOption(name="sequence_folder",
                                    default=os.path.join(get_home_dir(), 'saved_pulsed_assets', 'sequence'),
                                    missing="warn")
-
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -159,10 +160,12 @@ class AWG663(Base, PulserInterface):
         self.instance.close()
         del self.instance
 
-    def __mV_to_V(self, voltage_in_mV):
+    @staticmethod
+    def __mV_to_V(voltage_in_mV):
         return voltage_in_mV / 1e3
 
-    def __V_to_mV(self, voltage_in_V):
+    @staticmethod
+    def __V_to_mV(voltage_in_V):
         return voltage_in_V * 1e3
 
     def get_constraints(self):
@@ -295,7 +298,7 @@ class AWG663(Base, PulserInterface):
                 wave_name = waveform.rsplit('.pkl')[0]
                 channel_num = int(wave_name.rsplit('_ch', 1)[1])
                 # Map channel numbers to HW channel numbers
-                if not '_a_ch' in waveform:
+                if '_a_ch' not in waveform:
                     channel = channel_num + 4
                 else:
                     channel = channel_num

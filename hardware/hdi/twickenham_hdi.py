@@ -23,13 +23,13 @@ Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
 
-from core.module import Base
-from core.configoption import ConfigOption
-from interface.process_interface import ProcessInterface
-
-import re
-import serial
 import time
+
+import serial
+
+from core.configoption import ConfigOption
+from core.module import Base
+from interface.process_interface import ProcessInterface
 
 
 class TwickenhamHDI(Base, ProcessInterface):
@@ -48,6 +48,8 @@ class TwickenhamHDI(Base, ProcessInterface):
     _channel = ConfigOption('channel', default="P0", missing='warn')
     _meas_speed = ConfigOption('meas_speed', default="M2", missing='warn')
     _max_depth = ConfigOption("max_depth", default=600, missing='warn')
+
+    _hdi = None
 
     def on_activate(self):
         """ Activate module.

@@ -478,6 +478,8 @@ class ANCController(Base):
     _dll_location = ConfigOption('dll_location', missing='error')
     _sample_controller_number = ConfigOption("sample_controller_number", 0, missing='error')
     _tip_controller_number = ConfigOption("tip_controller_number", 1, missing='error')
+    tip = None
+    sample = None
 
     def on_activate(self):
         self.tip = ANC350(self._dll_location, self._tip_controller_number)
