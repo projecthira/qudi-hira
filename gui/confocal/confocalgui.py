@@ -79,6 +79,7 @@ class ConfocalSettingDialog(QtWidgets.QDialog):
         uic.loadUi(ui_file, self)
 
 
+
 class OptimizerSettingDialog(QtWidgets.QDialog):
     """ User configurable settings for the optimizer embedded in cofocal gui"""
 
@@ -90,6 +91,7 @@ class OptimizerSettingDialog(QtWidgets.QDialog):
         # Load it
         super(OptimizerSettingDialog, self).__init__()
         uic.loadUi(ui_file, self)
+
 
 class SaveDialog(QtWidgets.QDialog):
     """ Dialog to provide feedback and block GUI while saving """
@@ -106,6 +108,7 @@ class SaveDialog(QtWidgets.QDialog):
         self.hbox.addWidget(self.text)
         self.hbox.addSpacerItem(QtWidgets.QSpacerItem(50, 0))
         self.setLayout(self.hbox)
+
 
 class ConfocalGui(GUIBase):
     """ Main Confocal Class for xy and depth scans.
@@ -1111,6 +1114,7 @@ class ConfocalGui(GUIBase):
             self.update_roi_depth(h=h_pos)
         else:
             self.update_roi_depth(h=v_pos)
+
         self.update_slider_x(h_pos)
         self.update_slider_y(v_pos)
 
