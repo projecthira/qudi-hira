@@ -47,9 +47,9 @@ class Lakeshore224TM(Base, ProcessInterface):
     _ip_address = ConfigOption('ip_address', default="192.168.0.12", missing="error")
     _ip_port = ConfigOption('ip_port', default="7777", missing="error")
     _timeout = ConfigOption('timeout', default="2", missing="warn")
-    _baseplate_channel = ConfigOption("baseplate_channel", default="C4", missing="warn")
-    _tip_channel = ConfigOption("tip_channel", default="C2", missing="warn")
-    _sample_channel = ConfigOption("sample_channel", default="C0", missing="warn")
+    _baseplate_channel = ConfigOption("baseplate_channel", default="C1", missing="warn")
+    _tip_channel = ConfigOption("tip_channel", default="A", missing="warn")
+    _magnet_channel = ConfigOption("magnet_channel", default="B", missing="warn")
 
     _inst = None
 
@@ -71,7 +71,7 @@ class Lakeshore224TM(Base, ProcessInterface):
 
     def get_channels(self):
         """ A dict of the temperature monitor channels """
-        return {"baseplate": self._baseplate_channel, "tip": self._tip_channel, "sample": self._sample_channel}
+        return {"baseplate": self._baseplate_channel, "tip": self._tip_channel, "magnet": self._magnet_channel}
 
     def get_temperature(self, channel):
         """ Get temperature of a specific channel """

@@ -105,7 +105,7 @@ class TemperatureMonitorGUI(GUIBase):
                 elif name == 'tip':
                     curve.setPen(palette.c2)
                     plot1.addItem(curve)
-                elif name == 'sample':
+                elif name == 'magnet':
                     curve.setPen(palette.c3)
                     plot1.addItem(curve)
                 self.curves[name] = curve
@@ -165,13 +165,13 @@ class TemperatureMonitorGUI(GUIBase):
             self.curves['tip'].hide()
             self._mw.tipTemperature.setText('-')
 
-        if self._mw.samplecheckBox.isChecked():
-            self.curves['sample'].show()
-            self._mw.sampleTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['sample'][-1]))
-            self.curves['sample'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['sample'])
+        if self._mw.magnetcheckBox.isChecked():
+            self.curves['magnet'].show()
+            self._mw.magnetTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['magnet'][-1]))
+            self.curves['magnet'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['magnet'])
         else:
-            self.curves['sample'].hide()
-            self._mw.sampleTemperature.setText('-')
+            self.curves['magnet'].hide()
+            self._mw.magnetTemperature.setText('-')
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.
