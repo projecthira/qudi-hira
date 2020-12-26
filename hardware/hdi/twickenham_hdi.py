@@ -45,7 +45,7 @@ class TwickenhamHDI(Base, ProcessInterface):
 
     _modclass = 'TwickenhamHDI'
     _modtype = 'hardware'
-    _com_port = ConfigOption('com_port', default='COM1', missing='error')
+    _com_port = ConfigOption('com_port', missing='error')
     _channel = ConfigOption('channel', default="P0", missing='warn')
     _meas_speed = ConfigOption('meas_speed', default="M2", missing='warn')
     _max_depth = ConfigOption("max_depth", default=600, missing='warn')

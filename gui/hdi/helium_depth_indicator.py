@@ -88,7 +88,6 @@ class DepthIndicatorGUI(GUIBase):
         """
         self._mw.measuredepthButton.setEnabled(False)
         self.sigMeasure.emit(on)
-        self._mw.measuredepthButton.setEnabled(True)
 
     @QtCore.Slot()
     def updateGui(self):
@@ -97,4 +96,4 @@ class DepthIndicatorGUI(GUIBase):
             self._mw.heliumDepth.setText('{0:6.1f} mm'.format(self._hdi_logic.helium_depth))
         else:
             self._mw.heliumDepth.setText('{}'.format(self._hdi_logic.helium_depth))
-
+        self._mw.measuredepthButton.setEnabled(True)

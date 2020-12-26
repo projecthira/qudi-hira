@@ -68,7 +68,7 @@ class DepthIndicatorLogic(GenericLogic):
             self.data['helium_depth'][-1] = self.helium_depth
             self.data['time'][-1] = time.time()
         else:
-            self.log.info("HDI did not return a number")
+            self.log.warn("HDI did not return a number")
             pass
         self.sigUpdate.emit()
 
