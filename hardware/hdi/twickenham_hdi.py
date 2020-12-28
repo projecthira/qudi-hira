@@ -24,6 +24,7 @@ top-level directory of this distribution and at <https://github.com/projecthira/
 """
 
 import time
+import re
 
 import serial
 
@@ -44,7 +45,7 @@ class TwickenhamHDI(Base, ProcessInterface):
 
     _modclass = 'TwickenhamHDI'
     _modtype = 'hardware'
-    _com_port = ConfigOption('com_port', default='COM1', missing='error')
+    _com_port = ConfigOption('com_port', missing='error')
     _channel = ConfigOption('channel', default="P0", missing='warn')
     _meas_speed = ConfigOption('meas_speed', default="M2", missing='warn')
     _max_depth = ConfigOption("max_depth", default=600, missing='warn')
@@ -73,20 +74,29 @@ class TwickenhamHDI(Base, ProcessInterface):
     def on_deactivate(self):
         """ Deactivate module.
         """
+        self.goto_standby()
         self._hdi.close()
 
     def get_helium_level(self):
+        self.log.info("HDI query sent")
+
         # Choose channel A or B (most likely A)
         self._communicate(self._channel)
         time.sleep(0.1)
 
         # Fast measurement
         self._communicate(self._meas_speed)
-        time.sleep(0.1)
+        time.sleep(2.5)
 
         # Readout display
-        level = self._communicate("G")
+        level_string = self._communicate("G")
         time.sleep(0.1)
+
+        try:
+            # The device returns an astrix when it is performing a measurement
+            level = float(re.search('A\*(.*)mm', level_string).group(1))
+        except AttributeError:
+            level = float(re.search('A (.*)mm', level_string).group(1))
 
         # Go to STANDBY mode
         self.goto_standby()
