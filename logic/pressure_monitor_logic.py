@@ -54,7 +54,7 @@ class PressureMonitorLogic(GenericLogic):
         self._save_logic = self.savelogic()
 
         self.stopRequest = False
-        self.bufferLength = 100
+        self.bufferLength = 100000
         self.data = {}
 
         # delay timer for querying
@@ -148,7 +148,12 @@ class PressureMonitorLogic(GenericLogic):
         """ Zero all log buffers. """
         self.data['time'] = np.ones(self.bufferLength) * time.time()
         for i, channel in enumerate(self.get_channels()):
-            self.data[channel] = np.zeros(self.bufferLength)
+            # self.data[channel] = np.ones(self.bufferLength)
+            pressure = self._pm.get_process_value(channel=channel)
+            if isinstance(pressure, float):
+                self.data[channel] = np.ones(self.bufferLength) * pressure
+            else:
+                self.data[channel] = np.zeros(self.bufferLength)
 
     def start_saving(self, resume=False):
         """

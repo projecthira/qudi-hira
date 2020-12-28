@@ -105,7 +105,7 @@
      </widget>
     </item>
     <item row="8" column="1">
-     <widget class="QCheckBox" name="magnetCheckBox">
+     <widget class="QCheckBox" name="magnetcheckBox">
       <property name="font">
        <font>
         <pointsize>20</pointsize>

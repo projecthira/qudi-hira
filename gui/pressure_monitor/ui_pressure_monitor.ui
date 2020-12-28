@@ -39,7 +39,7 @@
        <string>Preparation chamber</string>
       </property>
       <property name="checked">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -67,7 +67,7 @@
        <string>Main chamber</string>
       </property>
       <property name="checked">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -112,7 +112,7 @@
        <string>Backing stage</string>
       </property>
       <property name="checked">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
     </item>
