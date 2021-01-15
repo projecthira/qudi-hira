@@ -22,14 +22,16 @@ top-level directory of this distribution and at <https://github.com/projecthira/
 """
 
 import time
+from collections import OrderedDict
+
+import matplotlib.pyplot as plt
 import numpy as np
 from qtpy import QtCore
-from collections import OrderedDict
-import matplotlib.pyplot as plt
 
+from core.configoption import ConfigOption
 from core.connector import Connector
 from core.statusvariable import StatusVar
-from core.configoption import ConfigOption
+from core.util.mutex import Mutex
 from logic.generic_logic import GenericLogic
 
 
@@ -46,6 +48,26 @@ class PressureMonitorLogic(GenericLogic):
     sigUpdate = QtCore.Signal()
     sigSavingStatusChanged = QtCore.Signal(bool)
     _saving = StatusVar('saving', False)
+
+    def __init__(self, config, **kwargs):
+        """ Create TemperatureMonitorLogic object with connectors.
+
+        @param dict config: module configuration
+        @param dict kwargs: optional parameters
+        """
+        super().__init__(config=config, **kwargs)
+
+        # locking for thread safety
+        self.threadlock = Mutex()
+
+        self.log.debug('The following configuration was found.')
+
+        # checking for the right configuration
+        for key in config.keys():
+            self.log.debug('{0}: {1}'.format(key, config[key]))
+
+        self._saving = False
+        return
 
     def on_activate(self):
         """ Prepare module for work.

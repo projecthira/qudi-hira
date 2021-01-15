@@ -22,14 +22,16 @@ top-level directory of this distribution and at <https://github.com/projecthira/
 """
 
 import time
+from collections import OrderedDict
+
+import matplotlib.pyplot as plt
 import numpy as np
 from qtpy import QtCore
-from collections import OrderedDict
-import matplotlib.pyplot as plt
 
+from core.configoption import ConfigOption
 from core.connector import Connector
 from core.statusvariable import StatusVar
-from core.configoption import ConfigOption
+from core.util.mutex import Mutex
 from logic.generic_logic import GenericLogic
 
 
@@ -47,12 +49,31 @@ class TemperatureMonitorLogic(GenericLogic):
     sigSavingStatusChanged = QtCore.Signal(bool)
     _saving = StatusVar('saving', False)
 
+    def __init__(self, config, **kwargs):
+        """ Create TemperatureMonitorLogic object with connectors.
+
+        @param dict config: module configuration
+        @param dict kwargs: optional parameters
+        """
+        super().__init__(config=config, **kwargs)
+
+        # locking for thread safety
+        self.threadlock = Mutex()
+
+        self.log.debug('The following configuration was found.')
+
+        # checking for the right configuration
+        for key in config.keys():
+            self.log.debug('{0}: {1}'.format(key, config[key]))
+
+        self._saving = False
+        return
+
     def on_activate(self):
         """ Prepare logic module for work.
         """
         self._tm = self.tm()
         self._save_logic = self.savelogic()
-
 
         self.stopRequest = False
         self.bufferLength = 100
@@ -75,6 +96,7 @@ class TemperatureMonitorLogic(GenericLogic):
         """ Deactivate module.
         """
         self.stop_query_loop()
+
         for i in range(5):
             time.sleep(self.queryInterval / 1000)
             QtCore.QCoreApplication.processEvents()
@@ -120,7 +142,7 @@ class TemperatureMonitorLogic(GenericLogic):
             newdata = np.empty((len(self.get_channels()) + 1), )
             newdata[0] = time.time() - self._saving_start_time
             for i, channel in enumerate(self.get_channels()):
-                newdata[i+1] = self.data[channel][-1]
+                newdata[i + 1] = self.data[channel][-1]
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -183,7 +205,7 @@ class TemperatureMonitorLogic(GenericLogic):
             ax = [ax]
 
         for i, channel in enumerate(self.get_channels()):
-            ax[i].plot(time_data, data[:, i+1], '.-')
+            ax[i].plot(time_data, data[:, i + 1], '.-')
             ax[i].set_xlabel('Time (s)')
             ax[i].set_ylabel(channel.title() + ' T (K)')
 
@@ -206,8 +228,10 @@ class TemperatureMonitorLogic(GenericLogic):
 
         # write the parameters:
         parameters = OrderedDict()
-        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss', time.localtime(self._saving_stop_time))
+        parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+                                                          time.localtime(self._saving_start_time))
+        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
+                                                         time.localtime(self._saving_stop_time))
 
         if to_file:
             # If there is a postfix then add separating underscore

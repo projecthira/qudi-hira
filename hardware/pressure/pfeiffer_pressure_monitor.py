@@ -82,15 +82,11 @@ class PfeifferTPG366(Base, ProcessInterface):
         prep_gauge : 2
         back_gauge : 3
     """
-    _modclass = 'PfeifferTPG366'
-    _modtype = 'hardware'
-
     _com_port = ConfigOption('com_port', default='COM3', missing='error')
     _timeout = ConfigOption('timeout', default=2, missing='warn')
     _main_guage_number = ConfigOption('main_gauge_number', default=1, missing='warn')
     _prep_guage_number = ConfigOption('prep_gauge_number', default=2, missing='warn')
     _back_guage_number = ConfigOption('back_gauge_number', default=3, missing='warn')
-    _tpg = None
 
     def on_activate(self):
         self._tpg = serial.Serial(

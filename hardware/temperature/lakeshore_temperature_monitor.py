@@ -40,18 +40,12 @@ class Lakeshore224TM(Base, ProcessInterface):
         ip_port : 7777
         timeout : 2
     """
-
-    _modtype = 'lakeshore_224tm'
-    _modclass = 'hardware'
-
     _ip_address = ConfigOption('ip_address', default="192.168.0.12", missing="error")
     _ip_port = ConfigOption('ip_port', default="7777", missing="error")
     _timeout = ConfigOption('timeout', default="2", missing="warn")
     _baseplate_channel = ConfigOption("baseplate_channel", default="C1", missing="warn")
     _tip_channel = ConfigOption("tip_channel", default="A", missing="warn")
     _magnet_channel = ConfigOption("magnet_channel", default="B", missing="warn")
-
-    _inst = None
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
