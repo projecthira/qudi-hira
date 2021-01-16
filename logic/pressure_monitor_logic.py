@@ -44,6 +44,8 @@ class PressureMonitorLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     queryInterval = ConfigOption('query_interval', 1000)
+    queryIntervalLowerLim = ConfigOption('query_interval_lower_lim', 500)
+    queryIntervalUpperLim = ConfigOption('query_interval_upper_lim', 60000)
 
     sigUpdate = QtCore.Signal()
     sigSavingStatusChanged = QtCore.Signal(bool)
@@ -80,7 +82,6 @@ class PressureMonitorLogic(GenericLogic):
         self._data_to_save = []
         self._saving = False
 
-        # delay timer for querying
         self.queryTimer = QtCore.QTimer()
         self.queryTimer.setInterval(self.queryInterval)
         self.queryTimer.setSingleShot(True)
@@ -97,6 +98,17 @@ class PressureMonitorLogic(GenericLogic):
         self.stop_query_loop()
         time.sleep(0.2)
         self.clear_buffer()
+
+    @QtCore.Slot(int)
+    def change_qtimer_interval(self, interval):
+        """ Change query interval time. """
+        if self.queryIntervalLowerLim <= interval <= self.queryIntervalUpperLim:
+            self.queryTimer.setInterval(interval)
+            self.queryInterval = interval
+            self.log.info(f"Query interval changed to {self.queryInterval}")
+        else:
+            self.log.warn(f"Query interval limits are {self.queryIntervalLowerLim} to {self.queryIntervalUpperLim}. "
+                          f"Query interval is {self.queryInterval}")
 
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.

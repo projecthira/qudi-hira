@@ -66,6 +66,7 @@ class PressureMonitorGUI(GUIBase):
     """ FIXME: Please document
     """
     pmlogic = Connector(interface='PressureMonitorLogic')
+    sigQueryIntervalChanged = QtCore.Signal(int)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -132,6 +133,11 @@ class PressureMonitorGUI(GUIBase):
         # self.plot1.vb.sigResized.connect(self.updateViews)
         self._pm_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         self._pm_logic.sigUpdate.connect(self.updateGui)
+        self.sigQueryIntervalChanged.connect(self._pm_logic.change_qtimer_interval)
+        self._mw.queryIntervalSpinBox.valueChanged.connect(self.update_query_interval)
+
+        # Required to autostart loop on launch
+        self.update_query_interval()
 
     def on_deactivate(self):
         """ Deactivate the module properly.
@@ -157,6 +163,10 @@ class PressureMonitorGUI(GUIBase):
 
         # Arrange docks widgets
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(2), self._mw.plotDockWidget)
+
+    @QtCore.Slot()
+    def update_query_interval(self):
+        self.sigQueryIntervalChanged.emit(self._mw.queryIntervalSpinBox.value())
 
     @QtCore.Slot()
     def updateGui(self):
