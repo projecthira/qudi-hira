@@ -91,7 +91,7 @@ class TemperatureMonitorGUI(GUIBase):
         self._mw.pwContainer.layout().addWidget(self._mw.plotWidget)
 
         plot1 = self._mw.plotWidget.getPlotItem()
-        plot1.setLabel('left', 'Temperature', units='K', color=palette.c1.name())
+        plot1.setLabel('left', 'Temperature', units='K')
         plot1.setLabel('bottom', 'Time', units=None)
 
         self.curves = {}
@@ -113,6 +113,10 @@ class TemperatureMonitorGUI(GUIBase):
 
         self.plot1 = plot1
         self._mw.record_temperature_Action.triggered.connect(self.save_clicked)
+
+        self._mw.baseplatecheckBox.setStyleSheet(f"color: {palette.c1.name()}")
+        self._mw.tipcheckBox.setStyleSheet(f"color: {palette.c2.name()}")
+        self._mw.magnetcheckBox.setStyleSheet(f"color: {palette.c3.name()}")
 
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
@@ -180,7 +184,7 @@ class TemperatureMonitorGUI(GUIBase):
             self._mw.record_temperature_Action.setText('Start Saving Data')
             self._tm_logic.save_data()
         else:
-            self._mw.record_temperature_Action.setText('Save')
+            self._mw.record_temperature_Action.setText('Save to File')
             self._tm_logic.start_saving()
         return self._tm_logic.get_saving_state()
 

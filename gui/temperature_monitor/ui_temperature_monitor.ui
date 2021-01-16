@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>667</width>
+    <width>704</width>
     <height>470</height>
    </rect>
   </property>
@@ -14,6 +14,12 @@
    <string>qudi-hira: Temperature Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="7" column="1">
      <spacer name="verticalSpacer_4">
@@ -177,7 +183,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>667</width>
+     <width>704</width>
      <height>21</height>
     </rect>
    </property>
@@ -193,7 +199,7 @@
   </widget>
   <widget class="QDockWidget" name="plotDockWidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
      <horstretch>1</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
