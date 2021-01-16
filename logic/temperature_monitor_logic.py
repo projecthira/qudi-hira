@@ -212,6 +212,11 @@ class TemperatureMonitorLogic(GenericLogic):
 
         return fig
 
+    def clear_data_dict(self):
+        """ Reset dictionary in memory. UNTESTED. """
+        self.data.clear()
+        self.init_data_logging()
+
     def save_data(self, to_file=True, postfix='', save_figure=True):
         """ Save the counter trace data and writes it to a file.
 
@@ -222,8 +227,6 @@ class TemperatureMonitorLogic(GenericLogic):
         @return dict parameters: Dictionary which contains the saving parameters
         """
         # stop saving thus saving state has to be set to False
-        self.init_data_logging()
-
         self._saving = False
         self._saving_stop_time = time.time()
 

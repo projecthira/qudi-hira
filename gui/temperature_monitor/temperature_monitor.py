@@ -98,16 +98,25 @@ class TemperatureMonitorGUI(GUIBase):
         i = 0
         for name in self._tm_logic.data:
             if name != 'time':
-                curve = pg.PlotDataItem()
                 if name == 'baseplate':
-                    curve.setPen(palette.c1)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c1,
+                                            symbolBrush=palette.c1,
+                                            symbolSize=4)
                 elif name == 'tip':
-                    curve.setPen(palette.c2)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c2, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c2,
+                                            symbolBrush=palette.c2,
+                                            symbolSize=4)
                 elif name == 'magnet':
-                    curve.setPen(palette.c3)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c3,
+                                            symbolBrush=palette.c3,
+                                            symbolSize=4)
+                plot1.addItem(curve)
                 self.curves[name] = curve
                 i += 1
 
