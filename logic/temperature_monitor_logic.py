@@ -76,7 +76,6 @@ class TemperatureMonitorLogic(GenericLogic):
         self._save_logic = self.savelogic()
 
         self.stopRequest = False
-        self.bufferLength = 100
         self.data = {}
 
         # delay timer for querying laser
@@ -91,15 +90,13 @@ class TemperatureMonitorLogic(GenericLogic):
         self.init_data_logging()
         self.start_query_loop()
         self._data_to_save = []
+        self._saving = False
 
     def on_deactivate(self):
         """ Deactivate module.
         """
         self.stop_query_loop()
-
-        for i in range(5):
-            time.sleep(self.queryInterval / 1000)
-            QtCore.QCoreApplication.processEvents()
+        self.clear_buffer()
 
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
@@ -154,11 +151,7 @@ class TemperatureMonitorLogic(GenericLogic):
     def stop_query_loop(self):
         """ Stop the readout loop. """
         self.stopRequest = True
-        for i in range(10):
-            if not self.stopRequest:
-                return
-            QtCore.QCoreApplication.processEvents()
-            time.sleep(self.queryInterval / 1000)
+        self.queryTimer.stop()
 
     def init_data_logging(self):
         """
@@ -212,8 +205,8 @@ class TemperatureMonitorLogic(GenericLogic):
 
         return fig
 
-    def clear_data_dict(self):
-        """ Reset dictionary in memory. UNTESTED. """
+    def clear_buffer(self):
+        """ Flush all data currently stored in memory. """
         self.data.clear()
         self.init_data_logging()
 

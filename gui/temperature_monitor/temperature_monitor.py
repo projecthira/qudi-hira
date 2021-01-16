@@ -122,6 +122,7 @@ class TemperatureMonitorGUI(GUIBase):
 
         self.plot1 = plot1
         self._mw.record_temperature_Action.triggered.connect(self.save_clicked)
+        self._mw.actionClear_Buffer.triggered.connect(self.clear_buffer_clicked)
 
         self._mw.baseplatecheckBox.setStyleSheet(f"color: {palette.c1.name()}")
         self._mw.tipcheckBox.setStyleSheet(f"color: {palette.c2.name()}")
@@ -137,6 +138,7 @@ class TemperatureMonitorGUI(GUIBase):
         """
         self._tm_logic.sigSavingStatusChanged.disconnect()
         self._mw.record_temperature_Action.triggered.disconnect()
+        self._mw.actionClear_Buffer.triggered.disconnect()
         self._mw.close()
 
     def show(self):
@@ -197,6 +199,10 @@ class TemperatureMonitorGUI(GUIBase):
             self._tm_logic.start_saving()
         return self._tm_logic.get_saving_state()
 
+    def clear_buffer_clicked(self):
+        self._tm_logic.clear_buffer()
+        return
+
     def update_saving_Action(self, start):
         """Function to ensure that the GUI-save_action displays the current status
 
@@ -204,7 +210,7 @@ class TemperatureMonitorGUI(GUIBase):
         @return bool start: see above
         """
         if start:
-            self._mw.record_temperature_Action.setText('Save')
+            self._mw.record_temperature_Action.setText('Save to File')
         else:
             self._mw.record_temperature_Action.setText('Start Saving Data')
         return start
