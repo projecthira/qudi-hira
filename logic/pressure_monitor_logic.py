@@ -76,8 +76,9 @@ class PressureMonitorLogic(GenericLogic):
         self._save_logic = self.savelogic()
 
         self.stopRequest = False
-        self.bufferLength = 100000
         self.data = {}
+        self._data_to_save = []
+        self._saving = False
 
         # delay timer for querying
         self.queryTimer = QtCore.QTimer()
@@ -89,15 +90,13 @@ class PressureMonitorLogic(GenericLogic):
 
         self.init_data_logging()
         self.start_query_loop()
-        self._data_to_save = []
 
     def on_deactivate(self):
         """ Deactivate module.
         """
         self.stop_query_loop()
-        for i in range(5):
-            time.sleep(self.queryInterval / 1000)
-            QtCore.QCoreApplication.processEvents()
+        time.sleep(0.2)
+        self.clear_buffer()
 
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
@@ -123,18 +122,15 @@ class PressureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-            for k in self.data:
-                self.data[k] = np.roll(self.data[k], -1)
-
-            for i, channel in enumerate(self.get_channels()):
+            for channel in self.get_channels():
                 pressure = self._pm.get_process_value(channel=channel)
                 if isinstance(pressure, float):
-                    self.data[channel][-1] = pressure
+                    self.data[channel].append(pressure)
                 else:
-                    self.data[channel][-1] = -1
+                    self.data[channel].append(-1)
                     self.pressure_state = pressure
 
-            self.data['time'][-1] = time.time()
+            self.data['time'].append(time.time())
         except:
             qi = 3000
             self.log.exception("Exception in PM status loop, throttling refresh rate.")
@@ -160,22 +156,18 @@ class PressureMonitorLogic(GenericLogic):
     def stop_query_loop(self):
         """ Stop the readout loop. """
         self.stopRequest = True
-        for i in range(10):
-            if not self.stopRequest:
-                return
-            QtCore.QCoreApplication.processEvents()
-            time.sleep(self.queryInterval / 1000)
+        self.queryTimer.stop()
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['time'] = np.ones(self.bufferLength) * time.time()
-        for i, channel in enumerate(self.get_channels()):
-            # self.data[channel] = np.ones(self.bufferLength)
-            pressure = self._pm.get_process_value(channel=channel)
-            if isinstance(pressure, float):
-                self.data[channel] = np.ones(self.bufferLength) * pressure
-            else:
-                self.data[channel] = np.zeros(self.bufferLength)
+        self.data['time'] = []
+        for ch in self.get_channels():
+            self.data[ch] = []
+
+    def clear_buffer(self):
+        """ Flush all data currently stored in memory. """
+        self.data.clear()
+        self.init_data_logging()
 
     def start_saving(self, resume=False):
         """

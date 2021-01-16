@@ -97,22 +97,36 @@ class PressureMonitorGUI(GUIBase):
         i = 0
         for name in self._pm_logic.data:
             if name != 'time':
-                curve = pg.PlotDataItem()
                 if name == 'main':
-                    curve.setPen(palette.c1)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c1,
+                                            symbolBrush=palette.c1,
+                                            symbolSize=4)
                 elif name == 'prep':
-                    curve.setPen(palette.c2)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c2, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c2,
+                                            symbolBrush=palette.c2,
+                                            symbolSize=4)
                 elif name == 'back':
-                    curve.setPen(palette.c3)
-                    plot1.addItem(curve)
+                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                                            symbol='s',
+                                            symbolPen=palette.c3,
+                                            symbolBrush=palette.c3,
+                                            symbolSize=4)
+                plot1.addItem(curve)
                 self.curves[name] = curve
                 i += 1
 
         self.plot1 = plot1
 
         self._mw.record_pressure_Action.triggered.connect(self.save_clicked)
+        self._mw.actionClear_Buffer.triggered.connect(self.clear_buffer_clicked)
+
+        self._mw.maincheckBox.setStyleSheet(f"color: {palette.c1.name()}")
+        self._mw.prepcheckBox.setStyleSheet(f"color: {palette.c2.name()}")
+        self._mw.backcheckBox.setStyleSheet(f"color: {palette.c3.name()}")
 
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
@@ -124,6 +138,7 @@ class PressureMonitorGUI(GUIBase):
         """
         self._pm_logic.sigSavingStatusChanged.disconnect()
         self._mw.record_pressure_Action.triggered.disconnect()
+        self._mw.actionClear_Buffer.triggered.disconnect()
         self._mw.close()
 
     def show(self):
@@ -196,9 +211,13 @@ class PressureMonitorGUI(GUIBase):
             self._mw.record_pressure_Action.setText('Start Saving Data')
             self._pm_logic.save_data()
         else:
-            self._mw.record_pressure_Action.setText('Save')
+            self._mw.record_pressure_Action.setText('Save to File')
             self._pm_logic.start_saving()
         return self._pm_logic.get_saving_state()
+
+    def clear_buffer_clicked(self):
+        self._pm_logic.clear_buffer()
+        return
 
     def update_saving_Action(self, start):
         """Function to ensure that the GUI-save_action displays the current status
@@ -207,7 +226,7 @@ class PressureMonitorGUI(GUIBase):
         @return bool start: see above
         """
         if start:
-            self._mw.record_pressure_Action.setText('Save')
+            self._mw.record_pressure_Action.setText('Save to File')
         else:
             self._mw.record_pressure_Action.setText('Start Saving Data')
         return start

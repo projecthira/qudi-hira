@@ -77,6 +77,8 @@ class TemperatureMonitorLogic(GenericLogic):
 
         self.stopRequest = False
         self.data = {}
+        self._data_to_save = []
+        self._saving = False
 
         # delay timer for querying laser
         self.queryTimer = QtCore.QTimer()
@@ -89,13 +91,12 @@ class TemperatureMonitorLogic(GenericLogic):
 
         self.init_data_logging()
         self.start_query_loop()
-        self._data_to_save = []
-        self._saving = False
 
     def on_deactivate(self):
         """ Deactivate module.
         """
         self.stop_query_loop()
+        time.sleep(0.2)
         self.clear_buffer()
 
     def get_saving_state(self):
@@ -122,7 +123,7 @@ class TemperatureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-            for i, channel in enumerate(self.get_channels()):
+            for channel in self.get_channels():
                 self.data[channel].append(self._tm.get_process_value(channel=channel))
 
             self.data['time'].append(time.time())
@@ -161,6 +162,11 @@ class TemperatureMonitorLogic(GenericLogic):
         self.data['time'] = []
         for ch in self.get_channels():
             self.data[ch] = []
+
+    def clear_buffer(self):
+        """ Flush all data currently stored in memory. """
+        self.data.clear()
+        self.init_data_logging()
 
     def start_saving(self, resume=False):
         """
@@ -204,11 +210,6 @@ class TemperatureMonitorLogic(GenericLogic):
         plt.tight_layout()
 
         return fig
-
-    def clear_buffer(self):
-        """ Flush all data currently stored in memory. """
-        self.data.clear()
-        self.init_data_logging()
 
     def save_data(self, to_file=True, postfix='', save_figure=True):
         """ Save the counter trace data and writes it to a file.

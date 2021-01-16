@@ -14,6 +14,12 @@
    <string>qudi-hira: Pressure Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="7" column="1">
      <spacer name="verticalSpacer_4">
@@ -36,10 +42,10 @@
        </font>
       </property>
       <property name="text">
-       <string>Preparation chamber</string>
+       <string>Prep chamber</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -67,7 +73,7 @@
        <string>Main chamber</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -112,7 +118,7 @@
        <string>Backing stage</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -190,7 +196,7 @@
   </widget>
   <widget class="QDockWidget" name="plotDockWidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
      <horstretch>1</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
@@ -237,6 +243,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="record_pressure_Action"/>
+   <addaction name="actionClear_Buffer"/>
   </widget>
   <action name="actionClose">
    <property name="icon">
@@ -293,6 +300,18 @@
    </property>
    <property name="toolTip">
     <string>Save pressure to file</string>
+   </property>
+  </action>
+  <action name="actionClear_Buffer">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Clear Buffer</string>
+   </property>
+   <property name="toolTip">
+    <string>Clear Buffers</string>
    </property>
   </action>
  </widget>
