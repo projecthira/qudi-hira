@@ -125,14 +125,10 @@ class TemperatureMonitorLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
-
-            for k in self.data:
-                self.data[k] = np.roll(self.data[k], -1)
-
             for i, channel in enumerate(self.get_channels()):
-                self.data[channel][-1] = self._tm.get_process_value(channel=channel)
+                self.data[channel].append(self._tm.get_process_value(channel=channel))
 
-            self.data['time'][-1] = time.time()
+            self.data['time'].append(time.time())
         except:
             qi = 3000
             self.log.exception("Exception in TM status loop, throttling refresh rate.")
@@ -165,10 +161,13 @@ class TemperatureMonitorLogic(GenericLogic):
             time.sleep(self.queryInterval / 1000)
 
     def init_data_logging(self):
-        """ Zero all log buffers. """
-        self.data['time'] = np.ones(self.bufferLength) * time.time()
-        for i, channel in enumerate(self.get_channels()):
-            self.data[channel] = np.zeros(self.bufferLength)
+        """
+        Initialize data logging into a continuously expanding dictionary.
+        Note that this can potentially cause problems with extremely long measurements on systems with less memory.
+        """
+        self.data['time'] = []
+        for ch in self.get_channels():
+            self.data[ch] = []
 
     def start_saving(self, resume=False):
         """
@@ -223,6 +222,8 @@ class TemperatureMonitorLogic(GenericLogic):
         @return dict parameters: Dictionary which contains the saving parameters
         """
         # stop saving thus saving state has to be set to False
+        self.init_data_logging()
+
         self._saving = False
         self._saving_stop_time = time.time()
 
