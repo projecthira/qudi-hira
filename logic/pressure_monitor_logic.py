@@ -98,7 +98,6 @@ class PressureMonitorLogic(GenericLogic):
         self.stop_query_loop()
         time.sleep(0.2)
         self.clear_buffer()
-        self._data_to_save.clear()
 
     @QtCore.Slot(int)
     def change_qtimer_interval(self, interval):
@@ -176,6 +175,7 @@ class PressureMonitorLogic(GenericLogic):
         self.data['time'] = []
         for ch in self.get_channels():
             self.data[ch] = []
+        self._data_to_save = []
 
     def clear_buffer(self):
         """ Flush all data currently stored in memory. """
@@ -279,6 +279,5 @@ class PressureMonitorLogic(GenericLogic):
 
             self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
                                        filelabel=filelabel, plotfig=None, delimiter='\t')
-            self.log.info('Pressure data being streamed to:\n{0}'.format(filepath))
 
             return [], parameters

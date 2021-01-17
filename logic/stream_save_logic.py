@@ -289,6 +289,8 @@ class StreamSaveLogic(SaveLogic):
                 header += 'not specified parameters: {0}\n'.format(parameters)
         header += '\nData:\n=====\n'
 
+        self.log.info(f'{module_name} data being streamed to:\n{self.filepath}\\{self.filename}')
+
         self.save_array_as_text(data=[], filename=self.filename, filepath=self.filepath,
                                 fmt=fmt, header=header, delimiter=delimiter, comments='#',
                                 append=False)
