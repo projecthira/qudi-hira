@@ -264,6 +264,6 @@ class PressureMonitorLogic(GenericLogic):
 
             self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
                                        filelabel=filelabel, plotfig=None, delimiter='\t', only_data=False)
-            self.log.info('Pressure data saved to:\n{0}'.format(filepath))
+            self.log.info('Pressure data being saved to:\n{0}'.format(filepath))
 
             return [], parameters

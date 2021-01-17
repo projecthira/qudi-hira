@@ -125,7 +125,7 @@ class StreamSaveLogic(SaveLogic):
         self._daily_loghandler.setLevel(level)
 
     def create_file_and_header(self, data, filepath=None, parameters=None, filename=None, filelabel=None,
-                  timestamp=None, filetype='text', fmt='%.15e', delimiter='\t', plotfig=None):
+                               timestamp=None, filetype='text', fmt='%.15e', delimiter='\t', plotfig=None):
         """
         General save routine for data.
 
@@ -283,6 +283,10 @@ class StreamSaveLogic(SaveLogic):
                 header += 'not specified parameters: {0}\n'.format(parameters)
         header += '\nData:\n=====\n'
 
+        self.save_array_as_text(data=[], filename=self.filename, filepath=self.filepath,
+                                fmt=fmt, header=header, delimiter=delimiter, comments='#',
+                                append=False)
+
     def write_data(self, data, fmt='%.15e', filetype='text', delimiter='\t'):
         # write data to file
         # FIXME: Implement other file formats
@@ -387,13 +391,13 @@ class StreamSaveLogic(SaveLogic):
             np.savez_compressed(self.filepath + '/' + self.filename[:-4], **data)
             self.save_array_as_text(data=[], filename=self.filename[:-4] + '_params.dat', filepath=self.filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=False)
+                                    append=True)
         else:
             self.log.error('Only saving of data as textfile and npz-file is implemented. Filetype "{0}" is not '
                            'supported yet. Saving as textfile.'.format(filetype))
             self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=False)
+                                    append=True)
 
     def save_array_as_text(self, data, filename, filepath='', fmt='%.15e', header='',
                            delimiter='\t', comments='#', append=False):
