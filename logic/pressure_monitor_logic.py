@@ -154,6 +154,7 @@ class PressureMonitorLogic(GenericLogic):
             for i, channel in enumerate(self.get_channels()):
                 newdata[i + 1] = self.data[channel][-1]
             self._data_to_save.append(newdata)
+            self._save_logic.write_data(self._data_to_save)
 
         self.queryTimer.start(qi)
         self.sigUpdate.emit()
@@ -195,6 +196,8 @@ class PressureMonitorLogic(GenericLogic):
         self._saving = True
 
         self.sigSavingStatusChanged.emit(self._saving)
+
+        self.save_data_header()
         return self._saving
 
     def draw_figure(self, data):
@@ -224,17 +227,16 @@ class PressureMonitorLogic(GenericLogic):
 
         return fig
 
-    def save_data(self, to_file=True, postfix='', save_figure=True):
+    def save_data_header(self, to_file=True, postfix=''):
         """ Save the counter trace data and writes it to a file.
 
-        @param bool to_file: indicate, whether data have to be saved to file
-        @param str postfix: an additional tag, which will be added to the filename upon save
-        @param bool save_figure: select whether png and pdf should be saved
+             @param bool to_file: indicate, whether data have to be saved to file
+             @param str postfix: an additional tag, which will be added to the filename upon save
+             @param bool save_figure: select whether png and pdf should be saved
 
-        @return dict parameters: Dictionary which contains the saving parameters
-        """
+             @return dict parameters: Dictionary which contains the saving parameters
+             """
         # stop saving thus saving state has to be set to False
-        self._saving = False
         self._saving_stop_time = time.time()
 
         # write the parameters:
@@ -257,17 +259,11 @@ class PressureMonitorLogic(GenericLogic):
             for i, channel in enumerate(self.get_channels()):
                 header += ',{}_pressure (mbar)'.format(channel)
 
-            data = {header: self._data_to_save}
+            data = {header: []}
             filepath = self._save_logic.get_path_for_module(module_name='Pressure')
 
-            if save_figure:
-                fig = self.draw_figure(data=np.array(self._data_to_save))
-            else:
-                fig = None
-
-            self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, plotfig=fig, delimiter='\t')
+            self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
+                                       filelabel=filelabel, plotfig=None, delimiter='\t', only_data=False)
             self.log.info('Pressure data saved to:\n{0}'.format(filepath))
 
-        self.sigSavingStatusChanged.emit(self._saving)
-        return self._data_to_save, parameters
+            return [], parameters
