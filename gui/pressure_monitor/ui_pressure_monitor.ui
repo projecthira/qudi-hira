@@ -316,7 +316,7 @@
      <normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
    </property>
    <property name="text">
-    <string>Record pressure</string>
+    <string>Start Stream Saving</string>
    </property>
    <property name="toolTip">
     <string>Save pressure to file</string>

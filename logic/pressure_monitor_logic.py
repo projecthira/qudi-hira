@@ -98,6 +98,7 @@ class PressureMonitorLogic(GenericLogic):
         self.stop_query_loop()
         time.sleep(0.2)
         self.clear_buffer()
+        self._data_to_save.clear()
 
     @QtCore.Slot(int)
     def change_qtimer_interval(self, interval):
@@ -153,8 +154,7 @@ class PressureMonitorLogic(GenericLogic):
             newdata[0] = time.time() - self._saving_start_time
             for i, channel in enumerate(self.get_channels()):
                 newdata[i + 1] = self.data[channel][-1]
-            self._data_to_save.append(newdata)
-            self._save_logic.write_data(self._data_to_save)
+            self._save_logic.write_data([newdata], self.header)
 
         self.queryTimer.start(qi)
         self.sigUpdate.emit()
@@ -198,6 +198,18 @@ class PressureMonitorLogic(GenericLogic):
         self.sigSavingStatusChanged.emit(self._saving)
 
         self.save_data_header()
+        return self._saving
+
+    def stop_saving(self):
+        """
+        Stop the saving of the file, and set the QtSignal accordingly.
+
+        @return bool: saving state
+        """
+        self._saving = False
+        self.sigSavingStatusChanged.emit(self._saving)
+
+        self._data_to_save.clear()
         return self._saving
 
     def draw_figure(self, data):
@@ -259,11 +271,14 @@ class PressureMonitorLogic(GenericLogic):
             for i, channel in enumerate(self.get_channels()):
                 header += ',{}_pressure (mbar)'.format(channel)
 
+            # Required as the stream logic write_data() requires this header
+            self.header = header
+
             data = {header: []}
             filepath = self._save_logic.get_path_for_module(module_name='Pressure')
 
             self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, plotfig=None, delimiter='\t', only_data=False)
-            self.log.info('Pressure data being saved to:\n{0}'.format(filepath))
+                                       filelabel=filelabel, plotfig=None, delimiter='\t')
+            self.log.info('Pressure data being streamed to:\n{0}'.format(filepath))
 
             return [], parameters

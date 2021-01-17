@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-This module handles the stream saving of data.
+This file contains the logic module for continuous stream saving of data.
+
+author: Dinesh Pinto
+email: d.pinto@fkf.mpg.de
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,8 +18,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
-Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
-top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
+Copyright (c) Dinesh Pinto. See the COPYRIGHT.txt file at the
+top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
 
 import datetime
@@ -87,6 +90,7 @@ class StreamSaveLogic(SaveLogic):
             self.log_into_daily_directory = False
 
         self._daily_loghandler = None
+        self.header = None
 
     def on_activate(self):
         """
@@ -103,6 +107,7 @@ class StreamSaveLogic(SaveLogic):
             logging.getLogger().addHandler(self._daily_loghandler)
         else:
             self._daily_loghandler = None
+
 
     def on_deactivate(self):
         if self._daily_loghandler is not None:
@@ -216,7 +221,6 @@ class StreamSaveLogic(SaveLogic):
         YOU ARE RESPONSIBLE FOR THE IDENTIFIER! DO NOT FORGET THE UNITS FOR THE SAVED TIME
         TRACE/MATRIX.
         """
-        start_time = time.time()
         # Create timestamp if none is present
         if timestamp is None:
             timestamp = datetime.datetime.now()
@@ -235,11 +239,13 @@ class StreamSaveLogic(SaveLogic):
 
         # determine proper file path
         if filepath is None:
-            self.filepath = self.get_path_for_module(module_name)
+            filepath = self.get_path_for_module(module_name)
         elif not os.path.exists(filepath):
             os.makedirs(filepath)
             self.log.info('Custom filepath does not exist. Created directory "{0}"'
                           ''.format(filepath))
+
+        self.filepath = filepath
 
         # create filelabel if none has been passed
         if filelabel is None:
@@ -287,11 +293,12 @@ class StreamSaveLogic(SaveLogic):
                                 fmt=fmt, header=header, delimiter=delimiter, comments='#',
                                 append=False)
 
-    def write_data(self, data, fmt='%.15e', filetype='text', delimiter='\t'):
+    def write_data(self, data_to_save, header, fmt='%.15e', filetype='text', delimiter='\t'):
         # write data to file
         # FIXME: Implement other file formats
         # write to textfile
-        
+
+        data = {header: data_to_save}
 
         # Try to cast data array into numpy.ndarray if it is not already one
         # Also collect information on arrays in the process and do sanity checks
@@ -342,7 +349,8 @@ class StreamSaveLogic(SaveLogic):
                            'Either fit all data arrays into a single 2D array or pass multiple 1D '
                            'arrays only. Saving data failed!')
             return -1
-        
+
+
         if filetype == 'text':
             # Reshape data if multiple 1D arrays have been passed to this method.
             # If a 2D array has been passed, reformat the specifier
@@ -381,16 +389,22 @@ class StreamSaveLogic(SaveLogic):
                 data[identifier_str] = data.pop(keyname)
             else:
                 identifier_str = list(data)[0]
-            header = list(data)[0]
-            self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
-                                    fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=True)
+
+            if self.header is None:
+                self.header = list(data)[0]
+                self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
+                                        fmt=fmt, header=self.header, delimiter=delimiter, comments='#',
+                                        append=True)
+            else:
+                self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
+                                        fmt=fmt, header="", delimiter=delimiter, comments='#',
+                                        append=True)
         # write npz file and save parameters in textfile
         elif filetype == 'npz':
             header = str(list(data.keys()))[1:-1]
             np.savez_compressed(self.filepath + '/' + self.filename[:-4], **data)
             self.save_array_as_text(data=[], filename=self.filename[:-4] + '_params.dat', filepath=self.filepath,
-                                    fmt=fmt, header=header, delimiter=delimiter, comments='#',
+                                    fmt=fmt, header="", delimiter=delimiter, comments='#',
                                     append=True)
         else:
             self.log.error('Only saving of data as textfile and npz-file is implemented. Filetype "{0}" is not '
