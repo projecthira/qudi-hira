@@ -154,6 +154,7 @@ class PressureMonitorLogic(GenericLogic):
             for i, channel in enumerate(self.get_channels()):
                 newdata[i + 1] = self.data[channel][-1]
             self._save_logic.write_data([newdata], self.header)
+            self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
         self.sigUpdate.emit()
@@ -175,7 +176,6 @@ class PressureMonitorLogic(GenericLogic):
         self.data['time'] = []
         for ch in self.get_channels():
             self.data[ch] = []
-        self._data_to_save = []
 
     def clear_buffer(self):
         """ Flush all data currently stored in memory. """
