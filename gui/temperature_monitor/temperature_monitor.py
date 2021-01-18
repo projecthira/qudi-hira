@@ -202,10 +202,10 @@ class TemperatureMonitorGUI(GUIBase):
         """ Handling the save button to save the data into a file.
         """
         if self._tm_logic.get_saving_state():
-            self._mw.record_temperature_Action.setText('Start Saving Data')
-            self._tm_logic.save_data()
+            self._mw.record_temperature_Action.setText('Stop Stream Saving')
+            self._tm_logic.stop_saving()
         else:
-            self._mw.record_temperature_Action.setText('Save to File')
+            self._mw.record_temperature_Action.setText('Start Stream Saving')
             self._tm_logic.start_saving()
         return self._tm_logic.get_saving_state()
 
@@ -220,7 +220,7 @@ class TemperatureMonitorGUI(GUIBase):
         @return bool start: see above
         """
         if start:
-            self._mw.record_temperature_Action.setText('Save to File')
+            self._mw.record_temperature_Action.setText('Stop Stream Saving')
         else:
-            self._mw.record_temperature_Action.setText('Start Saving Data')
+            self._mw.record_temperature_Action.setText('Start Stream Saving')
         return start

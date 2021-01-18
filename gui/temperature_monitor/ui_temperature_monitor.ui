@@ -331,7 +331,7 @@
      <normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
    </property>
    <property name="text">
-    <string>Record temperature</string>
+    <string>Start Stream Saving</string>
    </property>
    <property name="toolTip">
     <string>Save temperature to file</string>

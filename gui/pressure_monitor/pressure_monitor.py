@@ -91,7 +91,7 @@ class PressureMonitorGUI(GUIBase):
         self._mw.pwContainer.layout().addWidget(self._mw.plotWidget)
 
         plot1 = self._mw.plotWidget.getPlotItem()
-        plot1.setLabel('left', 'Pressure', units='mbar', color=palette.c1.name())
+        plot1.setLabel('left', 'Pressure', units='mbar')
         plot1.setLabel('bottom', 'Time', units=None)
 
         self.curves = {}

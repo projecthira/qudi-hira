@@ -44,7 +44,7 @@ class TemperatureMonitorLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     queryInterval = ConfigOption('query_interval', 1000)
-    queryIntervalLowerLim = ConfigOption('query_interval_lower_lim', 500)
+    queryIntervalLowerLim = ConfigOption('query_interval_lower_lim', 100)
     queryIntervalUpperLim = ConfigOption('query_interval_upper_lim', 60000)
 
     sigUpdate = QtCore.Signal()
@@ -150,6 +150,7 @@ class TemperatureMonitorLogic(GenericLogic):
             newdata[0] = time.time() - self._saving_start_time
             for i, channel in enumerate(self.get_channels()):
                 newdata[i + 1] = self.data[channel][-1]
+            self._save_logic.write_data([newdata], self.header)
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -193,8 +194,24 @@ class TemperatureMonitorLogic(GenericLogic):
             self._saving_start_time = time.time()
 
         self._saving = True
-
         self.sigSavingStatusChanged.emit(self._saving)
+        self.save_data_header()
+
+        return self._saving
+
+    def stop_saving(self):
+        """
+        Stop the saving of the file, and set the QtSignal accordingly.
+
+        @return bool: saving state
+        """
+        fig = self.draw_figure(data=np.array(self._data_to_save))
+        self._save_logic.save_figure(fig)
+
+        self._saving = False
+        self.sigSavingStatusChanged.emit(self._saving)
+
+        self._data_to_save.clear()
         return self._saving
 
     def draw_figure(self, data):
@@ -224,7 +241,7 @@ class TemperatureMonitorLogic(GenericLogic):
 
         return fig
 
-    def save_data(self, to_file=True, postfix='', save_figure=True):
+    def save_data_header(self, to_file=True, postfix=''):
         """ Save the counter trace data and writes it to a file.
 
         @param bool to_file: indicate, whether data have to be saved to file
@@ -233,16 +250,10 @@ class TemperatureMonitorLogic(GenericLogic):
 
         @return dict parameters: Dictionary which contains the saving parameters
         """
-        # stop saving thus saving state has to be set to False
-        self._saving = False
-        self._saving_stop_time = time.time()
-
         # write the parameters:
         parameters = OrderedDict()
         parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
                                                           time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
-                                                         time.localtime(self._saving_stop_time))
 
         if to_file:
             # If there is a postfix then add separating underscore
@@ -257,16 +268,14 @@ class TemperatureMonitorLogic(GenericLogic):
             for i, channel in enumerate(self.get_channels()):
                 header += ',{}_temp (K)'.format(channel)
 
-            data = {header: self._data_to_save}
+
+            # Required as the stream logic write_data() requires this header
+            self.header = header
+
+            data = {header: []}
             filepath = self._save_logic.get_path_for_module(module_name='Temperature')
 
-            if save_figure:
-                fig = self.draw_figure(data=np.array(self._data_to_save))
-            else:
-                fig = None
-            self._save_logic.save_data(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, plotfig=fig, delimiter='\t')
-            self.log.info('Temperature data saved to:\n{0}'.format(filepath))
+            self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
+                                                    filelabel=filelabel, delimiter='\t')
 
-        self.sigSavingStatusChanged.emit(self._saving)
-        return self._data_to_save, parameters
+        return [], parameters

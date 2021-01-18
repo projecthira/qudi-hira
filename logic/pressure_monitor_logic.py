@@ -44,11 +44,12 @@ class PressureMonitorLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     queryInterval = ConfigOption('query_interval', 1000)
-    queryIntervalLowerLim = ConfigOption('query_interval_lower_lim', 500)
+    queryIntervalLowerLim = ConfigOption('query_interval_lower_lim', 100)
     queryIntervalUpperLim = ConfigOption('query_interval_upper_lim', 60000)
 
     sigUpdate = QtCore.Signal()
     sigSavingStatusChanged = QtCore.Signal(bool)
+
     _saving = StatusVar('saving', False)
 
     def __init__(self, config, **kwargs):
@@ -194,10 +195,9 @@ class PressureMonitorLogic(GenericLogic):
             self._saving_start_time = time.time()
 
         self._saving = True
-
         self.sigSavingStatusChanged.emit(self._saving)
-
         self.save_data_header()
+
         return self._saving
 
     def stop_saving(self):
@@ -245,12 +245,12 @@ class PressureMonitorLogic(GenericLogic):
     def save_data_header(self, to_file=True, postfix=''):
         """ Save the counter trace data and writes it to a file.
 
-             @param bool to_file: indicate, whether data have to be saved to file
-             @param str postfix: an additional tag, which will be added to the filename upon save
-             @param bool save_figure: select whether png and pdf should be saved
+        @param bool to_file: indicate, whether data have to be saved to file
+        @param str postfix: an additional tag, which will be added to the filename upon save
+        @param bool save_figure: select whether png and pdf should be saved
 
-             @return dict parameters: Dictionary which contains the saving parameters
-             """
+        @return dict parameters: Dictionary which contains the saving parameters
+        """
         # write the parameters:
         parameters = OrderedDict()
         parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
@@ -276,6 +276,6 @@ class PressureMonitorLogic(GenericLogic):
             filepath = self._save_logic.get_path_for_module(module_name='Pressure')
 
             self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, plotfig=None, delimiter='\t')
+                                       filelabel=filelabel, delimiter='\t')
 
             return [], parameters
