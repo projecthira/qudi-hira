@@ -136,6 +136,8 @@ class TemperatureMonitorGUI(GUIBase):
         self.sigQueryIntervalChanged.connect(self._tm_logic.change_qtimer_interval)
         self._mw.queryIntervalSpinBox.valueChanged.connect(self.update_query_interval)
 
+        self._mw.queryIntervalSpinBox.setValue(self._tm_logic.queryInterval)
+
         # Required to autostart loop on launch
         self.update_query_interval()
 

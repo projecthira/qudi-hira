@@ -97,7 +97,8 @@ class PressureMonitorLogic(GenericLogic):
         """ Deactivate module.
         """
         self.stop_query_loop()
-        time.sleep(0.2)
+        if self._saving:
+            self.stop_saving()
         self.clear_buffer()
 
     @QtCore.Slot(int)
