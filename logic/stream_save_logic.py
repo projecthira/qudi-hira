@@ -29,7 +29,11 @@ import os
 import sys
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
+from cycler import cycler
+from matplotlib.backends.backend_pdf import PdfPages
 
 from core.configoption import ConfigOption
 from core.util.mutex import Mutex
@@ -55,6 +59,56 @@ class StreamSaveLogic(SaveLogic):
     _win_data_dir = ConfigOption('win_data_directory', 'C:/Data/')
     _unix_data_dir = ConfigOption('unix_data_directory', 'Data')
     log_into_daily_directory = ConfigOption('log_into_daily_directory', False, missing='warn')
+
+    # Matplotlib style definition for saving plots
+    mpl_qd_style = {
+        'axes.prop_cycle': cycler(
+            'color',
+            ['#1f17f4',
+             '#ffa40e',
+             '#ff3487',
+             '#008b00',
+             '#17becf',
+             '#850085'
+             ]
+        ) + cycler('marker', ['o', 's', '^', 'v', 'D', 'd']),
+        'axes.edgecolor': '0.3',
+        'xtick.color': '0.3',
+        'ytick.color': '0.3',
+        'axes.labelcolor': 'black',
+        'font.size': '14',
+        'lines.linewidth': '2',
+        'figure.figsize': '12, 6',
+        'lines.markeredgewidth': '0',
+        'lines.markersize': '5',
+        'axes.spines.right': True,
+        'axes.spines.top': True,
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'savefig.dpi': '180'
+    }
+
+    # Matplotlib style definition for saving plots
+    # Better than the default!
+    mpl_qudihira_style = {
+        'axes.linewidth': 0.5,
+        'axes.labelweight': 'light',
+        'lines.linewidth': 0.5,
+        'xtick.major.width': 0.5,
+        'ytick.major.width': 0.5,
+        'font.weight': 'light',
+        'font.sans-serif': 'Calibri',
+        'mathtext.fontset': 'stixsans',
+        'mathtext.default': 'regular',
+        'axes.spines.right': True,
+        'axes.spines.top': True,
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'savefig.dpi': '200',
+        'figure.figsize': '12, 6',
+    }
+
+    _additional_parameters = {}
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -107,7 +161,6 @@ class StreamSaveLogic(SaveLogic):
             logging.getLogger().addHandler(self._daily_loghandler)
         else:
             self._daily_loghandler = None
-
 
     def on_deactivate(self):
         if self._daily_loghandler is not None:
@@ -237,6 +290,8 @@ class StreamSaveLogic(SaveLogic):
             # (such as when calling this from the console).
             module_name = 'UNSPECIFIED'
 
+        self.module_name = module_name
+
         # determine proper file path
         if filepath is None:
             filepath = self.get_path_for_module(module_name)
@@ -352,7 +407,6 @@ class StreamSaveLogic(SaveLogic):
                            'arrays only. Saving data failed!')
             return -1
 
-
         if filetype == 'text':
             # Reshape data if multiple 1D arrays have been passed to this method.
             # If a 2D array has been passed, reformat the specifier
@@ -431,6 +485,71 @@ class StreamSaveLogic(SaveLogic):
                 np.savetxt(file, data, fmt=fmt, delimiter=delimiter, header=header,
                            comments=comments)
         return
+
+    def save_figure(self, plotfig=None, timestamp=None):
+        # --------------------------------------------------------------------------------------------
+        # Save thumbnail figure of plot
+        if plotfig is not None:
+            # create Metadata
+            metadata = dict()
+            metadata['Title'] = 'Image produced by qudi-hira: ' + self.module_name
+            metadata['Author'] = 'qudi-hira - Software Suite'
+            metadata['Subject'] = 'Find more information on: https://github.com/projecthira/qudi-hira'
+            metadata[
+                'Keywords'] = 'Python 3, Qt, experiment control, automation, measurement, software, framework, modular'
+            metadata['Producer'] = 'qudi - Software Suite'
+            if timestamp is not None:
+                metadata['CreationDate'] = timestamp
+                metadata['ModDate'] = timestamp
+            else:
+                metadata['CreationDate'] = time
+                metadata['ModDate'] = time
+
+            if self.save_pdf:
+                # determine the PDF-Filename
+                fig_fname_vector = os.path.join(self.filepath, self.filename)[:-4] + '_fig.pdf'
+
+                # Create the PdfPages object to which we will save the pages:
+                # The with statement makes sure that the PdfPages object is closed properly at
+                # the end of the block, even if an Exception occurs.
+                with PdfPages(fig_fname_vector) as pdf:
+                    pdf.savefig(plotfig, bbox_inches='tight', pad_inches=0.05)
+
+                    # We can also set the file's metadata via the PdfPages object:
+                    pdf_metadata = pdf.infodict()
+                    for x in metadata:
+                        pdf_metadata[x] = metadata[x]
+                self.log.info(f'Image saved to: \n{fig_fname_vector}')
+
+            if self.save_png:
+                # determine the PNG-Filename and save the plain PNG
+                fig_fname_image = os.path.join(self.filepath, self.filename)[:-4] + '_fig.png'
+                plotfig.savefig(fig_fname_image, bbox_inches='tight', pad_inches=0.05)
+
+                # Use Pillow (an fork for PIL) to attach metadata to the PNG
+                png_image = Image.open(fig_fname_image)
+                png_metadata = PngImagePlugin.PngInfo()
+
+                # PIL can only handle Strings, so let's convert our times
+                metadata['CreationDate'] = metadata['CreationDate'].strftime('%Y%m%d-%H%M-%S')
+                metadata['ModDate'] = metadata['ModDate'].strftime('%Y%m%d-%H%M-%S')
+
+                for x in metadata:
+                    # make sure every value of the metadata is a string
+                    if not isinstance(metadata[x], str):
+                        metadata[x] = str(metadata[x])
+
+                    # add the metadata to the picture
+                    png_metadata.add_text(x, metadata[x])
+
+                # save the picture again, this time including the metadata
+                png_image.save(fig_fname_image, "png", pnginfo=png_metadata)
+                self.log.info(f'Image saved to: \n{fig_fname_image}')
+
+
+            # close matplotlib figure
+            plt.close(plotfig)
+            # ----------------------------------------------------------------------------------
 
     def get_daily_directory(self):
         """ Gets or creates daily save directory.

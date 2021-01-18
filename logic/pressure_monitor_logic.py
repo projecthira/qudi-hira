@@ -206,6 +206,9 @@ class PressureMonitorLogic(GenericLogic):
 
         @return bool: saving state
         """
+        fig = self.draw_figure(data=np.array(self._data_to_save))
+        self._save_logic.save_figure(fig)
+
         self._saving = False
         self.sigSavingStatusChanged.emit(self._saving)
 
