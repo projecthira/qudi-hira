@@ -32,6 +32,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+from PIL import PngImagePlugin
 from cycler import cycler
 from matplotlib.backends.backend_pdf import PdfPages
 
