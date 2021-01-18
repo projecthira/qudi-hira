@@ -26,31 +26,28 @@ import datetime
 import inspect
 import logging
 import os
-import sys
 import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from PIL import PngImagePlugin
-from cycler import cycler
 from matplotlib.backends.backend_pdf import PdfPages
 
 from core.configoption import ConfigOption
-from core.util.mutex import Mutex
-from core.util.network import netobtain
+
 from logic.save_logic import SaveLogic, DailyLogHandler
 
 
 class StreamSaveLogic(SaveLogic):
     """
-    A general class which saves all kinds of data in a general sense.
+    A general class which stream saves all kinds of data in a general sense.
 
     Example config for copy-paste:
 
     savelogic:
-        module.Class: 'save_logic.SaveLogic'
-        win_data_directory: 'C:/Data'   # DO NOT CHANGE THE DIRECTORY HERE! ONLY IN THE CUSTOM FILE!
+        module.Class: 'stream_save_logic.StreamSaveLogic'
+        win_data_directory: 'C:/Data'
         unix_data_directory: 'Data/'
         log_into_daily_directory: True
         save_pdf: True
@@ -62,35 +59,6 @@ class StreamSaveLogic(SaveLogic):
     log_into_daily_directory = ConfigOption('log_into_daily_directory', False, missing='warn')
 
     # Matplotlib style definition for saving plots
-    mpl_qd_style = {
-        'axes.prop_cycle': cycler(
-            'color',
-            ['#1f17f4',
-             '#ffa40e',
-             '#ff3487',
-             '#008b00',
-             '#17becf',
-             '#850085'
-             ]
-        ) + cycler('marker', ['o', 's', '^', 'v', 'D', 'd']),
-        'axes.edgecolor': '0.3',
-        'xtick.color': '0.3',
-        'ytick.color': '0.3',
-        'axes.labelcolor': 'black',
-        'font.size': '14',
-        'lines.linewidth': '2',
-        'figure.figsize': '12, 6',
-        'lines.markeredgewidth': '0',
-        'lines.markersize': '5',
-        'axes.spines.right': True,
-        'axes.spines.top': True,
-        'xtick.minor.visible': True,
-        'ytick.minor.visible': True,
-        'savefig.dpi': '180'
-    }
-
-    # Matplotlib style definition for saving plots
-    # Better than the default!
     mpl_qudihira_style = {
         'axes.linewidth': 0.5,
         'axes.labelweight': 'light',
@@ -113,38 +81,6 @@ class StreamSaveLogic(SaveLogic):
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
-
-        # locking for thread safety
-        self.lock = Mutex()
-
-        # name of active POI, default to empty string
-        self.active_poi_name = ''
-
-        # Some default variables concerning the operating system:
-        self.os_system = None
-
-        # Chech which operation system is used and include a case if the
-        # directory was not found in the config:
-        if sys.platform in ('linux', 'darwin'):
-            self.os_system = 'unix'
-            self.data_dir = self._unix_data_dir
-        elif 'win32' in sys.platform or 'AMD64' in sys.platform:
-            self.os_system = 'win'
-            self.data_dir = self._win_data_dir
-        else:
-            raise Exception('Identify the operating system.')
-
-        # Expand environment variables in the data_dir path (e.g. $HOME)
-        self.data_dir = os.path.expandvars(self.data_dir)
-
-        # start logging into daily directory?
-        if not isinstance(self.log_into_daily_directory, bool):
-            self.log.warning(
-                'log entry in configuration is not a '
-                'boolean. Falling back to default setting: False.')
-            self.log_into_daily_directory = False
-
-        self._daily_loghandler = None
         self.header = None
 
     def on_activate(self):
@@ -168,23 +104,8 @@ class StreamSaveLogic(SaveLogic):
             # removes the log handler logging into the daily directory
             logging.getLogger().removeHandler(self._daily_loghandler)
 
-    @property
-    def dailylog(self):
-        """
-        Returns the daily log handler.
-        """
-        return self._daily_loghandler
-
-    def dailylog_set_level(self, level):
-        """
-        Sets the log level of the daily log handler
-
-        @param level int: log level, see logging
-        """
-        self._daily_loghandler.setLevel(level)
-
     def create_file_and_header(self, data, filepath=None, parameters=None, filename=None, filelabel=None,
-                               timestamp=None, filetype='text', fmt='%.15e', delimiter='\t', plotfig=None):
+                               timestamp=None, fmt='%.15e', delimiter='\t'):
         """
         General save routine for data.
 
@@ -466,7 +387,7 @@ class StreamSaveLogic(SaveLogic):
         else:
             self.log.error('Only saving of data as textfile and npz-file is implemented. Filetype "{0}" is not '
                            'supported yet. Saving as textfile.'.format(filetype))
-            self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
+            self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
                                     append=True)
 
@@ -547,85 +468,6 @@ class StreamSaveLogic(SaveLogic):
                 png_image.save(fig_fname_image, "png", pnginfo=png_metadata)
                 self.log.info(f'Image saved to: \n{fig_fname_image}')
 
-
             # close matplotlib figure
             plt.close(plotfig)
             # ----------------------------------------------------------------------------------
-
-    def get_daily_directory(self):
-        """ Gets or creates daily save directory.
-
-          @return string: path to the daily directory.
-
-        If the daily directory does not exits in the specified <root_dir> path
-        in the config file, then it is created according to the following scheme:
-
-            <root_dir>\<year>\<month>\<yearmonthday>
-
-        and the filepath is returned. There should be always a filepath
-        returned.
-        """
-        current_dir = os.path.join(
-            self.data_dir,
-            time.strftime("%Y"),
-            time.strftime("%m"),
-            time.strftime("%Y%m%d"))
-
-        if not os.path.isdir(current_dir):
-            self.log.info("Creating directory for today's data:\n"
-                          '{0}'.format(current_dir))
-
-            # The exist_ok=True is necessary here to prevent Error 17 "File Exists"
-            # Details at http://stackoverflow.com/questions/12468022/python-fileexists-error-when-making-directory
-            os.makedirs(current_dir, exist_ok=True)
-
-        return current_dir
-
-    def get_path_for_module(self, module_name):
-        """
-        Method that creates a path for 'module_name' where data are stored.
-
-        @param string module_name: Specify the folder, which should be created in the daily
-                                   directory. The module_name can be e.g. 'Confocal'.
-        @return string: absolute path to the module name
-        """
-        dir_path = os.path.join(self.get_daily_directory(), module_name)
-
-        if not os.path.isdir(dir_path):
-            os.makedirs(dir_path, exist_ok=True)
-        return dir_path
-
-    def get_additional_parameters(self):
-        """ Method that return the additional parameters dictionary securely """
-        return self._additional_parameters.copy()
-
-    def update_additional_parameters(self, *args, **kwargs):
-        """
-        Method to update one or multiple additional parameters
-
-        @param dict args: Optional single positional argument holding parameters in a dict to
-                          update additional parameters from.
-        @param kwargs: Optional keyword arguments to be added to additional parameters
-        """
-        if len(args) == 0:
-            param_dict = kwargs
-        elif len(args) == 1 and isinstance(args[0], dict):
-            param_dict = args[0]
-            param_dict.update(kwargs)
-        else:
-            raise TypeError('"update_additional_parameters" takes exactly 0 or 1 positional '
-                            'argument of type dict.')
-
-        for key in param_dict.keys():
-            param_dict[key] = netobtain(param_dict[key])
-        self._additional_parameters.update(param_dict)
-        return
-
-    def remove_additional_parameter(self, key):
-        """
-        remove parameter from additional parameters
-
-        @param str key: The additional parameters key/name to delete
-        """
-        self._additional_parameters.pop(key, None)
-        return

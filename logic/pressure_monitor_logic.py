@@ -251,15 +251,10 @@ class PressureMonitorLogic(GenericLogic):
 
              @return dict parameters: Dictionary which contains the saving parameters
              """
-        # stop saving thus saving state has to be set to False
-        self._saving_stop_time = time.time()
-
         # write the parameters:
         parameters = OrderedDict()
         parameters['Start counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
                                                           time.localtime(self._saving_start_time))
-        parameters['Stop counting time'] = time.strftime('%d.%m.%Y %Hh:%Mmin:%Ss',
-                                                         time.localtime(self._saving_stop_time))
 
         if to_file:
             # If there is a postfix then add separating underscore
