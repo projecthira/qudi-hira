@@ -180,7 +180,9 @@ class TemperatureMonitorLogic(GenericLogic):
 
     def clear_buffer(self):
         """ Flush all data currently stored in memory. """
-        self.data.clear()
+        if self.data:
+            # Only clear data if it is not empty
+            self.data.clear()
         self.init_data_logging()
 
     def start_saving(self, resume=False):
@@ -206,8 +208,13 @@ class TemperatureMonitorLogic(GenericLogic):
 
         @return bool: saving state
         """
-        fig = self.draw_figure(data=np.array(self._data_to_save))
-        self._save_logic.save_figure(fig)
+        if not self._data_to_save:
+            # Check if list is empty
+            self.log.warn("No data to save!")
+        else:
+            # Only save figure if list is not empty to prevent IndexError
+            fig = self.draw_figure(data=np.array(self._data_to_save))
+            self._save_logic.save_figure(fig)
 
         self._saving = False
         self.sigSavingStatusChanged.emit(self._saving)
