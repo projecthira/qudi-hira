@@ -27,6 +27,7 @@ from collections import OrderedDict
 
 import numpy as np
 import serial
+import time
 
 from core.configoption import ConfigOption
 from core.module import Base
@@ -56,7 +57,7 @@ class Lakeshore625SMPS(Base, MagnetInterface):
     com_port_z = ConfigOption('magnet_COM_port_z', missing='error')
 
     # default waiting time of the pc after a message was sent to the magnet
-    waitingtime = ConfigOption('magnet_waitingtime_seconds', 0.01)
+    waitingtime = ConfigOption('magnet_waitingtime_seconds', 0.1)
 
     # Constraints of the superconducting magnet in T
     # Normally you should get and set constraints in the
@@ -162,19 +163,22 @@ class Lakeshore625SMPS(Base, MagnetInterface):
             if not param_dict['x'].endswith('\r\n'):
                 param_dict['x'] += '\r\n'
             self.ser_x.write(param_dict['x'].encode('ascii'))
-            # time.sleep(self.waitingtime)
-            answer_dict['x'] = self.ser_x.readline().decode('ascii').rstrip()
         if param_dict.get('y') is not None:
             if not param_dict['y'].endswith('\r\n'):
                 param_dict['y'] += '\r\n'
             self.ser_y.write(param_dict['y'].encode('ascii'))
-            # time.sleep(self.waitingtime)
-            answer_dict['y'] = self.ser_y.readline().decode('ascii').rstrip()
         if param_dict.get('z') is not None:
             if not param_dict['z'].endswith('\r\n'):
                 param_dict['z'] += '\r\n'
             self.ser_z.write(param_dict['z'].encode('ascii'))
-            # time.sleep(self.waitingtime)
+
+        time.sleep(self.waitingtime)
+
+        if param_dict.get('x') is not None:
+            answer_dict['x'] = self.ser_x.readline().decode('ascii').rstrip()
+        if param_dict.get('y') is not None:
+            answer_dict['y'] = self.ser_y.readline().decode('ascii').rstrip()
+        if param_dict.get('z') is not None:
             answer_dict['z'] = self.ser_z.readline().decode('ascii').rstrip()
 
         if len(answer_dict) == 0:
@@ -203,6 +207,8 @@ class Lakeshore625SMPS(Base, MagnetInterface):
                 param_dict['z'] += '\r\n'
             self.ser_z.write(param_dict['z'].encode('ascii'))
             _internal_counter += 1
+
+        time.sleep(self.waitingtime)
 
         if _internal_counter == 0:
             self.log.warning('no parameter_dict was given therefore the '
@@ -280,10 +286,11 @@ class Lakeshore625SMPS(Base, MagnetInterface):
             status_plural = self.ask_status(param_list)
         else:
             status_plural = self.ask_status()
+
         status_dict = {}
+
         for axes in status_plural:
             status = status_plural[axes]
-            translated_status = -1
             if status == '1':
                 translated_status = 1
             elif status == '2':
@@ -305,6 +312,7 @@ class Lakeshore625SMPS(Base, MagnetInterface):
             elif status == '10':
                 translated_status = 1
             status_dict[axes] = translated_status
+
         # adjusting to the axis problem
         axes = ['rho', 'theta', 'phi']
         return_dict = {axes[i]: status_dict[old_key] for i, old_key in enumerate(status_dict)}
@@ -848,6 +856,11 @@ class Lakeshore625SMPS(Base, MagnetInterface):
                 return_list = [rho, theta, phi]
                 return return_list
 
+    def operation_complete_query(self):
+        ask_dict = {'x': "*OPC?", 'y': "*OPC?", 'z': "*OPC?"}
+        answ_dict = self.ask(ask_dict)
+        return answ_dict
+
     def get_current_field(self):
         """ Function that asks the magnet for the current field strength in each direction
 
@@ -860,7 +873,10 @@ class Lakeshore625SMPS(Base, MagnetInterface):
             """
         ask_dict = {'x': "RDGF?", 'y': "RDGF?", 'z': "RDGF?"}
         answ_dict = self.ask(ask_dict)
-        self.log.info("Field set to: {}".format(answ_dict))
+        for key in answ_dict.keys():
+            answ_dict[key] = float(answ_dict[key])
+        self.log.warn("Field set to: {}".format(answ_dict))
+        self.operation_complete_query()
         return answ_dict
 
     def get_pos(self, param_list=None):
@@ -875,27 +891,21 @@ class Lakeshore625SMPS(Base, MagnetInterface):
         @return dict mypos: with keys being the axis labels and item the current
                       position. Given in spheric coordinates with Units T, rad , rad.
         """
-
         mypos = {}
-        mypos1 = {}
 
         answ_dict = self.get_current_field()
         coord_list = [answ_dict['x'], answ_dict['y'], answ_dict['z']]
         rho, theta, phi = self.transform_coordinates({'cart': {'rad': coord_list}})
-        mypos1['rho'] = rho
-        mypos1['theta'] = theta
-        mypos1['phi'] = phi
 
         if param_list is None:
-            return mypos1
-
+            mypos = {'rho': rho, 'theta': theta, 'phi': phi}
         else:
             if "rho" in param_list:
-                mypos['rho'] = mypos1['rho']
+                mypos['rho'] = rho
             if "theta" in param_list:
-                mypos['theta'] = mypos1['theta']
+                mypos['theta'] = theta
             if "phi" in param_list:
-                mypos['phi'] = mypos1['phi']
+                mypos['phi'] = phi
 
         return mypos
 
@@ -1373,7 +1383,6 @@ class Lakeshore625SMPS(Base, MagnetInterface):
                     defaults to 1.0
         """
         rate_limit = float(rate_limit)
-        self.write('QNCH 1,%.4f' % rate_limit)
         tell_dict = {'x': 'QNCH 1, {:.4f}'.format(rate_limit),
                      'y': 'QNCH 1, {:.4f}'.format(rate_limit),
                      'z': 'QNCH 1, {:.4f}'.format(rate_limit)}

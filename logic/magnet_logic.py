@@ -75,9 +75,11 @@ class MagnetLogic(GenericLogic):
     gatedcounterlogic = Connector(interface='CounterLogic')
     sequencegeneratorlogic = Connector(interface='SequenceGeneratorLogic')
 
+    align_2d_axis0_name = StatusVar('align_2d_axis0_name', 'rho')
     align_2d_axis0_range = StatusVar('align_2d_axis0_range', 10e-3)
     align_2d_axis0_step = StatusVar('align_2d_axis0_step', 1e-3)
     align_2d_axis0_vel = StatusVar('align_2d_axis0_vel', 10e-6)
+    align_2d_axis1_name = StatusVar('align_2d_axis1_name', 'theta')
     align_2d_axis1_range = StatusVar('align_2d_axis1_range', 10e-3)
     align_2d_axis1_step = StatusVar('align_2d_axis1_step', 1e-3)
     align_2d_axis1_vel = StatusVar('align_2d_axis1_vel', 10e-6)

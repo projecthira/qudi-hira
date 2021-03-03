@@ -1058,7 +1058,7 @@ class MagnetGui(GUIBase):
         if (param_list is not None) and (type(param_list) is not bool):
             param_list = list(param_list)
             # param_list =list(param_list) # convert for safety to a list
-            curr_pos =  self._magnet_logic.get_pos(param_list)
+            curr_pos = self._magnet_logic.get_pos(param_list)
 
         for axis_label in curr_pos:
             # update the values of the current position viewboxes:
