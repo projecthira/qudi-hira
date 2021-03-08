@@ -22,20 +22,28 @@ Copyright (c) 2021 Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
 """
 
-from core.interface import abstract_interface_method
-from core.meta import InterfaceMetaclass
+from core.module import Base
+from interface.simple_magnet_interface import SimpleMagnetInterface
+import random
 
 
-class SimpleMagnetInterface(metaclass=InterfaceMetaclass):
+class SimpleMagnetDummy(Base, SimpleMagnetInterface):
     """ This is the Interface class to define the controls for the devices
         controlling the magnetic field.
     """
 
-    @abstract_interface_method
+    def __init__(self, config, **kwargs):
+        super().__init__(config=config, **kwargs)
+
+    def on_activate(self):
+        self.log.warning('simplemagnetdummy>activation')
+
+    def on_deactivate(self):
+        self.log.warning('simplemagnetdummy>deactivation')
+
     def ask(self, query_string):
         pass
 
-    @abstract_interface_method
     def tell(self, param_dict=None):
         """ Send a command to the magnet.
 
@@ -49,70 +57,56 @@ class SimpleMagnetInterface(metaclass=InterfaceMetaclass):
         """
         pass
 
-    @abstract_interface_method
     def get_limits(self):
         pass
 
-    @abstract_interface_method
     def get_current(self):
-        pass
+        return {"x": random.uniform(0.1, 10), "y": random.uniform(0.1, 10), "z": random.uniform(0.1, 10)}
 
-    @abstract_interface_method
     def get_voltage(self):
-        pass
+        return {"x": random.uniform(0.1, 5), "y": random.uniform(0.1, 5), "z": random.uniform(0.1, 5)}
 
-    @abstract_interface_method
     def get_quench_detection_setup(self):
         pass
 
-    @abstract_interface_method
     def get_field_setup(self):
         pass
 
-    @abstract_interface_method
     def get_ramping_state(self):
         pass
 
-    @abstract_interface_method
     def get_current_ramp_rate(self):
-        pass
+        lower = 0.0001
+        upper = 99.999
+        return {"x": random.uniform(lower, upper), "y": random.uniform(lower, upper), "z": random.uniform(lower, upper)}
 
-    @abstract_interface_method
     def get_operational_errors(self):
         pass
 
-    @abstract_interface_method
     def get_quench_state(self):
-        pass
+        quench_bit = {'x': bool(random.getrandbits(1)), 'y': bool(random.getrandbits(1)), 'z': bool(random.getrandbits(1))}
+        return quench_bit
 
-    @abstract_interface_method
     def set_current_limit(self, current_limit_setpoint):
         pass
 
-    @abstract_interface_method
     def set_voltage_limit(self, voltage_limit_setpoint):
         pass
 
-    @abstract_interface_method
     def set_current_rate_limit(self, current_rate_limit_setpoint):
         pass
 
-    @abstract_interface_method
     def set_quench_detection_status(self, quench_detection_setpoint):
         pass
 
-    @abstract_interface_method
     def set_quench_current_step_limit(self, current_step_limit_setpoint):
         pass
 
-    @abstract_interface_method
     def set_coil_constant(self, coil_constant_setpoint):
         pass
 
-    @abstract_interface_method
     def set_current_ramp_rate(self, current_ramp_rate_setpoint):
         pass
 
-    @abstract_interface_method
     def set_field(self, field_setpoint):
         pass

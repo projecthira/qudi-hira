@@ -218,6 +218,22 @@ class Lakeshore625(Base, SimpleMagnetInterface):
 
         return field
 
+    def get_current(self):
+        current = self.ask("RDGI?")
+        for axis in current:
+            current[axis] = float(current[axis])
+        return current
+
+    def get_voltage(self):
+        voltage = self.ask("RDGV?")
+        for axis in voltage:
+            voltage[axis] = float(voltage[axis])
+        return voltage
+
+    def get_mode(self):
+        mode = self.ask("MODE?")
+        return mode
+
     def get_ramping_state(self):
         ramping_state = {'x': False, 'y': False, 'z': False}
         operation_condition_register = self.ask('OPST?')
@@ -239,6 +255,8 @@ class Lakeshore625(Base, SimpleMagnetInterface):
 
     def get_current_ramp_rate(self):
         current_ramp_rate = self.ask('RATE?')
+        for axis in current_ramp_rate:
+            current_ramp_rate[axis] = float(current_ramp_rate[axis])
         return current_ramp_rate
 
     def get_operational_errors(self):
@@ -250,7 +268,7 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             operational_error_registor = error_status_register[axis].split(',')[1]
 
             # prepend zeros to bit-string such that it always has length 9
-            operational_errors[axis] = bin(int(operational_error_registor))[2:].zfill(9)
+            operational_errors[axis] = bin(int(operational_error_registor))[2].zfill(9)
 
         return operational_errors
 

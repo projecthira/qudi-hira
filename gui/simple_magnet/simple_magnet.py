@@ -54,7 +54,7 @@ class MainGUIWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_pressure_monitor.ui')
+        ui_file = os.path.join(this_dir, 'ui_simple_magnet.ui')
 
         # Load it
         super().__init__()
@@ -62,10 +62,10 @@ class MainGUIWindow(QtWidgets.QMainWindow):
         self.show()
 
 
-class PressureMonitorGUI(GUIBase):
+class SimpleMagnetGUI(GUIBase):
     """ FIXME: Please document
     """
-    pmlogic = Connector(interface='PressureMonitorLogic')
+    mclogic = Connector(interface='SimpleMagnetLogic')
     sigQueryIntervalChanged = QtCore.Signal(int)
 
     def __init__(self, config, **kwargs):
@@ -74,7 +74,7 @@ class PressureMonitorGUI(GUIBase):
     def on_activate(self):
         """ Definition and initialisation of the GUI plus staring the measurement.
         """
-        self._pm_logic = self.pmlogic()
+        self._mc_logic = self.mclogic()
 
         #####################
         # Configuring the dock widgets
@@ -85,58 +85,17 @@ class PressureMonitorGUI(GUIBase):
         self._mw.setDockNestingEnabled(True)
         self._mw.actionReset_View.triggered.connect(self.restoreDefaultView)
 
-        # set up plot
-        self._mw.plotWidget = pg.PlotWidget(
-            axisItems={'bottom': TimeAxisItem(orientation='bottom')})
-        self._mw.pwContainer.layout().addWidget(self._mw.plotWidget)
-
-        plot1 = self._mw.plotWidget.getPlotItem()
-        plot1.setLabel('left', 'Pressure', units='mbar')
-        plot1.setLabel('bottom', 'Time', units=None)
-
-        self.curves = {}
-        i = 0
-        for name in self._pm_logic.data:
-            if name != 'time':
-                if name == 'main':
-                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
-                                            symbol='s',
-                                            symbolPen=palette.c1,
-                                            symbolBrush=palette.c1,
-                                            symbolSize=4)
-                elif name == 'prep':
-                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c2, style=QtCore.Qt.DotLine),
-                                            symbol='s',
-                                            symbolPen=palette.c2,
-                                            symbolBrush=palette.c2,
-                                            symbolSize=4)
-                elif name == 'back':
-                    curve = pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
-                                            symbol='s',
-                                            symbolPen=palette.c3,
-                                            symbolBrush=palette.c3,
-                                            symbolSize=4)
-                plot1.addItem(curve)
-                self.curves[name] = curve
-                i += 1
-
-        self.plot1 = plot1
-
-        self._mw.record_pressure_Action.triggered.connect(self.save_clicked)
+        self._mw.actionRecord_Magnet.triggered.connect(self.save_clicked)
         self._mw.actionClear_Buffer.triggered.connect(self.clear_buffer_clicked)
-
-        self._mw.maincheckBox.setStyleSheet(f"color: {palette.c1.name()}")
-        self._mw.prepcheckBox.setStyleSheet(f"color: {palette.c2.name()}")
-        self._mw.backcheckBox.setStyleSheet(f"color: {palette.c3.name()}")
 
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
-        self._pm_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
-        self._pm_logic.sigUpdate.connect(self.updateGui)
-        self.sigQueryIntervalChanged.connect(self._pm_logic.change_qtimer_interval)
+        self._mc_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
+        self._mc_logic.sigUpdate.connect(self.updateGui)
+        self.sigQueryIntervalChanged.connect(self._mc_logic.change_qtimer_interval)
         self._mw.queryIntervalSpinBox.valueChanged.connect(self.update_query_interval)
 
-        self._mw.queryIntervalSpinBox.setValue(self._pm_logic.queryInterval)
+        self._mw.queryIntervalSpinBox.setValue(self._mc_logic.queryInterval)
 
         # Required to autostart loop on launch
         self.update_query_interval()
@@ -144,8 +103,8 @@ class PressureMonitorGUI(GUIBase):
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
-        self._pm_logic.sigSavingStatusChanged.disconnect()
-        self._mw.record_pressure_Action.triggered.disconnect()
+        self._mc_logic.sigSavingStatusChanged.disconnect()
+        self._mw.actionRecord_Magnet.triggered.disconnect()
         self._mw.actionClear_Buffer.triggered.disconnect()
         self._mw.close()
 
@@ -174,61 +133,49 @@ class PressureMonitorGUI(GUIBase):
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
 
-        if self._mw.maincheckBox.isChecked():
-            pressure = self._pm_logic.data['main'][-1]
-            if pressure == -1:
-                self._mw.mainPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['main'].hide()
-            else:
-                self._mw.mainPressure.setText('{} mbar'.format(pressure))
-                self.curves['main'].show()
-                self.curves['main'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['main'])
-        else:
-            self.curves['main'].hide()
-            self._mw.mainPressure.setText('-')
+        self._mw.magnet_x_current.setText('Output I = {:.4f} A'.format(self._mc_logic.data['current_x'][-1]))
+        self._mw.magnet_y_current.setText('Output I = {:.4f} A'.format(self._mc_logic.data['current_y'][-1]))
+        self._mw.magnet_z_current.setText('Output I = {:.4f} A'.format(self._mc_logic.data['current_z'][-1]))
 
-        if self._mw.prepcheckBox.isChecked():
-            pressure = self._pm_logic.data['prep'][-1]
-            if pressure == -1:
-                self._mw.prepPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['prep'].hide()
-            else:
-                self._mw.prepPressure.setText('{} mbar'.format(pressure))
-                self.curves['prep'].show()
-                self.curves['prep'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['prep'])
-        else:
-            self.curves['prep'].hide()
-            self._mw.prepPressure.setText('-')
+        self._mw.magnet_x_voltage.setText('Output V = {:.4f} V'.format(self._mc_logic.data['voltage_x'][-1]))
+        self._mw.magnet_y_voltage.setText('Output V = {:.4f} V'.format(self._mc_logic.data['voltage_y'][-1]))
+        self._mw.magnet_z_voltage.setText('Output V = {:.4f} V'.format(self._mc_logic.data['voltage_z'][-1]))
 
-        if self._mw.backcheckBox.isChecked():
-            pressure = self._pm_logic.data['back'][-1]
-            if pressure == -1:
-                self._mw.backPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['back'].hide()
-            else:
-                self._mw.backPressure.setText('{} mbar'.format(pressure))
-                self.curves['back'].show()
-                self.curves['back'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['back'])
+        self._mw.magnet_x_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_x'][-1]))
+        self._mw.magnet_y_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_y'][-1]))
+        self._mw.magnet_z_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_z'][-1]))
+
+        if self._mc_logic.data['quench_state_x'][-1]:
+            self._mw.magnet_x_quenchbit.setText('QUENCH!')
+            self._mw.magnet_x_quenchbit.setStyleSheet('color: red')
         else:
-            self.curves['back'].hide()
-            self._mw.backPressure.setText('-')
+            self._mw.magnet_x_quenchbit.setText('No quench')
+
+        if self._mc_logic.data['quench_state_y'][-1]:
+            self._mw.magnet_y_quenchbit.setText('QUENCH!')
+            self._mw.magnet_y_quenchbit.setStyleSheet('color: red')
+        else:
+            self._mw.magnet_y_quenchbit.setText('No quench')
+
+        if self._mc_logic.data['quench_state_z'][-1]:
+            self._mw.magnet_z_quenchbit.setText('QUENCH!')
+            self._mw.magnet_z_quenchbit.setStyleSheet('color: red')
+        else:
+            self._mw.magnet_z_quenchbit.setText('No quench')
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.
         """
-        if self._pm_logic.get_saving_state():
-            self._mw.record_pressure_Action.setText('Stop Stream Saving')
-            self._pm_logic.stop_saving()
+        if self._mc_logic.get_saving_state():
+            self._mw.actionRecord_Magnet.setText('Stop Stream Saving')
+            self._mc_logic.stop_saving()
         else:
-            self._mw.record_pressure_Action.setText('Start Stream Saving')
-            self._pm_logic.start_saving()
-        return self._pm_logic.get_saving_state()
+            self._mw.actionRecord_Magnet.setText('Start Stream Saving')
+            self._mc_logic.start_saving()
+        return self._mc_logic.get_saving_state()
 
     def clear_buffer_clicked(self):
-        self._pm_logic.clear_buffer()
+        self._mc_logic.clear_buffer()
         return
 
     def update_saving_Action(self, start):
@@ -238,7 +185,7 @@ class PressureMonitorGUI(GUIBase):
         @return bool start: see above
         """
         if start:
-            self._mw.record_pressure_Action.setText('Stop Stream Saving')
+            self._mw.actionRecord_Magnet.setText('Stop Stream Saving')
         else:
-            self._mw.record_pressure_Action.setText('Start Stream Saving')
+            self._mw.actionRecord_Magnet.setText('Start Stream Saving')
         return start
