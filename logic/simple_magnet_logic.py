@@ -151,19 +151,19 @@ class SimpleMagnetLogic(GenericLogic):
             current_setpoint = self._mc.get_current_setpoint()
             voltage_limit = self._mc.get_voltage_limit()
 
-            for param, channel in self.get_parameter_channels().items():
-                if 'current' in param:
-                    self.data[param].append(current[channel])
-                elif 'voltage_limit' in param:
-                    self.data[param].append(voltage_limit[channel])
-                elif 'voltage' in param:
-                    self.data[param].append(voltage[channel])
-                elif 'ramp_rate' in param:
-                    self.data[param].append(ramp_rate[channel])
-                elif 'current_setpoint' in param:
-                    self.data[param].append(current_setpoint[channel])
-                elif 'quench_state' in param:
-                    self.data[param].append(quench_state[channel])
+            for param, axis in self.get_parameter_channels().items():
+                if param == "current_x" or param == param == "current_y" or param == "current_z":
+                    self.data[param].append(current[axis])
+                elif param == "voltage_limit_x" or param == "voltage_limit_y" or param == "voltage_limit_z":
+                        self.data[param].append(voltage_limit[axis])
+                elif param == "voltage_x" or param == "voltage_y" or param == "voltage_z":
+                    self.data[param].append(voltage[axis])
+                elif param == "ramp_rate_x" or param == "ramp_rate_y" or param == "ramp_rate_z":
+                    self.data[param].append(ramp_rate[axis])
+                elif param == "current_setpoint_x" or param == "current_setpoint_y" or param == "current_setpoint_z":
+                    self.data[param].append(current_setpoint[axis])
+                elif param == "quench_state_x" or param == "quench_state_y" or param == "quench_state_z":
+                    self.data[param].append(quench_state[axis])
                 else:
                     self.log.warn("Unknown param.")
 
@@ -176,8 +176,8 @@ class SimpleMagnetLogic(GenericLogic):
         if self._saving:
             newdata = np.empty((len(self.get_parameter_channels()) + 1), )
             newdata[0] = time.time() - self._saving_start_time
-            for i, channel in enumerate(self.get_parameter_channels()):
-                newdata[i + 1] = self.data[channel][-1]
+            for i, axis in enumerate(self.get_parameter_channels()):
+                newdata[i + 1] = self.data[axis][-1]
             self._save_logic.write_data([newdata], self.header)
             self._data_to_save.append(newdata)
 

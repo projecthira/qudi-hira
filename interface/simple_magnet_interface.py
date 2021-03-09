@@ -62,6 +62,10 @@ class SimpleMagnetInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def get_current_setpoint(self):
+        pass
+
+    @abstract_interface_method
     def get_quench_detection_setup(self):
         pass
 
