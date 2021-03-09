@@ -125,6 +125,8 @@ class SimpleMagnetLogic(GenericLogic):
         channels = {"current_x": "x", "current_y": "y", "current_z": "z",
                     "voltage_x": "x", "voltage_y": "y", "voltage_z": "z",
                     "ramp_rate_x": "x", "ramp_rate_y": "y", "ramp_rate_z": "z",
+                    "current_setpoint_x": "x", "current_setpoint_y": "y", "current_setpoint_z": "z",
+                    "voltage_limit_x": "x", "voltage_limit_y": "y", "voltage_limit_z": "z",
                     "quench_state_x": "x", "quench_state_y": "y", "quench_state_z": "z"}
         return channels
 
@@ -138,18 +140,28 @@ class SimpleMagnetLogic(GenericLogic):
             return
         qi = self.queryInterval
         try:
+
+            if not self._saving:
+                self.clear_buffer()
+
             current = self._mc.get_current()
             voltage = self._mc.get_voltage()
             ramp_rate = self._mc.get_current_ramp_rate()
             quench_state = self._mc.get_quench_state()
+            current_setpoint = self._mc.get_current_setpoint()
+            voltage_limit = self._mc.get_voltage_limit()
 
             for param, channel in self.get_parameter_channels().items():
                 if 'current' in param:
                     self.data[param].append(current[channel])
+                elif 'voltage_limit' in param:
+                    self.data[param].append(voltage_limit[channel])
                 elif 'voltage' in param:
                     self.data[param].append(voltage[channel])
                 elif 'ramp_rate' in param:
                     self.data[param].append(ramp_rate[channel])
+                elif 'current_setpoint' in param:
+                    self.data[param].append(current_setpoint[channel])
                 elif 'quench_state' in param:
                     self.data[param].append(quench_state[channel])
                 else:
@@ -253,7 +265,7 @@ class SimpleMagnetLogic(GenericLogic):
 
         for i, channel in enumerate(self.get_parameter_channels()):
             if not 'quench_state' in channel:
-                ax[i].plot(time_data, data[:, i + 1], 'o-')
+                ax[i].plot(time_data, data[:, i+1], 'o-')
                 ax[i].set_xlabel('Time (s)')
                 if 'current' in channel:
                     ax[i].set_ylabel(channel.title() + '(A)')

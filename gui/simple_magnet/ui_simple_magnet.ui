@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>962</width>
-    <height>784</height>
+    <width>751</width>
+    <height>585</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>qudi-hira: Pressure Monitor</string>
+   <string>qudi-hira: Magnet Monitor</string>
   </property>
   <property name="toolButtonStyle">
    <enum>Qt::ToolButtonTextUnderIcon</enum>
@@ -123,6 +123,8 @@
       <property name="font">
        <font>
         <pointsize>20</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
        </font>
       </property>
       <property name="text">
@@ -211,6 +213,8 @@
       <property name="font">
        <font>
         <pointsize>20</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
        </font>
       </property>
       <property name="text">
@@ -230,6 +234,8 @@
       <property name="font">
        <font>
         <pointsize>20</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
        </font>
       </property>
       <property name="text">
@@ -365,7 +371,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>962</width>
+     <width>751</width>
      <height>21</height>
     </rect>
    </property>

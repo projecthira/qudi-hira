@@ -114,12 +114,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             self.log.error("Error opening serial port {0}: {1}".format(self.com_port_z, exc))
             return -1
 
-        ids = self.get_ids()
-        for axis, id in ids.items():
-            self.log.info("Connected {} control to {}.".format(axis, id))
-
-        self.set_magnetic_field_constant(0.07377)
-        self.set_quench_detection()
+        self.get_ids()
+        #self.set_magnetic_field_constant(0.07377)
+        #self.set_quench_detection()
 
     def on_deactivate(self):
         self.ser_x.close()
@@ -184,6 +181,10 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             return -1
         return 0
 
+    def get_ids(self):
+        ids = self.ask("*IDN?")
+        self.log.info("Connected {}".format(ids.items()))
+
     def get_limits(self):
         limits = {'x': {}, 'y': {}, 'z': {}}
         limits_string = self.ask('LIMIT?')
@@ -195,6 +196,14 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             limits[axis]['current_rate_limit'] = float(current_rate_limit)
 
         return limits
+
+    def get_voltage_limit(self):
+        voltage_limits = {'x': '', 'y': '', 'z': ''}
+
+        limits = self.get_limits()
+        for axis in limits:
+            voltage_limits[axis] = limits[axis]["voltage_limit"]
+        return voltage_limits
 
     def get_quench_detection_setup(self):
         qd = {'x': {}, 'y': {}, 'z': {}}
@@ -280,6 +289,12 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             quench_bit[axis] = bool(int(operational_errors[axis][3]))
 
         return quench_bit
+
+    def get_current_setpoint(self):
+        current_setpoint = self.ask('SETI?')
+        for axis in current_setpoint:
+            current_setpoint[axis] = float(current_setpoint[axis])
+        return current_setpoint
 
     def set_current_limit(self, current_limit_setpoint):
         current_limit = {'x': '', 'y': '', 'z': ''}

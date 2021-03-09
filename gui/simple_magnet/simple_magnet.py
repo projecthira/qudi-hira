@@ -104,6 +104,7 @@ class SimpleMagnetGUI(GUIBase):
         """ Deactivate the module properly.
         """
         self._mc_logic.sigSavingStatusChanged.disconnect()
+        self._mc_logic.sigUpdate.disconnect()
         self._mw.actionRecord_Magnet.triggered.disconnect()
         self._mw.actionClear_Buffer.triggered.disconnect()
         self._mw.close()
@@ -144,6 +145,14 @@ class SimpleMagnetGUI(GUIBase):
         self._mw.magnet_x_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_x'][-1]))
         self._mw.magnet_y_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_y'][-1]))
         self._mw.magnet_z_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_z'][-1]))
+
+        self._mw.magnet_x_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_x'][-1]))
+        self._mw.magnet_y_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_y'][-1]))
+        self._mw.magnet_z_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_z'][-1]))
+
+        self._mw.magnet_x_voltage_limit.setText('Limit V = {:.4f} V'.format(self._mc_logic.data['voltage_limit_x'][-1]))
+        self._mw.magnet_y_voltage_limit.setText('Limit V = {:.4f} V'.format(self._mc_logic.data['voltage_limit_y'][-1]))
+        self._mw.magnet_z_voltage_limit.setText('Limit V = {:.4f} V'.format(self._mc_logic.data['voltage_limit_z'][-1]))
 
         if self._mc_logic.data['quench_state_x'][-1]:
             self._mw.magnet_x_quenchbit.setText('QUENCH!')

@@ -63,6 +63,9 @@ class SimpleMagnetDummy(Base, SimpleMagnetInterface):
     def get_current(self):
         return {"x": random.uniform(0.1, 10), "y": random.uniform(0.1, 10), "z": random.uniform(0.1, 10)}
 
+    def get_current_setpoint(self):
+        return {"x": random.uniform(0.1, 10), "y": random.uniform(0.1, 10), "z": random.uniform(0.1, 10)}
+
     def get_voltage(self):
         return {"x": random.uniform(0.1, 5), "y": random.uniform(0.1, 5), "z": random.uniform(0.1, 5)}
 
