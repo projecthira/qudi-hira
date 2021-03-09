@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains the Qudi hardware module to control the Lakshore 625 magnet controller.
+This file contains the Qudi hardware module to control the Lakeshore 625 magnet controller.
 TODO: This is a work in progress, not tested.
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.de
