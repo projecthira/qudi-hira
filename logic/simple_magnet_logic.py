@@ -257,25 +257,27 @@ class SimpleMagnetLogic(GenericLogic):
         # Use qudi style
         plt.style.use(self._save_logic.mpl_qudihira_style)
 
-        # Create figure
-        fig, ax = plt.subplots(nrows=len(self.get_parameter_channels())-3, ncols=1, sharex=True)
+        plot_params = {"current": "A", "voltage": "V"}
 
-        if len(self.get_parameter_channels()) == 1:
+        pp = {}
+        for param, unit in plot_params.items():
+            for axis in ["x", "y", "z"]:
+                pp[param + "_" + axis] = unit
+
+        # Create figure
+        fig, ax = plt.subplots(nrows=len(pp), ncols=1, sharex=True)
+
+        if len(pp) == 1:
             ax = [ax]
 
-        for i, channel in enumerate(self.get_parameter_channels()):
-            if not 'quench_state' in channel:
-                ax[i].plot(time_data, data[:, i+1], 'o-')
-                ax[i].set_xlabel('Time (s)')
-                if 'current' in channel:
-                    ax[i].set_ylabel(channel.title() + '(A)')
-                elif 'voltage' in channel:
-                    ax[i].set_ylabel(channel.title() + '(V)')
-                elif 'ramp_rate' in channel:
-                    ax[i].set_ylabel(channel.title() + '(A/s)')
+        i = 0
+        for idx, ch in enumerate(self.get_parameter_channels()):
+            if ch in pp:
+                ax[i].plot(time_data, data[:, idx+1], "o-")
+                ax[idx].set_ylabel("{} ({})".format(ch, pp[ch]))
+                i += 1
 
         plt.tight_layout()
-
         return fig
 
     def save_data_header(self, to_file=True, postfix=''):

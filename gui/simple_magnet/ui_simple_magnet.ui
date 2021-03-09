@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>751</width>
+    <width>621</width>
     <height>585</height>
    </rect>
   </property>
@@ -371,7 +371,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>751</width>
+     <width>621</width>
      <height>21</height>
     </rect>
    </property>
@@ -379,7 +379,6 @@
     <property name="title">
      <string>View</string>
     </property>
-    <addaction name="actionShow_Graph"/>
     <addaction name="actionReset_View"/>
     <addaction name="actionClose"/>
    </widget>
@@ -405,17 +404,6 @@
    </property>
    <property name="text">
     <string>Close</string>
-   </property>
-  </action>
-  <action name="actionShow_Graph">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Show Graph</string>
    </property>
   </action>
   <action name="actionShow_Controls">
