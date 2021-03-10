@@ -23,15 +23,14 @@ top-level directory of this distribution and at <https://github.com/projecthira/
 
 import os
 import time
+
 import pyqtgraph as pg
-
-from gui.colordefs import QudiPalettePale as palette
-
-from core.connector import Connector
-from gui.guibase import GUIBase
 from qtpy import QtCore
 from qtpy import QtWidgets
 from qtpy import uic
+
+from core.connector import Connector
+from gui.guibase import GUIBase
 
 
 class TimeAxisItem(pg.AxisItem):
@@ -54,7 +53,7 @@ class MainGUIWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_simple_magnet.ui')
+        ui_file = os.path.join(this_dir, 'ui_sc_magnet.ui')
 
         # Load it
         super().__init__()
@@ -62,11 +61,12 @@ class MainGUIWindow(QtWidgets.QMainWindow):
         self.show()
 
 
-class SimpleMagnetGUI(GUIBase):
+class SCMagnetGUI(GUIBase):
     """ FIXME: Please document
     """
-    mclogic = Connector(interface='SimpleMagnetLogic')
+    mclogic = Connector(interface='SCMagnetLogic')
     sigQueryIntervalChanged = QtCore.Signal(int)
+    sigMagnetCurrentSetpointChanged = QtCore.Signal(dict)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -87,11 +87,13 @@ class SimpleMagnetGUI(GUIBase):
 
         self._mw.actionRecord_Magnet.triggered.connect(self.save_clicked)
         self._mw.actionClear_Buffer.triggered.connect(self.clear_buffer_clicked)
+        self._mw.actionSendCommand.triggered.connect(self.send_commands)
 
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
         self._mc_logic.sigSavingStatusChanged.connect(self.update_saving_Action)
         self._mc_logic.sigUpdate.connect(self.updateGui)
+
         self.sigQueryIntervalChanged.connect(self._mc_logic.change_qtimer_interval)
         self._mw.queryIntervalSpinBox.valueChanged.connect(self.update_query_interval)
 
@@ -100,6 +102,21 @@ class SimpleMagnetGUI(GUIBase):
         # Required to autostart loop on launch
         self.update_query_interval()
 
+        quench_setup = self._mc_logic.get_quench_detection_setup()
+        self._mw.magnet_x_quench_setup_label.setText('Quench detection: {} \n ({:.2f} A/s)'
+                                                     .format(bool(quench_setup["x"]["status"]),
+                                                             quench_setup["x"]["current_step_limit"]))
+        self._mw.magnet_y_quench_setup_label.setText('Quench detection: {} \n ({:.2f} A/s)'
+                                                     .format(bool(quench_setup["y"]["status"]),
+                                                             quench_setup["y"]["current_step_limit"]))
+        self._mw.magnet_z_quench_setup_label.setText('Quench detection: {} \n ({:.2f} A/s)'
+                                                     .format(bool(quench_setup["z"]["status"]),
+                                                             quench_setup["z"]["current_step_limit"]))
+
+        self._mw.magnet_x_quenchbit.setStyleSheet('color: gray')
+        self._mw.magnet_y_quenchbit.setStyleSheet('color: gray')
+        self._mw.magnet_z_quenchbit.setStyleSheet('color: gray')
+
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
@@ -107,6 +124,7 @@ class SimpleMagnetGUI(GUIBase):
         self._mc_logic.sigUpdate.disconnect()
         self._mw.actionRecord_Magnet.triggered.disconnect()
         self._mw.actionClear_Buffer.triggered.disconnect()
+        self._mw.actionSendCommand.triggered.disconnect()
         self._mw.close()
 
     def show(self):
@@ -146,9 +164,12 @@ class SimpleMagnetGUI(GUIBase):
         self._mw.magnet_y_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_y'][-1]))
         self._mw.magnet_z_ramp_rate.setText('Ramp Rate = {:.4f} A/s'.format(self._mc_logic.data['ramp_rate_z'][-1]))
 
-        self._mw.magnet_x_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_x'][-1]))
-        self._mw.magnet_y_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_y'][-1]))
-        self._mw.magnet_z_setpoint_current.setText('Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_z'][-1]))
+        self._mw.magnet_x_setpoint_current.setText(
+            'Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_x'][-1]))
+        self._mw.magnet_y_setpoint_current.setText(
+            'Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_y'][-1]))
+        self._mw.magnet_z_setpoint_current.setText(
+            'Set I = {:.4f} A'.format(self._mc_logic.data['current_setpoint_z'][-1]))
 
         self._mw.magnet_x_voltage_limit.setText('Limit V = {:.4f} V'.format(self._mc_logic.data['voltage_limit_x'][-1]))
         self._mw.magnet_y_voltage_limit.setText('Limit V = {:.4f} V'.format(self._mc_logic.data['voltage_limit_y'][-1]))
@@ -158,19 +179,34 @@ class SimpleMagnetGUI(GUIBase):
             self._mw.magnet_x_quenchbit.setText('QUENCH!')
             self._mw.magnet_x_quenchbit.setStyleSheet('color: red')
         else:
-            self._mw.magnet_x_quenchbit.setText('No quench')
+            self._mw.magnet_x_quenchbit.setText('Not quenched')
 
         if self._mc_logic.data['quench_state_y'][-1]:
             self._mw.magnet_y_quenchbit.setText('QUENCH!')
             self._mw.magnet_y_quenchbit.setStyleSheet('color: red')
         else:
-            self._mw.magnet_y_quenchbit.setText('No quench')
+            self._mw.magnet_y_quenchbit.setText('Not quenched')
 
         if self._mc_logic.data['quench_state_z'][-1]:
             self._mw.magnet_z_quenchbit.setText('QUENCH!')
             self._mw.magnet_z_quenchbit.setStyleSheet('color: red')
         else:
-            self._mw.magnet_z_quenchbit.setText('No quench')
+            self._mw.magnet_z_quenchbit.setText('Not quenched')
+
+        if self._mc_logic.data["ramping_state_x"][-1]:
+            self._mw.magnet_x_ramping_label.setStyleSheet('color: yellow')
+        else:
+            self._mw.magnet_x_ramping_label.setStyleSheet('color: gray')
+
+        if self._mc_logic.data["ramping_state_y"][-1]:
+            self._mw.magnet_y_ramping_label.setStyleSheet('color: yellow')
+        else:
+            self._mw.magnet_y_ramping_label.setStyleSheet('color: gray')
+
+        if self._mc_logic.data["ramping_state_z"][-1]:
+            self._mw.magnet_z_ramping_label.setStyleSheet('color: yellow')
+        else:
+            self._mw.magnet_z_ramping_label.setStyleSheet('color: gray')
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.
@@ -198,3 +234,25 @@ class SimpleMagnetGUI(GUIBase):
         else:
             self._mw.actionRecord_Magnet.setText('Start Stream Saving')
         return start
+
+    @QtCore.Slot()
+    def send_commands(self):
+        voltage_limit_dict = {"x": self._mw.magnet_x_voltage_limit_doubleSpinBox.value(),
+                              "y": self._mw.magnet_y_voltage_limit_doubleSpinBox.value(),
+                              "z": self._mw.magnet_z_voltage_limit_doubleSpinBox.value()}
+
+        self._mc_logic.change_voltage_limit_setpoint(voltage_limit_dict)
+
+        ramp_rate_dict = {"x": self._mw.magnet_x_ramp_rate_doubleSpinBox.value(),
+                          "y": self._mw.magnet_y_ramp_rate_doubleSpinBox.value(),
+                          "z": self._mw.magnet_z_ramp_rate_doubleSpinBox.value()}
+
+        self._mc_logic.change_ramp_rate(ramp_rate_dict)
+
+        current_setpoint_dict = {"x": self._mw.magnet_x_current_doubleSpinBox.value(),
+                                 "y": self._mw.magnet_y_current_doubleSpinBox.value(),
+                                 "z": self._mw.magnet_z_current_doubleSpinBox.value()}
+
+        self._mc_logic.change_current_setpoint(current_setpoint_dict)
+
+

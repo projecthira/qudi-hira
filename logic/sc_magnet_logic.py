@@ -35,12 +35,12 @@ from core.util.mutex import Mutex
 from logic.generic_logic import GenericLogic
 
 
-class SimpleMagnetLogic(GenericLogic):
-    """ Logic module agreggating multiple hardware switches.
+class SCMagnetLogic(GenericLogic):
+    """ Logic module aggregating multiple hardware switches.
     """
 
     # waiting time between queries im milliseconds
-    magnet_controller = Connector(interface='SimpleMagnetInterface')
+    magnet_controller = Connector(interface='SCMagnetInterface')
     savelogic = Connector(interface='SaveLogic')
 
     queryInterval = ConfigOption('query_interval', 1000)
@@ -110,6 +110,22 @@ class SimpleMagnetLogic(GenericLogic):
             self.log.warn(f"Query interval limits are {self.queryIntervalLowerLim} to {self.queryIntervalUpperLim}. "
                           f"Query interval is {self.queryInterval}")
 
+    @QtCore.Slot(dict)
+    def change_voltage_limit_setpoint(self, voltage_limit_setpoint):
+        self._mc.set_voltage_limit(voltage_limit_setpoint)
+
+    @QtCore.Slot(dict)
+    def change_current_setpoint(self, current_setpoint):
+        self._mc.set_current_setpoint(current_setpoint)
+
+    @QtCore.Slot(dict)
+    def change_ramp_rate(self,ramp_rate_setpoint):
+        self._mc.set_current_ramp_rate(ramp_rate_setpoint)
+
+    @QtCore.Slot(dict)
+    def get_quench_detection_setup(self):
+        return self._mc.get_quench_detection_setup()
+
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
 
@@ -127,7 +143,8 @@ class SimpleMagnetLogic(GenericLogic):
                     "ramp_rate_x": "x", "ramp_rate_y": "y", "ramp_rate_z": "z",
                     "current_setpoint_x": "x", "current_setpoint_y": "y", "current_setpoint_z": "z",
                     "voltage_limit_x": "x", "voltage_limit_y": "y", "voltage_limit_z": "z",
-                    "quench_state_x": "x", "quench_state_y": "y", "quench_state_z": "z"}
+                    "quench_state_x": "x", "quench_state_y": "y", "quench_state_z": "z",
+                    "ramping_state_x": "x", "ramping_state_y": "y", "ramping_state_z": "z"}
         return channels
 
     @QtCore.Slot()
@@ -150,12 +167,13 @@ class SimpleMagnetLogic(GenericLogic):
             quench_state = self._mc.get_quench_state()
             current_setpoint = self._mc.get_current_setpoint()
             voltage_limit = self._mc.get_voltage_limit()
+            ramping_state = self._mc.get_ramping_state()
 
             for param, axis in self.get_parameter_channels().items():
                 if param == "current_x" or param == param == "current_y" or param == "current_z":
                     self.data[param].append(current[axis])
                 elif param == "voltage_limit_x" or param == "voltage_limit_y" or param == "voltage_limit_z":
-                        self.data[param].append(voltage_limit[axis])
+                    self.data[param].append(voltage_limit[axis])
                 elif param == "voltage_x" or param == "voltage_y" or param == "voltage_z":
                     self.data[param].append(voltage[axis])
                 elif param == "ramp_rate_x" or param == "ramp_rate_y" or param == "ramp_rate_z":
@@ -164,6 +182,8 @@ class SimpleMagnetLogic(GenericLogic):
                     self.data[param].append(current_setpoint[axis])
                 elif param == "quench_state_x" or param == "quench_state_y" or param == "quench_state_z":
                     self.data[param].append(quench_state[axis])
+                elif param == "ramping_state_x" or param == "ramping_state_y" or param == "ramping_state_z":
+                    self.data[param].append(ramping_state[axis])
                 else:
                     self.log.warn("Unknown param.")
 
@@ -273,7 +293,7 @@ class SimpleMagnetLogic(GenericLogic):
         i = 0
         for idx, ch in enumerate(self.get_parameter_channels()):
             if ch in pp:
-                ax[i].plot(time_data, data[:, idx+1], "o-")
+                ax[i].plot(time_data, data[:, idx + 1], "o-")
                 ax[idx].set_ylabel("{} ({})".format(ch, pp[ch]))
                 i += 1
 

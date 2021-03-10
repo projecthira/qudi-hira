@@ -26,7 +26,7 @@ from core.interface import abstract_interface_method
 from core.meta import InterfaceMetaclass
 
 
-class SimpleMagnetInterface(metaclass=InterfaceMetaclass):
+class SCMagnetInterface(metaclass=InterfaceMetaclass):
     """ This is the Interface class to define the controls for the devices
         controlling the magnetic field.
     """

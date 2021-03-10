@@ -23,11 +23,11 @@ top-level directory of this distribution and at <https://github.com/projecthira/
 """
 
 from core.module import Base
-from interface.simple_magnet_interface import SimpleMagnetInterface
+from interface.sc_magnet_interface import SCMagnetInterface
 import random
 
 
-class SimpleMagnetDummy(Base, SimpleMagnetInterface):
+class SimpleMagnetDummy(Base, SCMagnetInterface):
     """ This is the Interface class to define the controls for the devices
         controlling the magnetic field.
     """

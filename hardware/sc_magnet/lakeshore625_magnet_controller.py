@@ -28,10 +28,18 @@ import serial
 
 from core.configoption import ConfigOption
 from core.module import Base
-from interface.simple_magnet_interface import SimpleMagnetInterface
+from interface.sc_magnet_interface import SCMagnetInterface
 
 
-class Lakeshore625(Base, SimpleMagnetInterface):
+def float_to_xyz_dict(value):
+    if isinstance(value, float):
+        floatdict = {"x": value,
+                     "y": value,
+                     "z": value}
+        return floatdict
+
+
+class Lakeshore625(Base, SCMagnetInterface):
     """
     Driver for the Lakeshore Model 625 superconducting magnet power supply.
 
@@ -49,7 +57,7 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     com_port_z = ConfigOption('magnet_COM_port_z', missing='error')
 
     # default waiting time of the pc after a message was sent to the magnet
-    waitingtime = ConfigOption('magnet_waitingtime_seconds', 0.1)
+    waitingtime = ConfigOption('magnet_waitingtime_seconds', 0.15)
 
     x_constr = ConfigOption('magnet_x_constr_tesla', 0.01)
     y_constr = ConfigOption('magnet_y_constr_tesla', 0.01)
@@ -115,8 +123,8 @@ class Lakeshore625(Base, SimpleMagnetInterface):
             return -1
 
         self.get_ids()
-        #self.set_magnetic_field_constant(0.07377)
-        #self.set_quench_detection()
+        # self.set_magnetic_field_constant(0.07377)
+        # self.set_quench_detection()
 
     def on_deactivate(self):
         self.ser_x.close()
@@ -248,7 +256,7 @@ class Lakeshore625(Base, SimpleMagnetInterface):
         operation_condition_register = self.ask('OPST?')
 
         for axis in operation_condition_register:
-            bin_OPST = bin(int(operation_condition_register))[2:]
+            bin_OPST = bin(int(operation_condition_register[axis]))[2:]
             if len(bin_OPST) < 2:
                 rampbit = 1
             else:
@@ -299,6 +307,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     def set_current_limit(self, current_limit_setpoint):
         current_limit = {'x': '', 'y': '', 'z': ''}
 
+        if not isinstance(current_limit_setpoint, dict):
+            current_limit_setpoint = float_to_xyz_dict(current_limit_setpoint)
+
         limits = self.get_limits()
 
         for axis in limits:
@@ -311,17 +322,34 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     def set_voltage_limit(self, voltage_limit_setpoint):
         voltage_limit = {'x': '', 'y': '', 'z': ''}
 
+        if not isinstance(voltage_limit_setpoint, dict):
+            voltage_limit_setpoint = float_to_xyz_dict(voltage_limit_setpoint)
+
         limits = self.get_limits()
 
         for axis in limits:
-            voltage_limit[axis] = 'LIMIT {}, {}, {}'.format(limits[axis]['current_limit'],
-                                                            voltage_limit_setpoint[axis],
-                                                            limits[axis]['current_rate_limit'])
+            voltage_limit[axis] = 'LIMIT {},{},{}'.format(limits[axis]['current_limit'],
+                                                          voltage_limit_setpoint[axis],
+                                                          limits[axis]['current_rate_limit'])
 
         self.tell(voltage_limit)
 
+    def set_current_setpoint(self, current_setpoint):
+        current_setpoint_dict = {'x': '', 'y': '', 'z': ''}
+
+        if not isinstance(current_setpoint, dict):
+            current_setpoint = float_to_xyz_dict(current_setpoint)
+
+        for axis in current_setpoint_dict:
+            current_setpoint_dict[axis] = 'SETI {}'.format(current_setpoint[axis])
+
+        self.tell(current_setpoint_dict)
+
     def set_current_rate_limit(self, current_rate_limit_setpoint):
         current_rate_limit = {'x': '', 'y': '', 'z': ''}
+
+        if not isinstance(current_rate_limit_setpoint, dict):
+            current_rate_limit_setpoint = float_to_xyz_dict(current_rate_limit_setpoint)
 
         limits = self.get_limits()
 
@@ -335,6 +363,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     def set_quench_detection_status(self, quench_detection_setpoint):
         quench_detection_status = {'x': '', 'y': '', 'z': ''}
 
+        if not isinstance(quench_detection_setpoint, dict):
+            quench_detection_setpoint = float_to_xyz_dict(quench_detection_setpoint)
+
         quench_detection_setup = self.get_quench_detection_setup()
 
         for axis in quench_detection_setup:
@@ -345,6 +376,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
 
     def set_quench_current_step_limit(self, current_step_limit_setpoint):
         quench_current_step_limit = {'x': '', 'y': '', 'z': ''}
+
+        if not isinstance(current_step_limit_setpoint, dict):
+            current_step_limit_setpoint = float_to_xyz_dict(current_step_limit_setpoint)
 
         quench_detection_setup = self.get_quench_detection_setup()
 
@@ -357,6 +391,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     def set_coil_constant(self, coil_constant_setpoint):
         coil_constant = {'x': '', 'y': '', 'z': ''}
 
+        if not isinstance(coil_constant_setpoint, dict):
+            coil_constant_setpoint = float_to_xyz_dict(coil_constant_setpoint)
+
         field_setup = self.get_field_setup()
 
         for axis in field_setup:
@@ -367,6 +404,9 @@ class Lakeshore625(Base, SimpleMagnetInterface):
     def set_current_ramp_rate(self, current_ramp_rate_setpoint):
         current_ramp_rate = {'x': '', 'y': '', 'z': ''}
 
+        if not isinstance(current_ramp_rate_setpoint, dict):
+            current_ramp_rate_setpoint = float_to_xyz_dict(current_ramp_rate_setpoint)
+
         for axis in current_ramp_rate:
             current_ramp_rate[axis] = 'RATE {}'.format(current_ramp_rate_setpoint[axis])
 
@@ -374,6 +414,10 @@ class Lakeshore625(Base, SimpleMagnetInterface):
 
     def set_field(self, field_setpoint):
         field = {'x': '', 'y': '', 'z': ''}
+
+        if not isinstance(field_setpoint, dict):
+            field_setpoint = float_to_xyz_dict(field_setpoint)
+
         for axis in field:
             field = 'SETF {}'.format(field_setpoint[axis])
 
