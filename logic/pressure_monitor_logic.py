@@ -70,6 +70,7 @@ class PressureMonitorLogic(GenericLogic):
             self.log.debug('{0}: {1}'.format(key, config[key]))
 
         self._saving = False
+        self.header_string = None
         return
 
     def on_activate(self):
@@ -155,7 +156,8 @@ class PressureMonitorLogic(GenericLogic):
             newdata[0] = time.time() - self._saving_start_time
             for i, channel in enumerate(self.get_channels()):
                 newdata[i + 1] = self.data[channel][-1]
-            self._save_logic.write_data([newdata], self.header)
+            self._save_logic.write_data([newdata], header=self.header_string, filepath=self.filepath,
+                                        filename=self.filename)
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -198,9 +200,8 @@ class PressureMonitorLogic(GenericLogic):
             self._saving_start_time = time.time()
 
         self._saving = True
-        self.sigSavingStatusChanged.emit(self._saving)
         self.save_data_header()
-
+        self.sigSavingStatusChanged.emit(self._saving)
         return self._saving
 
     def stop_saving(self):
@@ -215,11 +216,11 @@ class PressureMonitorLogic(GenericLogic):
         else:
             # Only save figure if list is not empty to prevent IndexError
             fig = self.draw_figure(data=np.array(self._data_to_save))
-            self._save_logic.save_figure(fig)
+            self._save_logic.save_figure(plotfig=fig, filepath=self.filepath, filename=self.filename)
 
         self._saving = False
         self.sigSavingStatusChanged.emit(self._saving)
-
+        self.header = None
         self._data_to_save.clear()
         return self._saving
 
@@ -272,18 +273,16 @@ class PressureMonitorLogic(GenericLogic):
                 filelabel = 'pressure_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)'
+            self.header_string = 'Time (s)'
 
             for i, channel in enumerate(self.get_channels()):
-                header += ',{}_pressure (mbar)'.format(channel)
+                self.header_string += ',{}_pressure (mbar)'.format(channel)
 
             # Required as the stream logic write_data() requires this header
-            self.header = header
-
-            data = {header: []}
-            filepath = self._save_logic.get_path_for_module(module_name='Pressure')
-
-            self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
-                                       filelabel=filelabel, delimiter='\t')
+            header_array = self.header_string.split(",")
+            self.filepath = self._save_logic.get_path_for_module(module_name='Pressure')
+            self.filename = self._save_logic.create_file_and_header(header_array, filepath=self.filepath,
+                                                                    parameters=parameters,
+                                                                    filelabel=filelabel, delimiter='\t')
 
             return [], parameters

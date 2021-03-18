@@ -82,10 +82,6 @@ class SCMagnetInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
-    def get_operational_errors(self):
-        pass
-
-    @abstract_interface_method
     def get_quench_state(self):
         pass
 

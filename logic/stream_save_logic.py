@@ -81,7 +81,6 @@ class StreamSaveLogic(SaveLogic):
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
-        self.header = None
 
     def on_activate(self):
         """
@@ -105,7 +104,7 @@ class StreamSaveLogic(SaveLogic):
             logging.getLogger().removeHandler(self._daily_loghandler)
 
     def create_file_and_header(self, data, filepath=None, parameters=None, filename=None, filelabel=None,
-                               timestamp=None, fmt='%.15e', delimiter='\t'):
+                               timestamp=None, fmt='%s', delimiter='\t'):
         """
         General save routine for data.
 
@@ -222,8 +221,6 @@ class StreamSaveLogic(SaveLogic):
             self.log.info('Custom filepath does not exist. Created directory "{0}"'
                           ''.format(filepath))
 
-        self.filepath = filepath
-
         # create filelabel if none has been passed
         if filelabel is None:
             filelabel = module_name
@@ -232,7 +229,7 @@ class StreamSaveLogic(SaveLogic):
 
         # determine proper unique filename to save if none has been passed
         if filename is None:
-            self.filename = timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
+            filename = timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
 
         # Check format specifier.
         if not isinstance(fmt, str) and len(fmt) != len(data):
@@ -264,15 +261,16 @@ class StreamSaveLogic(SaveLogic):
                 self.log.error('The parameters are not passed as a dictionary! The SaveLogic will '
                                'try to save the parameters nevertheless.')
                 header += 'not specified parameters: {0}\n'.format(parameters)
-        header += '\nData:\n=====\n'
+        header += '\nData:\n====='
 
-        self.log.info(f'{module_name} data being streamed to:\n{self.filepath}\\{self.filename}')
-
-        self.save_array_as_text(data=[], filename=self.filename, filepath=self.filepath,
+        self.log.info(f'{module_name} data being streamed to:\n{filepath}\\{filename}')
+        data[0] = "#" + data[0]
+        self.save_array_as_text(data=np.column_stack(data), filename=filename, filepath=filepath,
                                 fmt=fmt, header=header, delimiter=delimiter, comments='#',
                                 append=False)
+        return filename
 
-    def write_data(self, data_to_save, header, fmt='%.15e', filetype='text', delimiter='\t'):
+    def write_data(self, data_to_save, header, filename, filepath, fmt='%.15e', filetype='text', delimiter='\t'):
         # write data to file
         # FIXME: Implement other file formats
         # write to textfile
@@ -368,26 +366,21 @@ class StreamSaveLogic(SaveLogic):
             else:
                 identifier_str = list(data)[0]
 
-            if self.header is None:
-                self.header = list(data)[0]
-                self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
-                                        fmt=fmt, header=self.header, delimiter=delimiter, comments='#',
-                                        append=True)
-            else:
-                self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
-                                        fmt=fmt, header="", delimiter=delimiter, comments='#',
-                                        append=True)
+            self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
+                                    fmt=fmt, header="", delimiter=delimiter, comments='#',
+                                    append=True)
+
         # write npz file and save parameters in textfile
         elif filetype == 'npz':
             header = str(list(data.keys()))[1:-1]
-            np.savez_compressed(self.filepath + '/' + self.filename[:-4], **data)
-            self.save_array_as_text(data=[], filename=self.filename[:-4] + '_params.dat', filepath=self.filepath,
+            np.savez_compressed(filepath + '/' + filename[:-4], **data)
+            self.save_array_as_text(data=[], filename=filename[:-4] + '_params.dat', filepath=filepath,
                                     fmt=fmt, header="", delimiter=delimiter, comments='#',
                                     append=True)
         else:
             self.log.error('Only saving of data as textfile and npz-file is implemented. Filetype "{0}" is not '
                            'supported yet. Saving as textfile.'.format(filetype))
-            self.save_array_as_text(data=data[identifier_str], filename=self.filename, filepath=self.filepath,
+            self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
                                     append=True)
 
@@ -408,7 +401,7 @@ class StreamSaveLogic(SaveLogic):
                            comments=comments)
         return
 
-    def save_figure(self, plotfig=None, timestamp=None):
+    def save_figure(self, filepath, filename, plotfig=None, timestamp=None):
         # --------------------------------------------------------------------------------------------
         # Save thumbnail figure of plot
         if plotfig is not None:
@@ -429,7 +422,7 @@ class StreamSaveLogic(SaveLogic):
 
             if self.save_pdf:
                 # determine the PDF-Filename
-                fig_fname_vector = os.path.join(self.filepath, self.filename)[:-4] + '_fig.pdf'
+                fig_fname_vector = os.path.join(filepath, filename)[:-4] + '_fig.pdf'
 
                 # Create the PdfPages object to which we will save the pages:
                 # The with statement makes sure that the PdfPages object is closed properly at
@@ -445,7 +438,7 @@ class StreamSaveLogic(SaveLogic):
 
             if self.save_png:
                 # determine the PNG-Filename and save the plain PNG
-                fig_fname_image = os.path.join(self.filepath, self.filename)[:-4] + '_fig.png'
+                fig_fname_image = os.path.join(filepath, filename)[:-4] + '_fig.png'
                 plotfig.savefig(fig_fname_image, bbox_inches='tight', pad_inches=0.05)
 
                 # Use Pillow (an fork for PIL) to attach metadata to the PNG

@@ -46,6 +46,7 @@ class Lakeshore224TM(Base, ProcessInterface):
     _baseplate_channel = ConfigOption("baseplate_channel", default="C1", missing="warn")
     _tip_channel = ConfigOption("tip_channel", default="A", missing="warn")
     _magnet_channel = ConfigOption("magnet_channel", default="B", missing="warn")
+    _z_braid_channel = ConfigOption("z_braid_channel", default="C3", missing="warn")
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
@@ -65,7 +66,10 @@ class Lakeshore224TM(Base, ProcessInterface):
 
     def get_channels(self):
         """ A dict of the temperature monitor channels """
-        return {"baseplate": self._baseplate_channel, "tip": self._tip_channel, "magnet": self._magnet_channel}
+        return {"baseplate": self._baseplate_channel,
+                "tip": self._tip_channel,
+                "magnet": self._magnet_channel,
+                "z_braid": self._z_braid_channel}
 
     def get_temperature(self, channel):
         """ Get temperature of a specific channel """

@@ -84,7 +84,6 @@ class Lakeshore625(Base, SCMagnetInterface):
                 parity=serial.PARITY_ODD,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.SEVENBITS,
-                timeout=2,
                 xonxoff=False,
                 rtscts=False
             )
@@ -99,7 +98,6 @@ class Lakeshore625(Base, SCMagnetInterface):
                 parity=serial.PARITY_ODD,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.SEVENBITS,
-                timeout=2,
                 xonxoff=False,
                 rtscts=False
             )
@@ -114,7 +112,6 @@ class Lakeshore625(Base, SCMagnetInterface):
                 parity=serial.PARITY_ODD,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.SEVENBITS,
-                timeout=2,
                 xonxoff=False,
                 rtscts=False
             )
@@ -148,11 +145,11 @@ class Lakeshore625(Base, SCMagnetInterface):
         self.ser_y.write(query_string.encode('ascii'))
         self.ser_z.write(query_string.encode('ascii'))
 
-        time.sleep(float(self.waitingtime))
-
         answer_dict['x'] = self.ser_x.readline().decode('ascii').rstrip()
         answer_dict['y'] = self.ser_y.readline().decode('ascii').rstrip()
         answer_dict['z'] = self.ser_z.readline().decode('ascii').rstrip()
+
+        time.sleep(float(self.waitingtime))
 
         if len(answer_dict) == 0:
             self.log.warn('Query string returned empty')
@@ -270,33 +267,29 @@ class Lakeshore625(Base, SCMagnetInterface):
 
         return ramping_state
 
+    def get_quench_state(self):
+        quench_state = {'x': False, 'y': False, 'z': False}
+        error_status_register = self.ask('ERST?')
+
+        for axis in error_status_register:
+            # three bytes are read at the same time, the middle one is the operational error status
+            operational_error_register = error_status_register[axis].split(',')[1]
+            # remove the first two letters indicating binary
+            bin_ERST = bin(int(operational_error_register))[2:]
+            if len(bin_ERST) < 6:
+                # quench bit appears at position 6
+                quench_state[axis] = False
+            else:
+                # read sixth bit, 0 = not quenched, 1 = quenched
+                quench_state[axis] = bool(int(bin_ERST[-6]))
+
+        return quench_state
+
     def get_current_ramp_rate(self):
         current_ramp_rate = self.ask('RATE?')
         for axis in current_ramp_rate:
             current_ramp_rate[axis] = float(current_ramp_rate[axis])
         return current_ramp_rate
-
-    def get_operational_errors(self):
-        operational_errors = {'x': '', 'y': '', 'z': ''}
-        error_status_register = self.ask('ERST?')
-
-        for axis in error_status_register:
-            # three bytes are read at the same time, the middle one is the operational error status
-            operational_error_registor = error_status_register[axis].split(',')[1]
-
-            # prepend zeros to bit-string such that it always has length 9
-            operational_errors[axis] = bin(int(operational_error_registor))[2].zfill(9)
-
-        return operational_errors
-
-    def get_quench_state(self):
-        quench_bit = {'x': False, 'y': False, 'z': False}
-        operational_errors = self.get_operational_errors()
-
-        for axis in operational_errors:
-            quench_bit[axis] = bool(int(operational_errors[axis][3]))
-
-        return quench_bit
 
     def get_current_setpoint(self):
         current_setpoint = self.ask('SETI?')

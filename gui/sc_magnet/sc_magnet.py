@@ -241,18 +241,16 @@ class SCMagnetGUI(GUIBase):
                               "y": self._mw.magnet_y_voltage_limit_doubleSpinBox.value(),
                               "z": self._mw.magnet_z_voltage_limit_doubleSpinBox.value()}
 
-        self._mc_logic.change_voltage_limit_setpoint(voltage_limit_dict)
-
         ramp_rate_dict = {"x": self._mw.magnet_x_ramp_rate_doubleSpinBox.value(),
                           "y": self._mw.magnet_y_ramp_rate_doubleSpinBox.value(),
                           "z": self._mw.magnet_z_ramp_rate_doubleSpinBox.value()}
-
-        self._mc_logic.change_ramp_rate(ramp_rate_dict)
 
         current_setpoint_dict = {"x": self._mw.magnet_x_current_doubleSpinBox.value(),
                                  "y": self._mw.magnet_y_current_doubleSpinBox.value(),
                                  "z": self._mw.magnet_z_current_doubleSpinBox.value()}
 
-        self._mc_logic.change_current_setpoint(current_setpoint_dict)
+        self._mc_logic.change_parameters(voltage_limit_dict, ramp_rate_dict, current_setpoint_dict)
+
+
 
 

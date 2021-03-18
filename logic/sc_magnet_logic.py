@@ -70,6 +70,7 @@ class SCMagnetLogic(GenericLogic):
             self.log.debug('{0}: {1}'.format(key, config[key]))
 
         self._saving = False
+        self.header_string = None
         return
 
     def on_activate(self):
@@ -111,20 +112,18 @@ class SCMagnetLogic(GenericLogic):
                           f"Query interval is {self.queryInterval}")
 
     @QtCore.Slot(dict)
-    def change_voltage_limit_setpoint(self, voltage_limit_setpoint):
-        self._mc.set_voltage_limit(voltage_limit_setpoint)
-
-    @QtCore.Slot(dict)
-    def change_current_setpoint(self, current_setpoint):
-        self._mc.set_current_setpoint(current_setpoint)
-
-    @QtCore.Slot(dict)
-    def change_ramp_rate(self,ramp_rate_setpoint):
-        self._mc.set_current_ramp_rate(ramp_rate_setpoint)
-
-    @QtCore.Slot(dict)
     def get_quench_detection_setup(self):
         return self._mc.get_quench_detection_setup()
+
+    @QtCore.Slot(dict, dict, dict)
+    def change_parameters(self, voltage_limit_setpoint, ramp_rate_setpoint, current_setpoint):
+        if not self.queryTimer.isActive():
+            self._mc.set_voltage_limit(voltage_limit_setpoint)
+            self._mc.set_current_ramp_rate(ramp_rate_setpoint)
+            self._mc.set_current_setpoint(current_setpoint)
+        else:
+            self.log.warn("Query not sent, try again")
+        return
 
     def get_saving_state(self):
         """ Returns if the data is saved in the moment.
@@ -163,6 +162,7 @@ class SCMagnetLogic(GenericLogic):
 
             current = self._mc.get_current()
             voltage = self._mc.get_voltage()
+
             ramp_rate = self._mc.get_current_ramp_rate()
             quench_state = self._mc.get_quench_state()
             current_setpoint = self._mc.get_current_setpoint()
@@ -198,7 +198,7 @@ class SCMagnetLogic(GenericLogic):
             newdata[0] = time.time() - self._saving_start_time
             for i, axis in enumerate(self.get_parameter_channels()):
                 newdata[i + 1] = self.data[axis][-1]
-            self._save_logic.write_data([newdata], self.header)
+            self._save_logic.write_data([newdata], self.header_string)
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -211,6 +211,14 @@ class SCMagnetLogic(GenericLogic):
         self.queryTimer.start(self.queryInterval)
 
     @QtCore.Slot()
+    def start_query_timer(self):
+        self.queryTimer.start()
+
+    @QtCore.Slot()
+    def stop_query_timer(self):
+        self.queryTimer.stop()
+
+    @QtCore.Slot()
     def stop_query_loop(self):
         """ Stop the readout loop. """
         self.stopRequest = True
@@ -218,9 +226,9 @@ class SCMagnetLogic(GenericLogic):
 
     def init_data_logging(self):
         """ Zero all log buffers. """
-        self.data['time'] = []
+        self.data['time'] = [0]
         for ch in self.get_parameter_channels():
-            self.data[ch] = []
+            self.data[ch] = [0]
 
     def clear_buffer(self):
         """ Flush all data currently stored in memory. """
@@ -322,24 +330,21 @@ class SCMagnetLogic(GenericLogic):
                 filelabel = 'magnet_' + postfix
 
             # prepare the data in a dict or in an OrderedDict:
-            header = 'Time (s)'
+            self.header_string = 'Time (s)'
 
             for channel in self.get_parameter_channels():
                 if 'current' in channel:
-                    header += ',{} (A)'.format(channel)
+                    self.header_string += ',{} (A)'.format(channel)
                 elif 'voltage' in channel:
-                    header += ',{} (V)'.format(channel)
+                    self.header_string += ',{} (V)'.format(channel)
                 elif 'ramp_rate' in channel:
-                    header += ',{} (A/s)'.format(channel)
+                    self.header_string += ',{} (A/s)'.format(channel)
                 elif 'quench_state' in channel:
-                    header += ',{}'.format(channel)
+                    self.header_string += ',{}'.format(channel)
 
-            # Required as the stream logic write_data() requires this header
-            self.header = header
-
-            data = {}
+            header_array = self.header_string.split(",")
             filepath = self._save_logic.get_path_for_module(module_name='Magnet')
-            self._save_logic.create_file_and_header(data, filepath=filepath, parameters=parameters,
+            self._save_logic.create_file_and_header(header_array, filepath=filepath, parameters=parameters,
                                                     filelabel=filelabel, delimiter='\t')
 
             return [], parameters
