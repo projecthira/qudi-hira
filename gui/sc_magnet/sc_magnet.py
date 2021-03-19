@@ -88,6 +88,7 @@ class SCMagnetGUI(GUIBase):
         self._mw.actionRecord_Magnet.triggered.connect(self.save_clicked)
         self._mw.actionClear_Buffer.triggered.connect(self.clear_buffer_clicked)
         self._mw.actionSendCommand.triggered.connect(self.send_commands)
+        self._mw.magnet_z_clear_errors_pushButton.clicked.connect(self.magnet_z_clear_errors_clicked)
 
         # self.updateViews()
         # self.plot1.vb.sigResized.connect(self.updateViews)
@@ -143,6 +144,10 @@ class SCMagnetGUI(GUIBase):
 
         # Arrange docks widgets
         self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(2), self._mw.plotDockWidget)
+
+    @QtCore.Slot()
+    def magnet_z_clear_errors_clicked(self):
+        self._mc_logic.clear_errors({"x": False, "y": False, "z": True})
 
     @QtCore.Slot()
     def update_query_interval(self):

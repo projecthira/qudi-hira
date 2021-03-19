@@ -115,10 +115,14 @@ class SCMagnetLogic(GenericLogic):
     def get_quench_detection_setup(self):
         return self._mc.get_quench_detection_setup()
 
+    @QtCore.Slot(dict)
+    def clear_errors(self, error_clear_dict):
+        return self._mc.clear_errors(error_clear_dict)
+
     @QtCore.Slot(dict, dict, dict)
     def change_parameters(self, voltage_limit_setpoint, ramp_rate_setpoint, current_setpoint):
         if not self.queryTimer.isActive():
-            self._mc.set_voltage_limit(voltage_limit_setpoint)
+            # self._mc.set_voltage_limit(voltage_limit_setpoint)
             self._mc.set_current_ramp_rate(ramp_rate_setpoint)
             self._mc.set_current_setpoint(current_setpoint)
         else:
@@ -198,7 +202,8 @@ class SCMagnetLogic(GenericLogic):
             newdata[0] = time.time() - self._saving_start_time
             for i, axis in enumerate(self.get_parameter_channels()):
                 newdata[i + 1] = self.data[axis][-1]
-            self._save_logic.write_data([newdata], self.header_string)
+            self._save_logic.write_data([newdata], self.header_string, filepath=self.filepath,
+                                        filename=self.filename)
             self._data_to_save.append(newdata)
 
         self.queryTimer.start(qi)
@@ -265,7 +270,7 @@ class SCMagnetLogic(GenericLogic):
         else:
             # Only save figure if list is not empty to prevent IndexError
             fig = self.draw_figure(data=np.array(self._data_to_save))
-            self._save_logic.save_figure(fig)
+            self._save_logic.save_figure(plotfig=fig, filepath=self.filepath, filename=self.filename)
 
         self._saving = False
         self.sigSavingStatusChanged.emit(self._saving)
@@ -343,8 +348,8 @@ class SCMagnetLogic(GenericLogic):
                     self.header_string += ',{}'.format(channel)
 
             header_array = self.header_string.split(",")
-            filepath = self._save_logic.get_path_for_module(module_name='Magnet')
-            self._save_logic.create_file_and_header(header_array, filepath=filepath, parameters=parameters,
+            self.filepath = self._save_logic.get_path_for_module(module_name='Magnet')
+            self.filename = self._save_logic.create_file_and_header(header_array, filepath=self.filepath, parameters=parameters,
                                                     filelabel=filelabel, delimiter='\t')
 
             return [], parameters

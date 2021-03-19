@@ -313,6 +313,7 @@ class Lakeshore625(Base, SCMagnetInterface):
         self.tell(current_limit)
 
     def set_voltage_limit(self, voltage_limit_setpoint):
+        # TODO: Does not seem to work, even though device reports set voltage limit
         voltage_limit = {'x': '', 'y': '', 'z': ''}
 
         if not isinstance(voltage_limit_setpoint, dict):
@@ -415,3 +416,13 @@ class Lakeshore625(Base, SCMagnetInterface):
             field = 'SETF {}'.format(field_setpoint[axis])
 
         self.tell(field)
+
+    def clear_errors(self, error_clear_dict):
+        error_clear = {'x': None, 'y': None, 'z': None}
+
+        for axis in error_clear_dict:
+            if error_clear_dict[axis]:
+                error_clear[axis] = 'ERRCL'
+
+        self.tell(error_clear)
+        self.log.info("ERROR CLEARED ON {}".format(error_clear_dict))

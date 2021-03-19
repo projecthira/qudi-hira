@@ -101,7 +101,7 @@ class TwickenhamHDI(Base, ProcessInterface):
         # Go to STANDBY mode
         self.goto_standby()
 
-        self.log.info("HDI queried, now in standby")
+        self.log.info("HDI level={:.1f} mm. Now in standby".format(level))
         return level
 
     def goto_standby(self):
