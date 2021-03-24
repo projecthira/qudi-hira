@@ -116,12 +116,12 @@ class ManagerGui(GUIBase):
         version = self.getSoftwareVersion()
         configFile = self._manager.configFile
         self._about.label.setText(
-            '<a href=\"https://github.com/Ulm-IQO/qudi/commit/{0}\"'
+            '<a href=\"https://github.com/projecthira/qudi-hira/commit/{0}\"'
             ' style=\"color: cyan;\"> {0} </a>, on branch {1}.'.format(
                 version[0], version[1]))
         self.versionLabel = QtWidgets.QLabel()
         self.versionLabel.setText(
-            '<a href=\"https://github.com/Ulm-IQO/qudi/commit/{0}\"'
+            '<a href=\"https://github.com/projecthira/qudi-hira/commit/{0}\"'
             ' style=\"color: cyan;\"> {0} </a>,'
             ' on branch {1}, configured from {2}'.format(
                 version[0], version[1], configFile))

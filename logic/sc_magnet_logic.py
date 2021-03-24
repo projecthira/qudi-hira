@@ -98,6 +98,9 @@ class SCMagnetLogic(GenericLogic):
         self.stop_query_loop()
         if self._saving:
             self.stop_saving()
+        for i in range(5):
+            time.sleep(self.queryInterval / 1000)
+            QtCore.QCoreApplication.processEvents()
         self.clear_buffer()
 
     @QtCore.Slot(int)
