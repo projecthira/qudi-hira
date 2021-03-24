@@ -183,46 +183,46 @@ class TemperatureMonitorGUI(GUIBase):
     @QtCore.Slot()
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
+        self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['baseplate'][-1]))
+        self._mw.tipTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['tip'][-1]))
+        self._mw.magnetTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['magnet'][-1]))
+        self._mw.zbraidTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['z_braid'][-1]))
 
         if self._mw.baseplatecheckBox.isChecked():
-            self.curves['baseplate'].show()
-            self._mw.baseplateTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['baseplate'][-1]))
             self.curves['baseplate'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['baseplate'])
+            self.curves['baseplate'].show()
         else:
             self.curves['baseplate'].hide()
 
         if self._mw.tipcheckBox.isChecked():
-            self.curves['tip'].show()
-            self._mw.tipTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['tip'][-1]))
             self.curves['tip'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['tip'])
+            self.curves['tip'].show()
         else:
             self.curves['tip'].hide()
 
         if self._mw.magnetcheckBox.isChecked():
-            self.curves['magnet'].show()
-            self._mw.magnetTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['magnet'][-1]))
             self.curves['magnet'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['magnet'])
+            self.curves['magnet'].show()
         else:
             self.curves['magnet'].hide()
 
         if self._mw.zbraidcheckBox.isChecked():
-            self.curves['z_braid'].show()
-            self._mw.zbraidTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['z_braid'][-1]))
             self.curves['z_braid'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['z_braid'])
+            self.curves['z_braid'].show()
         else:
             self.curves['z_braid'].hide()
 
         # if self._mw.xbraidcheckBox.isChecked():
-        #     self.curves['x_braid'].show()
         #     self._mw.xbraidTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['x_braid'][-1]))
+        #     self.curves['x_braid'].show()
         #     self.curves['x_braid'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['x_braid'])
         # else:
         #     self.curves['x_braid'].hide()
         #     self._mw.xbraidTemperature.setText('-')
         #
         # if self._mw.ybraidcheckBox.isChecked():
-        #     self.curves['y_braid'].show()
         #     self._mw.ybraidTemperature.setText('{0:6.3f} K'.format(self._tm_logic.data['y_braid'][-1]))
+        #     self.curves['y_braid'].show()
         #     self.curves['y_braid'].setData(x=self._tm_logic.data['time'], y=self._tm_logic.data['y_braid'])
         # else:
         #     self.curves['y_braid'].hide()

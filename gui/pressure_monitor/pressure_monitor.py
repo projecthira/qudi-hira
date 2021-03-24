@@ -174,47 +174,44 @@ class PressureMonitorGUI(GUIBase):
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
 
-        if self._mw.maincheckBox.isChecked():
-            pressure = self._pm_logic.data['main'][-1]
-            if pressure == -1:
-                self._mw.mainPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['main'].hide()
-            else:
-                self._mw.mainPressure.setText('{} mbar'.format(pressure))
-                self.curves['main'].show()
-                self.curves['main'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['main'])
+        pressure = self._pm_logic.data['main'][-1]
+        if pressure == -1:
+            self._mw.mainPressure.setText('{}'.format(self._pm_logic.pressure_state))
         else:
+            self._mw.mainPressure.setText('{} mbar'.format(pressure))
+
+        if self._mw.maincheckBox.isChecked():
+            self.curves['main'].setData(x=self._pm_logic.data['time'],
+                                        y=self._pm_logic.data['main'])
+            self.curves['main'].show()
+        elif not self._mw.maincheckBox.isChecked() or pressure == -1:
             self.curves['main'].hide()
-            self._mw.mainPressure.setText('-')
+
+        pressure = self._pm_logic.data['prep'][-1]
+        if pressure == -1:
+            self._mw.prepPressure.setText('{}'.format(self._pm_logic.pressure_state))
+        else:
+            self._mw.prepPressure.setText('{} mbar'.format(pressure))
 
         if self._mw.prepcheckBox.isChecked():
-            pressure = self._pm_logic.data['prep'][-1]
-            if pressure == -1:
-                self._mw.prepPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['prep'].hide()
-            else:
-                self._mw.prepPressure.setText('{} mbar'.format(pressure))
-                self.curves['prep'].show()
-                self.curves['prep'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['prep'])
-        else:
+            self.curves['prep'].setData(x=self._pm_logic.data['time'],
+                                        y=self._pm_logic.data['prep'])
+            self.curves['prep'].show()
+        elif not self._mw.prepcheckBox.isChecked() or pressure == -1:
             self.curves['prep'].hide()
-            self._mw.prepPressure.setText('-')
+
+        pressure = self._pm_logic.data['back'][-1]
+        if pressure == -1:
+            self._mw.backPressure.setText('{}'.format(self._pm_logic.pressure_state))
+        else:
+            self._mw.backPressure.setText('{} mbar'.format(pressure))
 
         if self._mw.backcheckBox.isChecked():
-            pressure = self._pm_logic.data['back'][-1]
-            if pressure == -1:
-                self._mw.backPressure.setText('{}'.format(self._pm_logic.pressure_state))
-                self.curves['back'].hide()
-            else:
-                self._mw.backPressure.setText('{} mbar'.format(pressure))
-                self.curves['back'].show()
-                self.curves['back'].setData(x=self._pm_logic.data['time'],
-                                            y=self._pm_logic.data['back'])
-        else:
+            self.curves['back'].setData(x=self._pm_logic.data['time'],
+                                        y=self._pm_logic.data['back'])
+            self.curves['back'].show()
+        elif not self._mw.backcheckBox.isChecked() or pressure == -1:
             self.curves['back'].hide()
-            self._mw.backPressure.setText('-')
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.

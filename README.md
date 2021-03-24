@@ -24,6 +24,8 @@ Originally built around a confocal fluorescence microscope experiments, it has g
   * Magnetic field alignment for NV- in diamond via fluorescence, ODMR and nuclear spin
   * etc.
 
+**Bold** items are additional features in qudi-hira.
+
 ## Citation
 If you are publishing scientific results, mentioning Qudi in your methods description is the least you can do as good scientific practice.
 You should cite our paper [Qudi: A modular python suite for experiment control and data processing](http://doi.org/10.1016/j.softx.2017.02.001) for this purpose.
