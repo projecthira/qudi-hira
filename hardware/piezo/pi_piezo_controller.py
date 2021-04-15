@@ -60,6 +60,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             device_name = self.pidevice.qIDN().strip()
             self.log.info('PI controller {} connected'.format(device_name))
             pitools.startup(self.pidevice, stages=self._stages)
+            self._current_position = [0, 0, 0, ][0:len(self.get_scanner_axes())]
             return 0
         except GCSError as error:
             self.log.error(error)
@@ -101,7 +102,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                               and upper limit. The unit of the scan range is
                               meters.
         """
-        return [[0., 1.e-2], [0., 1.e-2], [0., 1.e-4], [0., 1.]]
+        return self._scanner_position_ranges
 
     def set_position_range(self, myrange=None):
         """ Sets the physical range of the scanner.
@@ -113,7 +114,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.e-4], [0., 1.]]
+            myrange = [[0., 10000.], [0., 10000.], [0., 100.], [0., 1.]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -146,7 +147,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._scanner_position_ranges
+        return 0
 
     def get_scanner_axes(self):
         """ Find out how many axes the scanning device is using for confocal and their names.
@@ -211,19 +212,49 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        axes = [self._x_scanner, self._y_scanner]
+        if self.module_state() == 'locked':
+            self.log.error('Another scan_line is already running, close this one first.')
+            return -1
 
-        # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
-        # ALL axes can move. All axes start moving simultaneously.
-        # Servo must be enabled for all commanded axes prior to using this command.
-        self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
+        if x is not None:
+            if not (self._scanner_position_ranges[0][0] <= x <= self._scanner_position_ranges[0][1]):
+                self.log.error('You want to set x out of range: {0:f}.'.format(x))
+                return -1
+            self._current_position[0] = np.float(x)
 
+        if y is not None:
+            if not (self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
+                self.log.error('You want to set y out of range: {0:f}.'.format(y))
+                return -1
+            self._current_position[1] = np.float(y)
+
+        if z is not None:
+            if not (self._scanner_position_ranges[2][0] <= z <= self._scanner_position_ranges[2][1]):
+                self.log.error('You want to set z out of range: {0:f}.'.format(z))
+                return -1
+            self._current_position[2] = np.float(z)
+
+        if a is not None:
+            if not (self._scanner_position_ranges[3][0] <= a <= self._scanner_position_ranges[3][1]):
+                self.log.error('You want to set a out of range: {0:f}.'.format(a))
+                return -1
+            self._current_position[3] = np.float(a)
+
+        try:
+            axes = [self._x_scanner, self._y_scanner]
+
+            # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
+            # ALL axes can move. All axes start moving simultaneously.
+            # Servo must be enabled for all commanded axes prior to using this command.
+            self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
+        except Exception as e:
+            return -1
         # Takes longer but does more error checking
         # pitools.waitontarget(self.pidevice, axes=axes)
 
         # Check if axes have reached the target.
         while not all(list(self.pidevice.qONT(axes).values())):
-            time.sleep(0.1)
+            time.sleep(0.05)
         # print(self.pidevice.qPOS())
         return 0
 

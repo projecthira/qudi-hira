@@ -27,6 +27,8 @@ import numpy as np
 
 from core.module import Base
 from core.connector import Connector
+from core.configoption import ConfigOption
+
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 
 
@@ -37,16 +39,16 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     counter1 = Connector(interface='SlowCounterInterface')
 
+    _clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
+
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
 
         # Internal parameters
         self._line_length = None
-        self._scanner_counter_daq_task = None
         self._voltage_range = [-10., 10.]
 
-        self._position_range = [[0., 1.0e-2], [0., 1.0e-2], [0., 1.e-4], [0., 1.]]
-        self._current_position = [0., 0., 0., 0.]
+        self._position_range = [[0., 100.e-6], [0., 100.e-6], [0., 100.e-6], [0., 1.e-6]]
 
         self._num_points = 500
 
@@ -55,6 +57,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         """
         self._scanner_hw = self.confocalscanner1()
         self._slowcounter_hw = self.counter1()
+
+        self._current_position = [0., 0., 0., 0.][0:len(self._scanner_hw.get_scanner_axes())]
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -82,9 +86,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [[0., 1.e-2], [0., 1.e-2], [0., 1.], [0., 1.]]
-
         return self._scanner_hw.set_position_range(myrange=myrange)
 
     def set_voltage_range(self, myrange=None):
@@ -95,12 +96,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        if myrange is None:
-            myrange = [-10., 10.]
-
-        # self._scanner_hw.set_voltage_range(myrange=myrange)
-        self.log.warning("Lying to ConfocalLogic : set_voltage_range")
-        return 0
+        return self._scanner_hw.set_voltage_range(myrange=myrange)
 
     def set_up_scanner_clock(self, clock_frequency=None, clock_channel=None):
         """ Configures the hardware clock of the NiDAQ card to give the timing.
@@ -111,8 +107,9 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        self._clock_frequency = float(clock_frequency)
+
         # return self._scanner_hw.set_up_scanner_clock(clock_frequency=clock_frequency, clock_channel=clock_channel)
-        self.log.warning("Lying to ConfocalLogic : set_up_scanner_clock, set_up_clock instead")
         return self._slowcounter_hw.set_up_clock(clock_frequency=clock_frequency)
 
     def set_up_scanner(self, counter_channel=None, photon_source=None, clock_channel=None, scanner_ao_channels=None):
@@ -145,6 +142,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
+        self._current_position = [x, y, z, a][0:len(self.get_scanner_axes())]
+
         return self._scanner_hw.scanner_set_position(x=x, y=y)
 
     def get_scanner_position(self):
@@ -153,7 +152,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         @return float[]: current position in (x, y, z, a).
         """
 
-        return self._scanner_hw.get_scanner_position()
+        return self._current_position[0:len(self._scanner_hw.get_scanner_axes())]
 
     def get_scanner_count_channels(self):
         return ['1']
@@ -184,18 +183,17 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         self.set_up_line(np.shape(line_path)[1])
 
-        count_data = np.zeros(self._line_length)
-        print(line_path)
+        line_counts = np.zeros((self._line_length, 1))
 
         for i in range(self._line_length):
             coords = line_path[:, i]
             self.scanner_set_position(x=coords[0], y=coords[1])
-            print("Set scanner position")
-
             # record spectral data
-            count_data = self._slowcounter_hw.get_counter()
+            line_counts[i] = self._slowcounter_hw.get_counter()
 
-        return count_data
+        self._current_position = line_path[:, -1]
+
+        return line_counts
 
     def close_scanner(self):
         """ Closes the scanner and cleans up afterwards.
@@ -203,7 +201,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         # self._scanner_hw.close_scanner()
-        self.log.warning("Lying to ConfocalLogic : close_scanner")
+        self.log.debug("Lying to ConfocalLogic : close_scanner")
         return 0
 
     def close_scanner_clock(self, power=0):
@@ -212,5 +210,5 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         # self._scanner_hw.close_scanner_clock()
-        self.log.warning("Lying to ConfocalLogic : close_scanner_clock")
+        self.log.debug("Lying to ConfocalLogic : close_scanner_clock")
         return 0

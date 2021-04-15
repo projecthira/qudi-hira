@@ -86,7 +86,6 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
         self._count_frequency = clock_frequency
         return 0
 
