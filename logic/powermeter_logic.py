@@ -64,11 +64,11 @@ class PowermeterLogic(GenericLogic):
         Calibration extracted from fit up to 50 mW of laser power (laser_powermeter_calibration.xlsx).
 
         eg.
-            f(x) =  a*x^2 + b*x + c
+            f(x) =  a*x^2 + b*x
             where,
-            a = -0.0078
-            b = 0.1586
-            c = 0.0184
+            a = -0.0087
+            b = 0.168
+            c = 0
         @return: calibrated power value
         """
         power_mW = power * 1000

@@ -410,7 +410,6 @@ class ConfocalLogic(GenericLogic):
             self._xyscan_continuable = True
 
         self._scanning_device.scanner_set_position(2e-9, 2e-9)
-        print("Set scanner pos")
 
         self.signal_start_scanning.emit(tag)
         self.signal_scan_lines_next.emit()
@@ -770,10 +769,8 @@ class ConfocalLogic(GenericLogic):
 
 
                 start_line_counts = self._scanning_device.scan_line(start_line)
-                print("Going to create start line counts")
 
                 if np.any(start_line_counts == -1):
-                    print("stop was requested to create start line counts")
                     self.stopRequested = True
                     self.signal_scan_lines_next.emit()
                     return
@@ -785,7 +782,6 @@ class ConfocalLogic(GenericLogic):
                 image[self._scan_counter, :, 2] = self._current_z * np.ones(z_shape)
 
             # make a line in the scan, _scan_counter says which one it is
-            print("scan counter", self._scan_counter)
             lsx = image[self._scan_counter, :, 0]
             lsy = image[self._scan_counter, :, 1]
             lsz = image[self._scan_counter, :, 2]

@@ -38,7 +38,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
     # connectors
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     counter1 = Connector(interface='SlowCounterInterface')
-
     _clock_frequency = ConfigOption('clock_frequency', 100, missing='warn')
 
     def __init__(self, config, **kwargs):
@@ -47,8 +46,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self._voltage_range = [-10., 10.]
-
-        self._position_range = [[0., 100.e-6], [0., 100.e-6], [0., 100.e-6], [0., 1.e-6]]
 
         self._num_points = 500
 
@@ -59,6 +56,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self._slowcounter_hw = self.counter1()
 
         self._current_position = [0., 0., 0., 0.][0:len(self._scanner_hw.get_scanner_axes())]
+        self._position_range = self.get_position_range()
 
     def on_deactivate(self):
         self.reset_hardware()
@@ -124,7 +122,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.warning("Lying to ConfocalLogic : set_up_scanner, set_up_counter instead")
         return self._slowcounter_hw.set_up_counter()
 
     def get_scanner_axes(self):

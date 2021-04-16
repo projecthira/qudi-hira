@@ -60,7 +60,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             device_name = self.pidevice.qIDN().strip()
             self.log.info('PI controller {} connected'.format(device_name))
             pitools.startup(self.pidevice, stages=self._stages)
-            self._current_position = [0, 0, 0, ][0:len(self.get_scanner_axes())]
+            self._current_position = [0., 0., 0., 0.][0:len(self.get_scanner_axes())]
             return 0
         except GCSError as error:
             self.log.error(error)
@@ -114,7 +114,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0., 10000.], [0., 10000.], [0., 100.], [0., 1.]]
+            myrange = [[0., 1.e-3], [0., 1.e-3], [0., 1e-4], [0., 1.]]
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -264,7 +264,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         position = self.pidevice.qPOS()
-        return [position['1'] * 1.e-6, position['2'] * 1.e-6, 0., 0.]
+        return [position['1'] * 1e-6, position['2'] * 1e-6, 0., 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.
