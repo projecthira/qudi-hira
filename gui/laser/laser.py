@@ -142,6 +142,8 @@ class LaserGUI(GUIBase):
         self._mw.setValueDoubleSpinBox.editingFinished.connect(self.updateFromSpinBox)
         self._laser_logic.sigUpdate.connect(self.updateGui)
 
+        self._mw.extraLabel.setText(self._laser_logic.laser_extra)
+
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
@@ -274,8 +276,7 @@ class LaserGUI(GUIBase):
             '{0:6.3f} {1}'.format(
                 self._laser_logic.laser_current,
                 self._laser_logic.laser_current_unit))
-        self._mw.powerLabel.setText('{0:6.3f} W'.format(self._laser_logic.laser_power))
-        self._mw.extraLabel.setText(self._laser_logic.laser_extra)
+        self._mw.powerLabel.setText('{0:6.3f} mW'.format(self._laser_logic.laser_power * 1e3))
         self.updateButtonsEnabled()
         for name, curve in self.curves.items():
             curve.setData(x=self._laser_logic.data['time'], y=self._laser_logic.data[name])

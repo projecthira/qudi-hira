@@ -275,6 +275,9 @@
        <property name="suffix">
         <string>W</string>
        </property>
+       <property name="decimals">
+        <number>5</number>
+       </property>
       </widget>
      </item>
      <item>
@@ -312,7 +315,7 @@
           <enum>QSlider::TicksBothSides</enum>
          </property>
          <property name="tickInterval">
-          <number>0</number>
+          <number>1</number>
          </property>
         </widget>
        </item>

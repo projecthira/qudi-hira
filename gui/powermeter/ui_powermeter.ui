@@ -28,6 +28,21 @@
      </widget>
     </item>
     <item>
+     <widget class="QLabel" name="label_2">
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Power at detector</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="powerValue">
       <property name="font">
        <font>
@@ -43,14 +58,24 @@
      </widget>
     </item>
     <item>
+     <widget class="Line" name="line">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="label">
       <property name="font">
        <font>
-        <pointsize>13</pointsize>
+        <pointsize>16</pointsize>
        </font>
       </property>
       <property name="text">
-       <string>Power at objective</string>
+       <string>Calculated power at objective</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>

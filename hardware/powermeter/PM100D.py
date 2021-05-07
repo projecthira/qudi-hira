@@ -83,7 +83,7 @@ class PM100D(Base, SimpleDataInterface, ProcessInterface):
 
     def get_process_unit(self):
         """ Return the unit that hte value is measured in as a tuple of ('abreviation', 'full unit name') """
-        return ('W', 'watt')
+        return 'W', 'watt'
 
     def get_wavelength(self):
         """ Return the current wavelength in nanometers """
@@ -103,6 +103,5 @@ class PM100D(Base, SimpleDataInterface, ProcessInterface):
 
     def get_wavelength_range(self):
         """ Return the wavelength range of the power meter in nanometers """
-        return self._power_meter.sense.correction.minimum_beamdiameter,\
+        return self._power_meter.sense.correction.minimum_beamdiameter, \
                self._power_meter.sense.correction.maximum_wavelength
-
