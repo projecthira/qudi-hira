@@ -254,8 +254,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         # Check if axes have reached the target.
         while not all(list(self.pidevice.qONT(axes).values())):
-            time.sleep(0.05)
-        # print(self.pidevice.qPOS())
+            time.sleep(0.04)
         return 0
 
     def get_scanner_position(self):

@@ -36,9 +36,6 @@ class PowermeterLogic(GenericLogic):
 
     pm = Connector(interface='ProcessInterface')
     sigUpdate = QtCore.Signal()
-    a = ConfigOption('calibration_a', 1, missing="warn")
-    b = ConfigOption('calibration_b', 1, missing="warn")
-    c = ConfigOption('calibration_c', 1, missing="warn")
 
     def on_activate(self):
         """ Prepare logic module for work.
@@ -58,21 +55,23 @@ class PowermeterLogic(GenericLogic):
         for i in range(5):
             QtCore.QCoreApplication.processEvents()
 
-    def calibrated_value(self, power):
+    @staticmethod
+    def calibrated_value(power):
         """
         Calculate power at objective from power at beamsplitter.
-        Calibration extracted from fit up to 50 mW of laser power (laser_powermeter_calibration.xlsx).
+        Calibration extracted from fit up to 100 mW of laser power (20210610_OpticalAlignment.xlsx).
 
         eg.
-            f(x) =  a*x^2 + b*x
+            f(x) =  a*x + b
             where,
-            a = -0.0087
-            b = 0.168
-            c = 0
+            a = 1.1773
+            b = 0.0786
         @return: calibrated power value
         """
         power_mW = power * 1000
-        return self.a * power_mW**2 + self.b * power_mW + self.c
+        a = 1.1773
+        b = 0
+        return a * power_mW + b
 
     @QtCore.Slot(bool)
     def get_power(self, state):

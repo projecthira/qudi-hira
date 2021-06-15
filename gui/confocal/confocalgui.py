@@ -1793,8 +1793,7 @@ class ConfocalGui(GUIBase):
         self.change_y_image_range()
 
         for i in range(2):
-            self.xy_image.getViewBox().setRange(xRange=(xMin, xMax), yRange=(yMin, yMax),
-                update=True)
+            self.xy_image.getViewBox().setRange(xRange=(xMin, xMax), yRange=(yMin, yMax), update=True)
 
     def activate_zoom_double_click(self):
         """ Enable zoom tool when double clicking image """
