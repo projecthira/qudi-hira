@@ -81,6 +81,7 @@ class AutocorrelationLogic(GenericLogic):
             self._saving = self._statusVariables['saving']
 
         self.rawdata = np.zeros([self._correlation_device.get_count_length()])
+        self.rawdata_norm = np.zeros((self._correlation_device.get_count_length(),))
         self.delay = np.zeros([self._correlation_device.get_count_length()])
 
         self._data_to_save = []
@@ -202,7 +203,8 @@ class AutocorrelationLogic(GenericLogic):
                 self.module_state.lock()
 
             # configure correlation device
-            correlation_status = self._correlation_device.set_up_correlation(self._bin_width, self._count_length)
+            correlation_status = self._correlation_device.set_up_correlation(bin_width=self._bin_width,
+                                                                             count_length=self._count_length)
 
             if correlation_status < 0:
                 self.module_state.unlock()
@@ -210,6 +212,8 @@ class AutocorrelationLogic(GenericLogic):
                 return -1
 
             self.rawdata = np.zeros((self.get_count_length(),))
+            self.rawdata_norm = np.zeros((self.get_count_length(),))
+
             self.sigCorrelationStatusChanged.emit(True)
             self.sigCorrelationDataNext.emit()
             return
@@ -245,7 +249,7 @@ class AutocorrelationLogic(GenericLogic):
                 #                            self.get_bin_width() / 1e12)
                 self.delay = self._correlation_device.get_bin_times()
                 self.rawdata = self._correlation_device.get_data_trace()
-                self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
+                # self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
 
                 if self.rawdata[0] < 0:
                     self.log.error('The correlation went wrong, killing the correlator.')

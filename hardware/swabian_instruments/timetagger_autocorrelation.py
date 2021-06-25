@@ -50,8 +50,8 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         """
         self._tagger = tt.createTimeTagger()
 
-        self._count_length = int(10)
-        self._bin_width = 1  # bin width in ps
+        self._count_length = 1000
+        self._bin_width = 1000  # bin width in ps
         self._tagger.reset()
         self.correlation = None
 
@@ -93,6 +93,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         """
         self._bin_width = bin_width
         self._count_length = count_length
+
         self.statusvar = 1
         if self.correlation != None:
             self._reset_hardware()
@@ -103,10 +104,11 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
             tagger=self._tagger,
             channel_1=self._channel_apd_0,
             channel_2=self._channel_apd_1,
-            binwidth=self._bin_width,
-            n_bins=self._count_length
+            binwidth=int(self._bin_width),
+            n_bins=int(self._count_length)
         )
-        self.correlation.stop()
+        # self.correlation.stop()
+        # self.correlation.clear()
         return 0
 
     def _reset_hardware(self):
