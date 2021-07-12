@@ -45,7 +45,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     _scanner_position_ranges = ConfigOption('scanner_position_ranges', missing='error')
     _x_scanner = ConfigOption("x_scanner", default='1', missing="warn")
     _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
-    _controllername = 'E-727'
+    _z_scanner = ConfigOption("z_scanner", default=None, missing='warn')
+    _controllername = ConfigOption("controllername", missing="error")
     _refmodes = None
     pidevice = None
 
@@ -114,7 +115,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return int: error code (0:OK, -1:error)
         """
         if myrange is None:
-            myrange = [[0., 1.e-3], [0., 1.e-3], [0., 1e-4], [0., 1.]]
+            # myrange = [[0., 1.e-3], [0., 1.e-3], [0., 1e-4], [0., 1.]]
+            myrange = self._scanner_position_ranges
 
         if not isinstance(myrange, (frozenset, list, set, tuple, np.ndarray,)):
             self.log.error('Given range is no array type.')
@@ -241,12 +243,18 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             self._current_position[3] = np.float(a)
 
         try:
-            axes = [self._x_scanner, self._y_scanner]
-
-            # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
-            # ALL axes can move. All axes start moving simultaneously.
-            # Servo must be enabled for all commanded axes prior to using this command.
-            self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
+            if self._z_scanner is None:
+                axes = [self._x_scanner, self._y_scanner]
+                # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
+                # ALL axes can move. All axes start moving simultaneously.
+                # Servo must be enabled for all commanded axes prior to using this command.
+                self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
+            else:
+                axes = [self._x_scanner, self._y_scanner, self._z_scanner]
+                # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
+                # ALL axes can move. All axes start moving simultaneously.
+                # Servo must be enabled for all commanded axes prior to using this command.
+                self.pidevice.MOV(axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
         except Exception as e:
             return -1
         # Takes longer but does more error checking
@@ -263,7 +271,10 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         @return float[n]: current position in (x, y, z, a).
         """
         position = self.pidevice.qPOS()
-        return [position['1'] * 1e-6, position['2'] * 1e-6, 0., 0.]
+        if self._z_scanner is None:
+            return [position['1'] * 1e-6, position['2'] * 1e-6, 0., 0.]
+        else:
+            return [position['1'] * 1e-6, position['2'] * 1e-6, position['3'] * 1e6, 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.
