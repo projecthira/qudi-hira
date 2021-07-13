@@ -5,7 +5,7 @@ author: Dinesh Pinto
 email: d.pinto@fkf.mpg.d
 
 * Requires PIPython: https://github.com/git-anonymous/PIPython
-pip install --upgrade git+https://github.com/git-anonymous/PIPython.git
+* pip install --upgrade git+https://github.com/git-anonymous/PIPython.git
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,10 +18,11 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Qudi. If not, see <http://www.gnu.org/licenses/>.
+along with Qudi. If not, see <https://www.gnu.org/licenses/>.
 
 Copyright (c) 2020 Dinesh Pinto. See the COPYRIGHT.txt file at the
-top-level directory of this distribution and at <https://github.com/projecthira/qudi-hira/>
+top-level directory of this distribution and at
+<https://github.com/projecthira/qudi-hira/>
 """
 
 from core.module import Base
