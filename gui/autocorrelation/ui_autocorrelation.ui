@@ -6,18 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>681</width>
-    <height>552</height>
+    <width>868</width>
+    <height>577</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>qudi: Autocorrelation</string>
+   <string>qudi-hira: Autocorrelation</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="counter_trace_DockWidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
      <horstretch>1</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
@@ -37,6 +37,18 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="autocorrelation_parameters_DockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>200</width>
+     <height>10</height>
+    </size>
+   </property>
    <property name="maximumSize">
     <size>
      <width>524287</width>
@@ -142,7 +154,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>681</width>
+     <width>868</width>
      <height>21</height>
     </rect>
    </property>

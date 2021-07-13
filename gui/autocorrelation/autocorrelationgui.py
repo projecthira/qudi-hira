@@ -176,6 +176,7 @@ class AutocorrelationGui(GUIBase):
         self._mw.count_length_SpinBox.valueChanged.disconnect()
         self._mw.count_binwidth_SpinBox.valueChanged.disconnect()
         self._mw.restore_default_view_Action_2.triggered.disconnect()
+
         # disconnect signals from gui
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
@@ -184,6 +185,7 @@ class AutocorrelationGui(GUIBase):
         self.sigStopActionChanged.disconnect()
         self.sigStartActionChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
+
         # disconnect signals from logic
         self._correlation_logic.sigCorrelationStatusChanged.disconnect()
         self._correlation_logic.sigCorrelationDataNext.disconnect()
@@ -199,16 +201,15 @@ class AutocorrelationGui(GUIBase):
         """ The function that grabs the data and sends it to the plot.
         """
         if self._correlation_logic.module_state() == 'locked':
-            # x_vals = (
-            #     np.arange(-1 * ((self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / (1e12)),
-            #              (self._correlation_logic.get_count_length()/2)*self._correlation_logic.get_bin_width()/(1e12),
-            #               self._correlation_logic.get_bin_width()/(1e12))
-            # )
             self.curves[0].setData(y=self._correlation_logic.rawdata, x=self._correlation_logic.delay/1e12)
 
         return
 
     def start_clicked(self):
+        self._mw.count_length_SpinBox.setEnabled(False)
+        self._mw.count_binwidth_SpinBox.setEnabled(False)
+        self._mw.count_refreshtime_SpinBox.setEnabled(False)
+
         if self._correlation_logic.module_state() == 'locked':
             self.sigResumeActionChanged.emit(False)
             self.sigStopActionChanged.emit(False)
@@ -221,22 +222,20 @@ class AutocorrelationGui(GUIBase):
         return self._correlation_logic.module_state()
 
     def stop_clicked(self):
-
         self.sigStartActionChanged.emit(True)
         self.sigResumeActionChanged.emit(True)
         self.sigStopActionChanged.emit(False)
         self.sigStopCounter.emit()
 
-        return
+        self._mw.count_length_SpinBox.setEnabled(True)
+        self._mw.count_binwidth_SpinBox.setEnabled(True)
+        self._mw.count_refreshtime_SpinBox.setEnabled(True)
 
     def resume_clicked(self):
-
         self.sigStartActionChanged.emit(False)
         self.sigResumeActionChanged.emit(False)
         self.sigStopActionChanged.emit(True)
         self.sigResumeCounter.emit()
-
-        return
 
     def get_x_range(self):
         xlim = (self._correlation_logic.get_count_length() / 2) * self._correlation_logic.get_bin_width() / 1e12

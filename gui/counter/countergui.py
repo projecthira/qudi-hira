@@ -290,12 +290,8 @@ class CounterGui(GUIBase):
 
         if self._counting_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
         else:
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
 
         if self._counting_logic.module_state() == 'locked':
             self._mw.start_counter_Action.setText('Stop counter')
@@ -310,9 +306,15 @@ class CounterGui(GUIBase):
         """
         if self._counting_logic.module_state() == 'locked':
             self._mw.start_counter_Action.setText('Start counter')
+            self._mw.count_length_SpinBox.setEnabled(True)
+            self._mw.count_freq_SpinBox.setEnabled(True)
+            self._mw.oversampling_SpinBox.setEnabled(True)
             self.sigStopCounter.emit()
         else:
             self._mw.start_counter_Action.setText('Stop counter')
+            self._mw.count_length_SpinBox.setEnabled(False)
+            self._mw.count_freq_SpinBox.setEnabled(False)
+            self._mw.oversampling_SpinBox.setEnabled(False)
             self.sigStartCounter.emit()
         return self._counting_logic.module_state()
 
@@ -321,13 +323,9 @@ class CounterGui(GUIBase):
         """
         if self._counting_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
             self._counting_logic.save_data()
         else:
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
             self._counting_logic.start_saving()
         return self._counting_logic.get_saving_state()
 
@@ -486,12 +484,8 @@ class CounterGui(GUIBase):
         """
         if start:
             self._mw.record_counts_Action.setText('Save')
-            self._mw.count_freq_SpinBox.setEnabled(False)
-            self._mw.oversampling_SpinBox.setEnabled(False)
         else:
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._mw.count_freq_SpinBox.setEnabled(True)
-            self._mw.oversampling_SpinBox.setEnabled(True)
         return start
 
     def update_count_status_Action(self, running):
@@ -504,6 +498,7 @@ class CounterGui(GUIBase):
             self._mw.start_counter_Action.setText('Stop counter')
         else:
             self._mw.start_counter_Action.setText('Start counter')
+
         return running
 
     # TODO:
