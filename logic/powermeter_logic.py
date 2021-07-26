@@ -26,7 +26,6 @@ import numpy as np
 from qtpy import QtCore
 
 from core.connector import Connector
-from core.configoption import ConfigOption
 from logic.generic_logic import GenericLogic
 
 
