@@ -224,18 +224,24 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 self.log.error('You want to set x out of range: {0:f}.'.format(x))
                 return -1
             self._current_position[0] = np.float(x)
+        else:
+            x = self._current_position[0]
 
         if y is not None:
             if not (self._scanner_position_ranges[1][0] <= y <= self._scanner_position_ranges[1][1]):
                 self.log.error('You want to set y out of range: {0:f}.'.format(y))
                 return -1
             self._current_position[1] = np.float(y)
+        else:
+            y = self._current_position[1]
 
         if z is not None:
             if not (self._scanner_position_ranges[2][0] <= z <= self._scanner_position_ranges[2][1]):
                 self.log.error('You want to set z out of range: {0:f}.'.format(z))
                 return -1
             self._current_position[2] = np.float(z)
+        else:
+            z = self._current_position[2]
 
         if a is not None:
             if not (self._scanner_position_ranges[3][0] <= a <= self._scanner_position_ranges[3][1]):
@@ -256,7 +262,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 # ALL axes can move. All axes start moving simultaneously.
                 # Servo must be enabled for all commanded axes prior to using this command.
                 self.pidevice.MOV(axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
-        except Exception as e:
+        except Exception as exc:
+            self.log.error(f"Exception when moving: {exc}")
             return -1
         # Takes longer but does more error checking
         # pitools.waitontarget(self.pidevice, axes=axes)
@@ -275,7 +282,8 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         if self._z_scanner is None:
             return [position['1'] * 1e-6, position['2'] * 1e-6, 0., 0.]
         else:
-            return [position['1'] * 1e-6, position['2'] * 1e-6, position['3'] * 1e6, 0.]
+            self.log.error(position)
+            return [position['1'] * 1e-6, position['2'] * 1e-6, position['3'] * 1e-6, 0.]
 
     def scan_line(self, line_path=None, pixel_clock=False):
         """ Scans a line and returns the counts on that line.

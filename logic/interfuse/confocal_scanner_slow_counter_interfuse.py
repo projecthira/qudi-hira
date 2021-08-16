@@ -141,7 +141,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         """
         self._current_position = [x, y, z, a][0:len(self.get_scanner_axes())]
 
-        return self._scanner_hw.scanner_set_position(x=x, y=y)
+        return self._scanner_hw.scanner_set_position(x=x, y=y, z=z)
 
     def get_scanner_position(self):
         """ Get the current position of the scanner hardware.
