@@ -854,11 +854,13 @@ class AWG663(Base, PulserInterface):
             full_name = '{0}_{1}'.format(name, chan)
             wavename = '{0}.pkl'.format(full_name)
             path = os.path.join(self.waveform_folder, wavename)
+
             if not value.dtype == 'float64':
                 convert = np.zeros(len(value), dtype='float64')
                 ch_amp = self.get_analog_level(amplitude=[chan])
                 convert[0:len(value)] = value * ch_amp[0][chan]
                 value = convert
+
             if is_first_chunk:
                 full_signal = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
                 # print(value[0:5])
@@ -866,6 +868,7 @@ class AWG663(Base, PulserInterface):
                 old_part = self.my_load_dict(path)
                 new_part = np.asarray(value * (2 ** 15 - 1), dtype=np.int16)
                 full_signal = np.concatenate((old_part, new_part))
+
             self.my_save_dict(full_signal, path)
             waveforms.append(full_name)
             total_length = len(full_signal)

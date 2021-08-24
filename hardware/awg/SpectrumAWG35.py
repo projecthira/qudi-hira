@@ -1661,7 +1661,7 @@ class Card():
 
         # set the amount of memory that will be used
         if not is_buffered:
-            while (not (new_samples % 32 == 0)) or (is_seq_segment == True and new_samples < 192):
+            while (not (new_samples % 32 == 0)) or (is_seq_segment is True and new_samples < 192):
                 new_samples += 1
 
             self.set_memory_size(new_samples, is_seq_segment=is_seq_segment)

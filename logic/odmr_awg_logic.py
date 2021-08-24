@@ -103,7 +103,7 @@ class ODMRAWGLogic(GenericLogic):
     average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
     digital_pulse_length = 500e-9  # How long will the digital pulse be
     one_sweep_time = 0.5  # How long will a sweep be
-    digital_sync_length = 9e-9 # Synchronize analog and digital channels
+    digital_sync_length = 9e-9  # Synchronize analog and digital channels
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -494,7 +494,8 @@ class ODMRAWGLogic(GenericLogic):
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], digital_sync_pulse)
         digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], digital_sync_pulse)
         single_bias_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
-                                            -1 * np.ones(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
+                                            -1 * np.ones(int(self.samples_per_freq) - digital_pulse_samples,
+                                                         dtype=int)])
         # single_bias_pulse = np.concatenate([-1 * np.ones(int(self.samples_per_freq), dtype=int)])
 
         for norm_freq in self.norm_freq_list:
@@ -502,15 +503,18 @@ class ODMRAWGLogic(GenericLogic):
             analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
             digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], single_digital_pulse)
 
-        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
-        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+        analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'],
+                                            np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+        analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'],
+                                            np.zeros(2 * digital_pulse_samples + digital_sync_samples))
 
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.ones(digital_pulse_samples, dtype=int))
         digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.zeros(digital_pulse_samples, dtype=int))
 
         digital_samples['d_ch5'] = digital_samples['d_ch0']
 
-        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], np.ones(len(analog_samples['a_ch0']) - len(digital_sync_pulse), dtype=int))
+        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'],
+                                             np.ones(len(analog_samples['a_ch0']) - len(digital_sync_pulse), dtype=int))
 
         print('Analog sample array size is', np.size(analog_samples['a_ch0']))
         print('d_ch0 array size is', np.size(digital_samples['d_ch0']))
@@ -537,7 +541,6 @@ class ODMRAWGLogic(GenericLogic):
         self.sweep_list()
         self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
         analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
-        print(digital_samples)
         num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
