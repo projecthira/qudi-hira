@@ -218,7 +218,7 @@ class AWG663(Base, PulserInterface):
         limits.min_frequency = 1
         limits.max_frequency = 400e6
 
-        limits.min_power = 100
+        limits.min_power = 80
         limits.max_power = 2000
 
         limits.sweep_minstep = 1
@@ -231,7 +231,10 @@ class AWG663(Base, PulserInterface):
         @return int: error code (0:OK, -1:error)
         """
         ERR = self.instance.start()
-        return ERR
+        if ERR == 0:
+            return 1
+        else:
+            return -1
 
     def pulser_off(self):
         """ Switches the pulsing device off.
@@ -469,7 +472,7 @@ class AWG663(Base, PulserInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.instance.reset()
+        return self.instance.reset()
 
     def get_status(self):
         """ Retrieves the status of the pulsing hardware
@@ -480,6 +483,7 @@ class AWG663(Base, PulserInterface):
         """
         state_card1 = self.instance.cards[0].get_state()
         state_card2 = self.instance.cards[1].get_state()
+
         if state_card1 == "Ready" and state_card2 == "Ready":
             num = 0
         else:
@@ -597,12 +601,11 @@ class AWG663(Base, PulserInterface):
         Note: After setting the amplitude and/or offset values of the device, use the actual set
               return values for further processing.
         """
-
         if amplitude is not None:
             for chan in amplitude:
+                amp = self.__V_to_mV(amplitude[chan])
                 channel = int(chan.rsplit('_ch', 1)[1])
                 chInd = self.channels[channel]
-                amp = self.__V_to_mV(amplitude[chan])
                 state = self.instance.cards[chInd[0]].set_amplitude(chInd[1], int(amp))
 
         if offset is not None:
@@ -1076,7 +1079,7 @@ class AWG663(Base, PulserInterface):
         norm_freq = freq / sample_rate
         analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x))
 
-        self.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
+        self.set_analog_level(amplitude={'a_ch0': 2, 'a_ch1': 2})
 
         num_of_samples, waveform_names = self.write_waveform(name='testing_sine',
                                                              analog_samples=analog_samples,
@@ -1087,7 +1090,7 @@ class AWG663(Base, PulserInterface):
         self.load_waveform(load_dict=waveform_names)
         self.set_reps(average_factor)
 
-    def testing_generate_sine(self, ch='a_ch2', power=500, freq=100e6):
+    def testing_generate_sine(self, ch='a_ch2', power=2, freq=100e6):
         # For TESTING
         sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
         freq_duration = 2e-3  # Duration of each frequency set to 3 μsec
@@ -1111,7 +1114,7 @@ class AWG663(Base, PulserInterface):
         self.load_waveform(load_dict=waveform_names)
         self.set_reps(average_factor)
 
-    def generate_rect(self, freq1=100e3, freq2=50e3, pow1=250, pow2=260):
+    def generate_rect(self, freq1=100e3, freq2=50e3, pow1=2, pow2=2):
         """
         Default values set to generate 1 V p-p square waves on analog channels 0 and 1.
 
@@ -1151,7 +1154,7 @@ class AWG663(Base, PulserInterface):
         self.load_waveform(load_dict=waveform_names)
         self.set_reps(average_factor)
 
-    def generate_sine_ch0(self, freq=100e6, power=500):
+    def generate_sine_ch0(self, freq=100e6, power=2):
         # For TESTING
         sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
         freq_duration = 2e-3  # Duration of each frequency set to 3 μsec

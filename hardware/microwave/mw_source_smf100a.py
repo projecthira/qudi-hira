@@ -44,7 +44,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
     _modclass = 'MicrowaveSMF'
     _modtype = 'hardware'
     _smf_visa_address = ConfigOption('smf_visa_address', missing='error')
-    _smf_timeout = ConfigOption('smf_timeout', 5000, missing='warn')
+    _smf_timeout = ConfigOption('smf_timeout', 10000, missing='warn')
     inst = None
 
     def on_activate(self):

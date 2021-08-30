@@ -92,7 +92,7 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
 
         # Combine channel internally for both continuous and pulsed measurements
         self.trigger_combined = tt.Combiner(tagger=self._tagger,
-                                    channels=[self._cw_channel_trigger, self._pulsed_channel_trigger])
+                                            channels=[self._cw_channel_trigger, self._pulsed_channel_trigger])
         self._channel_trigger = self.trigger_combined.getChannel()
 
         if self._mode == 1:
