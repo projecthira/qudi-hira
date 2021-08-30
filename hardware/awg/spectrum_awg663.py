@@ -218,8 +218,8 @@ class AWG663(Base, PulserInterface):
         limits.min_frequency = 1
         limits.max_frequency = 400e6
 
-        limits.min_power = 80
-        limits.max_power = 2000
+        limits.min_power = 0.08
+        limits.max_power = 2.0
 
         limits.sweep_minstep = 1
         limits.sweep_maxstep = 400e6
@@ -241,7 +241,10 @@ class AWG663(Base, PulserInterface):
         @return int: error code (0:OK, -1:error)
         """
         ERR = self.instance.stop()
-        return ERR
+        if ERR == 0:
+            return 1
+        else:
+            return -1
 
     def prepare_ch(self, name, type=None, amp=None, phase=None, freq=None, freq2=None, reset_phase=True):
         chan = self.instance.ch(name, type, amp, phase, freq, freq2, reset_phase)
