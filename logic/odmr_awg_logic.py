@@ -74,20 +74,14 @@ class ODMRAWGLogic(GenericLogic):
     # config option
     # TODO: Take care of the configs later
     mw_scanmode = MicrowaveMode.LIST
-    # mw_scanmode = ConfigOption(
-    #                 'scanmode',
-    #                 'LIST',
-    #                 missing='warn',
-    #                 converter=lambda x: MicrowaveMode[x.upper()]) # TODO: Do we need this?
 
     clock_frequency = StatusVar('clock_frequency', 200)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
-    cw_mw_power = StatusVar('cw_mw_power', -40)
-    sweep_mw_power = StatusVar('sweep_mw_power', -40)
+    cw_mw_power = StatusVar('cw_mw_power', -30)
+    sweep_mw_power = StatusVar('sweep_mw_power', -11)
     mw_start = StatusVar('mw_start', 2800e6)
     mw_stop = StatusVar('mw_stop', 2950e6)
     mw_step = StatusVar('mw_step', 2e6)
-    freq_list = []
     run_time = StatusVar('run_time', 60)
     number_of_lines = StatusVar('number_of_lines', 50)
     fc = StatusVar('fits', None)
@@ -95,14 +89,15 @@ class ODMRAWGLogic(GenericLogic):
     _oversampling = StatusVar('oversampling', default=10)
     _lock_in_active = StatusVar('lock_in_active', default=False)
 
+    freq_list = []
+
     # Stuff I added - Dan
-    sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
-    freq_duration = 1e-6  # Duration of each frequency set to 3 μsec
+    #sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
+    sample_rate = 1.25e9 #0.6125e9
+    freq_duration = 10e-6  # Duration of each frequency set to 3 μsec
     samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
     awg_samples_limit = 5e6
-    average_factor = 100000  # How many sweeps will be conducted at each ODMR line scan
-    digital_pulse_length = 500e-9  # How long will the digital pulse be
-    one_sweep_time = 0.5  # How long will a sweep be
+    one_sweep_time = 10  # How long will a sweep be
     digital_sync_length = 9e-9  # Synchronize analog and digital channels
 
     # Internal signals
@@ -115,15 +110,11 @@ class ODMRAWGLogic(GenericLogic):
     sigOdmrFitUpdated = QtCore.Signal(np.ndarray, np.ndarray, dict, str)
     sigOdmrElapsedTimeUpdated = QtCore.Signal(float, int)
 
-    # TODO: Get rid of this, this is just for testing
-    # iterable = 1
-
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
         self.threadlock = Mutex()
 
     def on_activate(self):
-        print('ODMR logic activated')
         """
         Initialisation performed during activation of the module.
         """
@@ -138,25 +129,27 @@ class ODMRAWGLogic(GenericLogic):
         # self._awg_device.reset()
 
         # Get hardware constraints
-        limits = self.get_hw_constraints()
+        mw_limits = self.get_hw_constraints()
+        awg_limits = self.get_awg_constraints()
 
         # Set/recall microwave source parameters
-        # TODO: Take care of the constraints, make sure they are obtained correctly
-        self.cw_mw_frequency = limits.frequency_in_range(self.cw_mw_frequency)
-        self.cw_mw_power = limits.power_in_range(self.cw_mw_power)
-        self.sweep_mw_power = limits.power_in_range(self.sweep_mw_power)
-        self.mw_start = limits.frequency_in_range(self.mw_start)
-        self.mw_stop = limits.frequency_in_range(self.mw_stop)
-        self.mw_step = limits.list_step_in_range(self.mw_step)
+        self.cw_mw_frequency = mw_limits.frequency_in_range(self.cw_mw_frequency)
+        self.cw_mw_power = mw_limits.power_in_range(self.cw_mw_power)
+
+        self.sweep_mw_power = self.vpeak_to_dbm_converter(
+            awg_limits.power_in_range(self.dbm_to_vpeak_converter(self.sweep_mw_power)))
+        self.mw_start = mw_limits.frequency_in_range(self.mw_start)
+        self.mw_stop = mw_limits.frequency_in_range(self.mw_stop)
+        self.mw_step = mw_limits.list_step_in_range(self.mw_step)
 
         # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
-        # theoretically this can be changed, but the current counting scheme will not support that
-        # TODO
         self.mw_trigger_pol = TriggerEdge.RISING
 
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
+
+        self.norm_freq_list = []
 
         # Set flags
         # for stopping a measurement
@@ -174,10 +167,9 @@ class ODMRAWGLogic(GenericLogic):
         )
 
         # Switch off microwave and set CW frequency and power
+        self._awg_device.pulser_off()
         self.mw_off()
         self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
-
-        # TODO: Do we need to turn off the AWG?
 
         # Connect signals
         self.sigNextLine.connect(self._scan_odmr_line, QtCore.Qt.QueuedConnection)
@@ -199,14 +191,24 @@ class ODMRAWGLogic(GenericLogic):
                                'running but can not be stopped after 30 sec.')
                 break
         # Switch off microwave source for sure (also if CW mode is active or module is still locked)
-        print('Deactivated')
+        self.log.info('Deactivated ODMRAWGLogic')
         self._mw_device.off()
         # Disconnect signals
         self.sigNextLine.disconnect()
 
+    @staticmethod
+    def dbm_to_vpeak_converter(power_dbm):
+        power_mw = 1e-3 * 10 ** (power_dbm / 10)
+        v_eff = np.sqrt(power_mw * 50)
+        v_peak = np.sqrt(2) * v_eff
+        return v_peak
+
+    @staticmethod
+    def vpeak_to_dbm_converter(v_peak):
+        return 10 * np.log10(v_peak ** 2 * 10)
+
     @fc.constructor
     def sv_set_fits(self, val):
-        # Setup fit container
         fc = self.fitlogic().make_fit_container('ODMR sum', '1d')
         fc.set_units(['Hz', 'c/s'])
         if isinstance(val, dict) and len(val) > 0:
@@ -403,8 +405,7 @@ class ODMRAWGLogic(GenericLogic):
             constraints = self.get_hw_constraints()
             frequency_to_set = constraints.frequency_in_range(frequency)
             power_to_set = constraints.power_in_range(power)
-            self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
-                                                                                   power_to_set)
+            self.cw_mw_frequency, self.cw_mw_power, _ = self._mw_device.set_cw(frequency_to_set, power_to_set)
             # self._mw_device.set_pulse_mod()
         else:
             self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
@@ -426,6 +427,9 @@ class ODMRAWGLogic(GenericLogic):
                                             current freq_step, current power
         """
         limits = self.get_hw_constraints()
+        limits_awg = self.get_awg_constraints()
+
+
 
         if self.module_state() != 'locked':
             if isinstance(start, (int, float)) and isinstance(stop, (int, float)) and isinstance(step, (int, float)):
@@ -438,8 +442,8 @@ class ODMRAWGLogic(GenericLogic):
                     self.mw_stop = self.mw_start + np.floor(8e8 / self.mw_step) * self.mw_step
                 self.cw_mw_frequency = (self.mw_stop + self.mw_start) / 2
             if isinstance(power, (int, float)):
-                self.cw_mw_power = limits.power_in_range(power)
-            self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
+                self.sweep_mw_power = self.vpeak_to_dbm_converter(
+                    limits_awg.power_in_range(self.dbm_to_vpeak_converter(power)))
         else:
             self.log.warning('set_sweep_parameters failed. Logic is locked.')
 
@@ -447,7 +451,7 @@ class ODMRAWGLogic(GenericLogic):
                       'mw_step': self.mw_step,
                       'sweep_mw_power': self.sweep_mw_power}
         self.sigParameterUpdated.emit(param_dict)
-        return self.mw_start, self.mw_stop, self.mw_step, self.cw_mw_power, self.cw_mw_frequency
+        return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
 
     def mw_cw_on(self):
         """
@@ -474,50 +478,59 @@ class ODMRAWGLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
-    def list_to_waveform(self, freq_list):
-        digital_pulse_samples = int(np.floor(self.sample_rate * self.digital_pulse_length))
-        # analog_samples = {'a_ch0': np.zeros(digital_pulse_samples, dtype=int),'a_ch1': np.zeros(digital_pulse_samples, dtype=int)}
-        # digital_samples = {'d_ch0': [], 'd_ch1': []}
+    def list_to_waveform_cw(self, freq_list):
+        # Set up channels to be used
+        # I and Q channels
         analog_samples = {'a_ch0': [], 'a_ch1': []}
-        digital_samples = {'d_ch0': [], 'd_ch2': []}
-        print('CW freq is ', self.cw_mw_frequency)
-        # TODO: Take care of negative and positive shifts, at the moment we are assuming the
-        #  CW frequency is always higher
-        self.shifted_freq_list = self.cw_mw_frequency - freq_list
-        self.norm_freq_list = self.shifted_freq_list / self.sample_rate
+        # Laser, Readout and Switch channels
+        digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': []}
 
-        x = np.linspace(start=0, stop=int(self.samples_per_freq) - 1, num=self.samples_per_freq)
-        single_digital_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
-                                               np.zeros(int(self.samples_per_freq) - digital_pulse_samples, dtype=int)])
+        self.log.info(f"CW freq is {self.cw_mw_frequency}")
+
+        self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
+        x = np.linspace(start=0, stop=int(self.samples_per_freq), num=self.samples_per_freq)
+
+        # Synchronization pulse for analog and digital channels (analog lags behind)
         digital_sync_samples = int(np.floor(self.sample_rate * self.digital_sync_length))
         digital_sync_pulse = np.zeros(int(digital_sync_samples), dtype=int)
-        digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], digital_sync_pulse)
-        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], digital_sync_pulse)
-        single_bias_pulse = np.concatenate([np.ones(digital_pulse_samples, dtype=int),
-                                            -1 * np.ones(int(self.samples_per_freq) - digital_pulse_samples,
-                                                         dtype=int)])
-        # single_bias_pulse = np.concatenate([-1 * np.ones(int(self.samples_per_freq), dtype=int)])
+        digital_sync_pulse_inv = np.ones(int(digital_sync_samples), dtype=int)
 
+        # Set up individual pulses for different channels
+        laser_pulse = np.ones(self.samples_per_freq)
+        readout_pulse = np.append(np.ones(int(self.samples_per_freq // 10 * 9)),
+                                  np.zeros(int(self.samples_per_freq // 10 * 1)))
+        switch_pulse = np.zeros(self.samples_per_freq)
+
+        # Load digital channels with synchronization delay
+        digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], digital_sync_pulse)
+        digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], digital_sync_pulse)
+        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], digital_sync_pulse_inv)
+
+        # Write each frequency with pulse into channels
         for norm_freq in self.norm_freq_list:
             analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
             analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
-            digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], single_digital_pulse)
+            digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], laser_pulse)
+            digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], readout_pulse)
+            digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], switch_pulse)
+
+        # To make sure channels end at same point, add zero data to end
+        #analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'],
+        #                                    np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+        #analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'],
+        #                                    np.zeros(2 * digital_pulse_samples + digital_sync_samples))
 
         analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'],
-                                            np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+                                            np.zeros(digital_sync_samples))
         analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'],
-                                            np.zeros(2 * digital_pulse_samples + digital_sync_samples))
+                                            np.zeros(digital_sync_samples))
 
-        digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.ones(digital_pulse_samples, dtype=int))
-        digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.zeros(digital_pulse_samples, dtype=int))
+        #digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], np.zeros(2 * digital_pulse_samples, dtype=int))
+        #digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], np.zeros(2 * digital_pulse_samples, dtype=int))
+        #digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], np.ones(2 * digital_pulse_samples, dtype=int))
 
-        digital_samples['d_ch5'] = digital_samples['d_ch0']
-
-        digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'],
-                                             np.ones(len(analog_samples['a_ch0']) - len(digital_sync_pulse), dtype=int))
-
-        print('Analog sample array size is', np.size(analog_samples['a_ch0']))
-        print('d_ch0 array size is', np.size(digital_samples['d_ch0']))
+        self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
+        self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
 
         return analog_samples, digital_samples
 
@@ -532,22 +545,29 @@ class ODMRAWGLogic(GenericLogic):
 
         # adjust the end frequency in order to have an integer multiple of step size
         # The master module (i.e. GUI) will be notified about the changed end frequency
-        num_steps = int(np.rint(freq_range_size / self.mw_step))
+        num_steps = int(freq_range_size / self.mw_step)
         end_freq = self.mw_start + num_steps * self.mw_step
         self.freq_list = np.linspace(self.mw_start, end_freq, num_steps + 1)
         return 0
 
-    def test_write_waveform(self):
+    def write_test_waveform(self, amplitude=2):
         self.sweep_list()
-        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
-        analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
-        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR',
+
+        awg_limits = self.get_awg_constraints()
+        amplitude = awg_limits.power_in_range(amplitude)
+
+        self._awg_device.set_analog_level(amplitude={'a_ch0': amplitude, 'a_ch1': amplitude})
+        analog_samples, digital_samples = self.list_to_waveform_cw(self.freq_list)
+        num_of_samples, waveform_names = self._awg_device.write_waveform(name='cwODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
                                                                          is_first_chunk=True,
                                                                          is_last_chunk=True,
                                                                          total_number_of_samples=len(
                                                                              analog_samples['a_ch0']))
+        self._awg_device.load_waveform(load_dict=waveform_names)
+        self._awg_device.set_reps(100)
+        self._mw_device.cw_on()
         return num_of_samples, waveform_names
 
     def mw_sweep_on(self):
@@ -558,12 +578,13 @@ class ODMRAWGLogic(GenericLogic):
 
         When using the AWG the sweep mode is redundant, so we leave only the list options.
         """
-        # TODO: Disable the Sweep option, add an error in case it is enabled.
+        # Amplitude in volts
+        v_peak = round(self.dbm_to_vpeak_converter(self.sweep_mw_power), 3)
+        self._awg_device.set_analog_level(amplitude={'a_ch0': v_peak, 'a_ch1': v_peak})
 
-        self._awg_device.set_analog_level(amplitude={'a_ch0': 500, 'a_ch1': 500})
-        analog_samples, digital_samples = self.list_to_waveform(self.freq_list)
-        print(digital_samples)
-        num_of_samples, waveform_names = self._awg_device.write_waveform(name='ODMR',
+        analog_samples, digital_samples = self.list_to_waveform_cw(self.freq_list)
+
+        num_of_samples, waveform_names = self._awg_device.write_waveform(name='cwODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
                                                                          is_first_chunk=True,
@@ -573,18 +594,19 @@ class ODMRAWGLogic(GenericLogic):
         self._awg_device.load_waveform(load_dict=waveform_names)
         self._awg_device.set_reps(self.average_factor)
         self._mw_device.cw_on()
-        # self._mw_device.pulse_mod_on()
 
         # Following lines update the corrected parameters to the GUI
         param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
                       'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
         self.sigParameterUpdated.emit(param_dict)
-        # TODO: Fix this thing here with the mode, where we just define it aggressively as sweep
 
-        # mode, is_running = self._awg_device.get_status()
-        self.log.warn("Pretending to know state")
-        mode = 'sweep'
-        is_running = 1
+        num, status = self._awg_device.get_status()
+        if num == 0:
+            mode = "sweep"
+            is_running = 1
+        else:
+            self.log.error("AWG is not ready")
+
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
@@ -659,19 +681,22 @@ class ODMRAWGLogic(GenericLogic):
             self._startTime = time.time()
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
-            # Defining the frequency list and sending the length to the ODMR counter
+            # Defining the frequency list, making sure the end frequency is a multiple of freq step
             self.sweep_list()
-            # Calculate the average factor - number of sweeps in a single line acquisition
-            # based on a single sweep time
-            # of 1/2 sec (defined above)
+
+            # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
             self.average_factor = int(self.one_sweep_time / (self.freq_duration * len(self.freq_list)))
             # Just to make sure we're not averaging on a very low number (or zero...)
-            if self.average_factor < 100:
-                self.average_factor = 100
+            #if self.average_factor < 100:
+            #    self.average_factor = 100
 
-            sweep_bin_num = self.average_factor * len(self.freq_list) - 1
+            sweep_bin_num = self.average_factor * len(self.freq_list)
+
+            self.log.info(sweep_bin_num)
             self._odmr_counter.set_odmr_length(length=sweep_bin_num)
+
             odmr_status = self._start_odmr_counter()
+
             if odmr_status < 0:
                 mode, is_running = self._mw_device.get_status()
                 self.sigOutputStateUpdated.emit(mode, is_running)
@@ -679,6 +704,7 @@ class ODMRAWGLogic(GenericLogic):
                 return -1
 
             mode, is_running = self.mw_sweep_on()
+
             if not is_running:
                 self._stop_odmr_counter()
                 self.module_state.unlock()
@@ -718,6 +744,7 @@ class ODMRAWGLogic(GenericLogic):
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
             odmr_status = self._start_odmr_counter()
+
             if odmr_status < 0:
                 mode, is_running = self._mw_device.get_status()
                 self.sigOutputStateUpdated.emit(mode, is_running)
@@ -767,6 +794,7 @@ class ODMRAWGLogic(GenericLogic):
             if self.stopRequested:
                 self.stopRequested = False
                 self.mw_off()
+                self._awg_device.pulser_off()
                 self._stop_odmr_counter()
                 self.module_state.unlock()
                 return
@@ -777,11 +805,15 @@ class ODMRAWGLogic(GenericLogic):
             #     self._startTime = time.time()
 
             # reset position so every line starts from the same frequency
-            self.reset_sweep()
             self._odmr_counter.clear_odmr()
+
+            self._awg_device.pulser_on()
             # Acquire count data
             time.sleep(self.one_sweep_time + 0.05)
-            err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size, pulsed=True)
+
+            err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size, pulsed=False)
+
+            self._awg_device.pulser_off()
 
             if err:
                 self.stopRequested = True
@@ -792,8 +824,6 @@ class ODMRAWGLogic(GenericLogic):
             new_counts = np.reshape(a=new_counts, newshape=(self.average_factor, len(self.freq_list)))
             new_counts = np.mean(new_counts, axis=0)
 
-            # save_count_data(self.iterable, data=new_counts)
-            # self.iterable += 1
             # Add new count data to raw_data array and append if array is too small
             if self._clearOdmrData:
                 self.odmr_raw_data[:, :, :] = 0
@@ -847,6 +877,15 @@ class ODMRAWGLogic(GenericLogic):
 
     def get_odmr_channels(self):
         return self._odmr_counter.get_odmr_channels()
+
+    def get_awg_constraints(self):
+        return self._awg_device.get_limits()
+
+    def get_awg_power_constraints_in_dbm(self):
+        constraints = self.get_awg_constraints()
+        constraints.max_power = self.vpeak_to_dbm_converter(constraints.max_power)
+        constraints.min_power = self.vpeak_to_dbm_converter(constraints.min_power)
+        return constraints
 
     def get_hw_constraints(self):
         """ Return the names of all ocnfigured fit functions.

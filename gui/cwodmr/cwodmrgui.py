@@ -114,6 +114,7 @@ class ODMRGui(GUIBase):
 
         # Get hardware constraints to set limits for input widgets
         constraints = self._odmr_logic.get_hw_constraints()
+        contraints_awg = self._odmr_logic.get_awg_power_constraints_in_dbm()
 
         # Adjust range of scientific spinboxes above what is possible in Qt Designer
         self._mw.cw_frequency_DoubleSpinBox.setMaximum(constraints.max_frequency)
@@ -125,8 +126,8 @@ class ODMRGui(GUIBase):
         self._mw.stop_freq_DoubleSpinBox.setMinimum(constraints.min_frequency)
         self._mw.cw_power_DoubleSpinBox.setMaximum(constraints.max_power)
         self._mw.cw_power_DoubleSpinBox.setMinimum(constraints.min_power)
-        self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
-        self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
+        self._mw.sweep_power_DoubleSpinBox.setMaximum(contraints_awg.max_power)
+        self._mw.sweep_power_DoubleSpinBox.setMinimum(contraints_awg.min_power)
 
         # Add save file tag input box
         self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
