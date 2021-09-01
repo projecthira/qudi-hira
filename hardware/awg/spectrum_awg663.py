@@ -30,7 +30,7 @@ from core.configoption import ConfigOption
 from core.module import Base
 from core.util.modules import get_home_dir
 from hardware.awg import SpectrumAWG35
-from interface.microwave_interface import MicrowaveMode, MicrowaveLimits
+from interface.microwave_interface import AWGLimits
 from interface.pulser_interface import PulserInterface, PulserConstraints
 from thirdparty.spectrum.pyspcm import *
 
@@ -212,8 +212,7 @@ class AWG663(Base, PulserInterface):
         return constraints
 
     def get_limits(self):
-        limits = MicrowaveLimits()
-        limits.supported_modes = (MicrowaveMode.SWEEP)
+        limits = AWGLimits()
 
         limits.min_frequency = 1
         limits.max_frequency = 400e6
@@ -223,6 +222,9 @@ class AWG663(Base, PulserInterface):
 
         limits.sweep_minstep = 1
         limits.sweep_maxstep = 400e6
+
+        limits.sweep_min_freq_hold_time = 10e-9
+        limits.sweep_max_freq_hold_time = 5e-3
 
         return limits
 

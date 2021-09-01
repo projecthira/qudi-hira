@@ -256,3 +256,45 @@ class MicrowaveLimits:
 
     def slope_in_range(self, slope):
         return in_range(slope, self.sweep_minslope, self.sweep_maxslope)
+
+
+class AWGLimits:
+    """ A container to hold all limits for microwave sources.
+      """
+
+    def __init__(self):
+        """Create an instance containing all parameters with default values."""
+
+        # frequency in Hz
+        self.min_frequency = 1e6
+        self.max_frequency = 1e9
+
+        # power in dBm
+        self.min_power = -10
+        self.max_power = 0
+
+        # list limits, frequencies in Hz, entries are single steps
+        self.list_minstep = 1
+        self.list_maxstep = 1e9
+        self.list_maxentries = 1e3
+
+        # sweep limits, frequencies in Hz, entries are single steps
+        self.sweep_minstep = 1
+        self.sweep_maxstep = 1e9
+        self.sweep_maxentries = 1e3
+
+        # analog sweep limits, slope in Hz/s
+        self.min_freq_hold_time = 0
+        self.max_freq_hold_time = 5e-3
+
+    def frequency_in_range(self, frequency):
+        return in_range(frequency, self.min_frequency, self.max_frequency)
+
+    def power_in_range(self, power):
+        return in_range(power, self.min_power, self.max_power)
+
+    def list_step_in_range(self, step):
+        return in_range(step, self.list_minstep, self.list_maxstep)
+
+    def sweep_step_in_range(self, step):
+        return in_range(step, self.sweep_minstep, self.sweep_maxstep)

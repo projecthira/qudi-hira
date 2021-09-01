@@ -58,7 +58,7 @@ def save_count_data(index, data):
 # TODO: Seems like the ODMR crashes after one measurement. Need to check this. Maybe need to add a reset somewhere.
 
 
-class ODMRAWGLogic(GenericLogic):
+class AwgCwODMRLogic(GenericLogic):
     """This is the Logic class for ODMR."""
     _modclass = 'odmrlogic'
     _modtype = 'logic'
@@ -83,6 +83,9 @@ class ODMRAWGLogic(GenericLogic):
     mw_stop = StatusVar('mw_stop', 2950e6)
     mw_step = StatusVar('mw_step', 2e6)
     run_time = StatusVar('run_time', 60)
+    freq_hold_time = StatusVar('freq_hold_time', 10e-6)
+    single_sweep_time = StatusVar('single_sweep_time', 2)
+
     number_of_lines = StatusVar('number_of_lines', 50)
     fc = StatusVar('fits', None)
     lines_to_average = StatusVar('lines_to_average', 0)
@@ -91,13 +94,9 @@ class ODMRAWGLogic(GenericLogic):
 
     freq_list = []
 
-    # Stuff I added - Dan
-    #sample_rate = 1.25e9  # Sample set to default - 1.25 GSa/sec
-    sample_rate = 1.25e9 #0.6125e9
-    freq_duration = 10e-6  # Duration of each frequency set to 3 μsec
-    samples_per_freq = int(sample_rate * freq_duration)  # Number of samples required for each frequency
+    # Sample set to default - 1.25 GSa/sec
+    sample_rate = 1.25e9
     awg_samples_limit = 5e6
-    one_sweep_time = 10  # How long will a sweep be
     digital_sync_length = 9e-9  # Synchronize analog and digital channels
 
     # Internal signals
@@ -415,7 +414,7 @@ class ODMRAWGLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.cw_mw_frequency, self.cw_mw_power
 
-    def set_sweep_parameters(self, start, stop, step, power):
+    def set_sweep_parameters(self, start, stop, step, power, freq_hold_time, single_sweep_time):
         """ Set the desired frequency parameters for list and sweep mode
 
         @param float start: start frequency to set in Hz
@@ -429,7 +428,14 @@ class ODMRAWGLogic(GenericLogic):
         limits = self.get_hw_constraints()
         limits_awg = self.get_awg_constraints()
 
+        # Duration of each frequency
+        self.freq_hold_time = freq_hold_time
 
+        # Number of samples required for each frequency
+        self.samples_per_freq = int(self.sample_rate * self.freq_hold_time)
+
+        # How long will a sweep be
+        self.single_sweep_time = single_sweep_time
 
         if self.module_state() != 'locked':
             if isinstance(start, (int, float)) and isinstance(stop, (int, float)) and isinstance(step, (int, float)):
@@ -447,9 +453,9 @@ class ODMRAWGLogic(GenericLogic):
         else:
             self.log.warning('set_sweep_parameters failed. Logic is locked.')
 
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
-                      'mw_step': self.mw_step,
-                      'sweep_mw_power': self.sweep_mw_power}
+        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'mw_start': self.mw_start,
+                      'mw_stop': self.mw_stop,'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power,
+                      'freq_hold_time': self.freq_hold_time, 'single_sweep_time': self.single_sweep_time}
         self.sigParameterUpdated.emit(param_dict)
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
 
@@ -685,7 +691,7 @@ class ODMRAWGLogic(GenericLogic):
             self.sweep_list()
 
             # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
-            self.average_factor = int(self.one_sweep_time / (self.freq_duration * len(self.freq_list)))
+            self.average_factor = int(self.single_sweep_time / (self.freq_hold_time * len(self.freq_list)))
             # Just to make sure we're not averaging on a very low number (or zero...)
             #if self.average_factor < 100:
             #    self.average_factor = 100
@@ -712,7 +718,7 @@ class ODMRAWGLogic(GenericLogic):
 
             self._initialize_odmr_plots()
             # initialize raw_data array
-            estimated_number_of_lines = self.run_time / (sweep_bin_num * self.freq_duration * self.odmr_plot_x.size)
+            estimated_number_of_lines = self.run_time / (sweep_bin_num * self.freq_hold_time * self.odmr_plot_x.size)
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
             if estimated_number_of_lines < self.number_of_lines:
                 estimated_number_of_lines = self.number_of_lines
@@ -809,7 +815,7 @@ class ODMRAWGLogic(GenericLogic):
 
             self._awg_device.pulser_on()
             # Acquire count data
-            time.sleep(self.one_sweep_time + 0.05)
+            time.sleep(self.single_sweep_time + 0.05)
 
             err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size, pulsed=False)
 

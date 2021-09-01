@@ -36,7 +36,7 @@ from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
 
 
-class ODMRLogic(GenericLogic):
+class CwODMRLogic(GenericLogic):
     """This is the Logic class for ODMR."""
 
     # declare connectors

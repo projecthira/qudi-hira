@@ -63,13 +63,13 @@ class ODMRSettingDialog(QtWidgets.QDialog):
         uic.loadUi(ui_file, self)
 
 
-class ODMRGui(GUIBase):
+class CwODMRGui(GUIBase):
     """
     This is the GUI Class for ODMR measurements
     """
 
     # declare connectors
-    odmrlogic1 = Connector(interface='ODMRAWGLogic')
+    odmrlogic1 = Connector(interface='CwODMRLogic')
     savelogic = Connector(interface='SaveLogic')
 
     sigStartOdmrScan = QtCore.Signal()
