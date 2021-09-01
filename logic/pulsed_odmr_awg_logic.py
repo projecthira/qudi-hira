@@ -84,8 +84,8 @@ class AwgPulsedODMRLogic(GenericLogic):
     mw_step = StatusVar('mw_step', 2e6)
     run_time = StatusVar('run_time', 60)
 
-    pi_pulse_length = StatusVar('pi_pulse_length', 10e-6)
-    delay_length = StatusVar('delay_length', 5e-9)
+    pi_pulse_length = StatusVar('pi_pulse_length', 100e-9)
+    delay_length = StatusVar('delay_length', 10e-9)
     laser_readout_length = StatusVar('laser_length', 3e-6)
     single_sweep_time = StatusVar('single_sweep_time', 1)
 
@@ -101,6 +101,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     sample_rate = 1.25e9
     awg_samples_limit = 5e6
     digital_sync_length = 9e-9  # Synchronize analog and digital channels
+    null_pulse_length = 10e-9
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -417,7 +418,22 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.cw_mw_frequency, self.cw_mw_power
 
-    def set_sweep_parameters(self, start, stop, step, power, freq_hold_time, single_sweep_time):
+    def set_pulse_parameters(self, laser_readout_length, delay_length, pi_pulse_length):
+        self.laser_readout_length = laser_readout_length
+        self.delay_length = delay_length
+        self.pi_pulse_length = pi_pulse_length
+
+        self.total_pulse_length = 2 * self.laser_readout_length + 2 * self.delay_length + self.pi_pulse_length + \
+                                  2 * self.null_pulse_length
+        self.total_pulse_samples = int(np.floor(self.sample_rate * self.total_pulse_length))
+
+        param_dict = {'laser_readout_length': self.laser_readout_length, 'delay_length': self.delay_length,
+                      'pi_pulse_length': self.pi_pulse_length}
+        self.sigParameterUpdated.emit(param_dict)
+
+        return self.laser_readout_length, self.delay_length, self.pi_pulse_length
+
+    def set_sweep_parameters(self, start, stop, step, power, single_sweep_time):
         """ Set the desired frequency parameters for list and sweep mode
 
         @param float start: start frequency to set in Hz
@@ -430,12 +446,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         """
         limits = self.get_hw_constraints()
         limits_awg = self.get_awg_constraints()
-
-        # Duration of each frequency
-        self.freq_hold_time = freq_hold_time
-
-        # Number of samples required for each frequency
-        self.samples_per_freq = int(self.sample_rate * self.freq_hold_time)
 
         # How long will a sweep be
         self.single_sweep_time = single_sweep_time
@@ -458,7 +468,7 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'mw_start': self.mw_start,
                       'mw_stop': self.mw_stop,'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power,
-                      'freq_hold_time': self.freq_hold_time, 'single_sweep_time': self.single_sweep_time}
+                      'single_sweep_time': self.single_sweep_time}
         self.sigParameterUpdated.emit(param_dict)
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
 
@@ -496,7 +506,8 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         self.log.info(f"CW freq is {self.cw_mw_frequency}")
 
-        self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
+        null_pulse_sample = np.zeros(int(np.floor(self.null_pulse_length * self.sample_rate)))
+        null_pulse_sample_inv = np.ones(int(np.floor(self.null_pulse_length * self.sample_rate)))
 
         # Set up individual pulses for different channels
         delay_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.delay_length)))
@@ -505,29 +516,36 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         laser_sequence = np.concatenate(
             (
+                null_pulse_sample,
                 laser_readout_pulse_sample,
                 np.zeros(2*len(delay_pulse_sample) + len(switch_pulse_sample)),
                 laser_readout_pulse_sample,
+                null_pulse_sample
             )
         )
         readout_sequence = np.concatenate(
             (
+                null_pulse_sample,
                 np.zeros(len(laser_readout_pulse_sample) + 2 * len(delay_pulse_sample) + len(switch_pulse_sample)),
-                laser_readout_pulse_sample
+                laser_readout_pulse_sample,
+                null_pulse_sample
             )
         )
 
         switch_sequence = np.concatenate(
             (
+                null_pulse_sample_inv,
                 np.ones(len(laser_readout_pulse_sample) + len(delay_pulse_sample)),
                 switch_pulse_sample,
                 np.ones(len(delay_pulse_sample) + len(laser_readout_pulse_sample)),
+                null_pulse_sample_inv
             )
         )
 
         total_sample_length = 2 * len(delay_pulse_sample) + len(switch_pulse_sample) + \
-                              2 * len(laser_readout_pulse_sample)
+                              2 * len(laser_readout_pulse_sample) + 2 * len(null_pulse_sample)
         x = np.linspace(start=0, stop=total_sample_length, num=total_sample_length)
+        self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
 
         # Write each frequency with pulse into channels
         for norm_freq in self.norm_freq_list:
@@ -535,8 +553,14 @@ class AwgPulsedODMRLogic(GenericLogic):
             digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], readout_sequence)
             digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], switch_sequence)
 
-            analog_samples['a_ch0'] = np.append(analog_samples['a_ch0'], np.sin(2 * np.pi * norm_freq * x))
-            analog_samples['a_ch1'] = np.append(analog_samples['a_ch1'], np.sin(2 * np.pi * norm_freq * x - np.pi / 2))
+            analog_samples['a_ch0'] = np.append(
+                analog_samples['a_ch0'],
+                np.concatenate((null_pulse_sample, np.sin(2 * np.pi * norm_freq * x), null_pulse_sample))
+            )
+            analog_samples['a_ch1'] = np.append(
+                analog_samples['a_ch1'],
+                np.concatenate((null_pulse_sample, np.sin(2 * np.pi * norm_freq * x - np.pi / 2), null_pulse_sample))
+            )
 
         self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
         self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
@@ -689,7 +713,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             self.sweep_list()
 
             # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
-            self.average_factor = int(self.single_sweep_time / (self.freq_hold_time * len(self.freq_list)))
+            self.average_factor = int(self.single_sweep_time / (self.total_pulse_length * len(self.freq_list)))
             # Just to make sure we're not averaging on a very low number (or zero...)
             #if self.average_factor < 100:
             #    self.average_factor = 100
@@ -716,7 +740,7 @@ class AwgPulsedODMRLogic(GenericLogic):
 
             self._initialize_odmr_plots()
             # initialize raw_data array
-            estimated_number_of_lines = self.run_time / (sweep_bin_num * self.freq_hold_time * self.odmr_plot_x.size)
+            estimated_number_of_lines = self.run_time / (sweep_bin_num * self.total_pulse_length * self.odmr_plot_x.size)
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
             if estimated_number_of_lines < self.number_of_lines:
                 estimated_number_of_lines = self.number_of_lines
