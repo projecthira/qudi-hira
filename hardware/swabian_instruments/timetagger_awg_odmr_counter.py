@@ -99,11 +99,13 @@ class TimeTaggerODMRCounter(Base, ODMRCounterInterface):
                                         channels=[self._channel_apd_0, self._channel_apd_1])
             self._channel_clicks = self.combined.getChannel()
 
-        self.triggered_counter = tt.CountBetweenMarkers(tagger=self._tagger,
-                                                        end_channel=self._pulsed_timetagger_channel_trigger_stop,
-                                                        click_channel=self._channel_clicks,
-                                                        begin_channel=self._pulsed_timetagger_channel_trigger_start,
-                                                        n_values=self.sweep_length)
+        self.triggered_counter = tt.CountBetweenMarkers(
+            tagger=self._tagger,
+            end_channel=self._pulsed_timetagger_channel_trigger_stop,
+            click_channel=self._channel_clicks,
+            begin_channel=self._pulsed_timetagger_channel_trigger_start,
+            n_values=self.sweep_length
+        )
         self.log.info('set up counter with {0} channels and sweep length {1}'.format(self._mode, self.sweep_length))
         return 0
 
