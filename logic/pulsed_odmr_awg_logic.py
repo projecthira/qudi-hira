@@ -27,21 +27,21 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-from qtpy import QtCore
-from collections import OrderedDict
-from interface.microwave_interface import MicrowaveMode
-from interface.microwave_interface import TriggerEdge
-import numpy as np
-import time
 import datetime
-import matplotlib.pyplot as plt
-import lmfit
+import time
+from collections import OrderedDict
 from datetime import datetime
-from logic.generic_logic import GenericLogic
-from core.util.mutex import Mutex
+
+import matplotlib.pyplot as plt
+import numpy as np
+from qtpy import QtCore
+
 from core.module import Connector
 from core.statusvariable import StatusVar
-from core.configoption import ConfigOption
+from core.util.mutex import Mutex
+from interface.microwave_interface import MicrowaveMode
+from interface.microwave_interface import TriggerEdge
+from logic.generic_logic import GenericLogic
 
 
 # A temporary function to debug the code
@@ -53,9 +53,6 @@ def save_count_data(index, data):
     file.close()
     print('Count data saved to file')
     return
-
-
-# TODO: Seems like the ODMR crashes after one measurement. Need to check this. Maybe need to add a reset somewhere.
 
 
 class AwgPulsedODMRLogic(GenericLogic):
@@ -72,7 +69,6 @@ class AwgPulsedODMRLogic(GenericLogic):
     taskrunner = Connector(interface='TaskRunner')
 
     # config option
-    # TODO: Take care of the configs later
     mw_scanmode = MicrowaveMode.LIST
 
     clock_frequency = StatusVar('clock_frequency', 200)
@@ -467,7 +463,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             self.log.warning('set_sweep_parameters failed. Logic is locked.')
 
         param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'mw_start': self.mw_start,
-                      'mw_stop': self.mw_stop,'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power,
+                      'mw_stop': self.mw_stop, 'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power,
                       'single_sweep_time': self.single_sweep_time}
         self.sigParameterUpdated.emit(param_dict)
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
@@ -518,7 +514,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             (
                 null_pulse_sample,
                 laser_readout_pulse_sample,
-                np.zeros(2*len(delay_pulse_sample) + len(switch_pulse_sample)),
+                np.zeros(2 * len(delay_pulse_sample) + len(switch_pulse_sample)),
                 laser_readout_pulse_sample,
                 null_pulse_sample
             )
@@ -715,7 +711,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
             self.average_factor = int(self.single_sweep_time / (self.total_pulse_length * len(self.freq_list)))
             # Just to make sure we're not averaging on a very low number (or zero...)
-            #if self.average_factor < 100:
+            # if self.average_factor < 100:
             #    self.average_factor = 100
 
             sweep_bin_num = self.average_factor * len(self.freq_list)
@@ -740,7 +736,8 @@ class AwgPulsedODMRLogic(GenericLogic):
 
             self._initialize_odmr_plots()
             # initialize raw_data array
-            estimated_number_of_lines = self.run_time / (sweep_bin_num * self.total_pulse_length * self.odmr_plot_x.size)
+            estimated_number_of_lines = self.run_time / (
+                        sweep_bin_num * self.total_pulse_length * self.odmr_plot_x.size)
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
             if estimated_number_of_lines < self.number_of_lines:
                 estimated_number_of_lines = self.number_of_lines
