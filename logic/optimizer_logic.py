@@ -40,7 +40,7 @@ class OptimizerLogic(GenericLogic):
 
     # declare status vars
     _clock_frequency = StatusVar('clock_frequency', 50)
-    return_slowness = StatusVar(default=20)
+    return_slowness = StatusVar(default=2)
     refocus_XY_size = StatusVar('xy_size', 0.6e-6)
     optimizer_XY_res = StatusVar('xy_resolution', 10)
     refocus_Z_size = StatusVar('z_size', 2e-6)

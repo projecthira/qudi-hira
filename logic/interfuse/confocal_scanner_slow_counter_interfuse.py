@@ -46,7 +46,6 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         # Internal parameters
         self._line_length = None
         self._voltage_range = [-10., 10.]
-
         self._num_points = 500
 
     def on_activate(self):
@@ -184,7 +183,7 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
 
         for i in range(self._line_length):
             coords = line_path[:, i]
-            self.scanner_set_position(x=coords[0], y=coords[1])
+            self.scanner_set_position(x=coords[0], y=coords[1], z=coords[2])
             # record spectral data
             line_counts[i] = self._slowcounter_hw.get_counter()
 
