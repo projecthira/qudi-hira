@@ -1866,6 +1866,21 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="scanLineDockWidget">
+   <property name="windowTitle">
+    <string>Scan line</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_5">
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="0">
+      <widget class="PlotWidget" name="scanLineGraphicsView"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
   <widget class="QToolBar" name="historyToolBar">
    <property name="enabled">
     <bool>true</bool>
@@ -1885,20 +1900,17 @@
    <addaction name="actionBack"/>
    <addaction name="actionForward"/>
   </widget>
-  <widget class="QDockWidget" name="scanLineDockWidget">
+  <widget class="QToolBar" name="save_ToolBar">
    <property name="windowTitle">
-    <string>Scan line</string>
+    <string>toolBar</string>
    </property>
-   <attribute name="dockWidgetArea">
-    <number>2</number>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_5">
-    <layout class="QGridLayout" name="gridLayout_4">
-     <item row="0" column="0">
-      <widget class="PlotWidget" name="scanLineGraphicsView"/>
-     </item>
-    </layout>
-   </widget>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionSave_XY_Scan"/>
   </widget>
   <action name="actionSave_XY_Scan">
    <property name="icon">

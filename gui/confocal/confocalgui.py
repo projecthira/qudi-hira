@@ -266,6 +266,14 @@ class ConfocalGui(GUIBase):
         self._mw.xy_ViewWidget.addItem(self.xy_image)
         self._mw.depth_ViewWidget.addItem(self.depth_image)
 
+        # Add save file tag input box
+        self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
+        self._mw.save_tag_LineEdit.setMaximumWidth(500)
+        self._mw.save_tag_LineEdit.setMinimumWidth(200)
+        self._mw.save_tag_LineEdit.setToolTip('Enter a nametag which will be\n'
+                                              'added to the filename.')
+        self._mw.save_ToolBar.addWidget(self._mw.save_tag_LineEdit)
+
         # Label the axes:
         self._mw.xy_ViewWidget.setLabel('bottom', 'X position', units='m')
         self._mw.xy_ViewWidget.setLabel('left', 'Y position', units='m')
@@ -1585,6 +1593,7 @@ class ConfocalGui(GUIBase):
 
     def save_xy_scan_data(self):
         """ Run the save routine from the logic to save the xy confocal data."""
+        filetag = self._mw.save_tag_LineEdit.text()
         self._save_dialog.show()
 
         cb_range = self.get_xy_cb_range()
@@ -1596,13 +1605,16 @@ class ConfocalGui(GUIBase):
             high_centile = self._mw.xy_cb_high_percentile_DoubleSpinBox.value()
             pcile_range = [low_centile, high_centile]
 
-        self._scanning_logic.save_xy_data(colorscale_range=cb_range, percentile_range=pcile_range, block=False)
+        self._scanning_logic.save_xy_data(colorscale_range=cb_range, percentile_range=pcile_range, block=False,
+                                          filetag=filetag)
 
         # TODO: find a way to produce raw image in savelogic.  For now it is saved here.
         filepath = self._save_logic.get_path_for_module(module_name='Confocal')
+        if not filetag:
+            filetag = ""
         filename = os.path.join(
             filepath,
-            time.strftime('%Y%m%d-%H%M-%S_confocal_xy_scan_raw_pixel_image'))
+            time.strftime('%Y%m%d-%H%M-%S_{0}_confocal_xy_scan_raw_pixel_image'.format(filetag)))
         if self._sd.save_purePNG_checkBox.isChecked():
             self.xy_image.save(filename + '_raw.png')
 

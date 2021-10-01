@@ -278,7 +278,7 @@ class ConfocalLogic(GenericLogic):
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
 
-    _signal_save_xy = QtCore.Signal(object, object)
+    _signal_save_xy = QtCore.Signal(object, object, str)
     _signal_save_depth = QtCore.Signal(object, object)
 
     sigImageXYInitialized = QtCore.Signal()
@@ -866,7 +866,7 @@ class ConfocalLogic(GenericLogic):
             self.stop_scanning()
             self.signal_scan_lines_next.emit()
 
-    def save_xy_data(self, colorscale_range=None, percentile_range=None, block=True):
+    def save_xy_data(self, colorscale_range=None, percentile_range=None, block=True, filetag=None):
         """ Save the current confocal xy data to file.
 
         Two files are created.  The first is the imagedata, which has a text-matrix of count values
@@ -885,10 +885,10 @@ class ConfocalLogic(GenericLogic):
         if block:
             self._save_xy_data(colorscale_range, percentile_range)
         else:
-            self._signal_save_xy.emit(colorscale_range, percentile_range)
+            self._signal_save_xy.emit(colorscale_range, percentile_range, filetag)
 
-    @QtCore.Slot(object, object)
-    def _save_xy_data(self, colorscale_range=None, percentile_range=None):
+    @QtCore.Slot(object, object, str)
+    def _save_xy_data(self, colorscale_range=None, percentile_range=None, filetag=None):
         """ Execute save operation. Slot for _signal_save_xy.
         """
         self.signal_save_started.emit()
@@ -937,7 +937,10 @@ class ConfocalLogic(GenericLogic):
                 'A pixel-line in the image corresponds to a row '
                 'of entries where the Signal is in counts/s:'] = self.xy_image[:, :, 3 + n]
 
-            filelabel = 'confocal_xy_image_{0}'.format(ch.replace('/', ''))
+            if not filetag:
+                filetag = ""
+
+            filelabel = '{0}_confocal_xy_image_{1}'.format(filetag, ch.replace('/', ''))
             self._save_logic.save_data(image_data,
                                        filepath=filepath,
                                        timestamp=timestamp,
@@ -957,7 +960,7 @@ class ConfocalLogic(GenericLogic):
             data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
 
         # Save the raw data to file
-        filelabel = 'confocal_xy_data'
+        filelabel = '{0}_confocal_xy_data'.format(filetag)
         self._save_logic.save_data(data,
                                    filepath=filepath,
                                    timestamp=timestamp,

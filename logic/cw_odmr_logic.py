@@ -563,7 +563,7 @@ class CwODMRLogic(GenericLogic):
         ret_val1 = self._odmr_counter.close_odmr()
         if ret_val1 != 0:
             self.log.error('ODMR counter could not be stopped!')
-        ret_val2 = self._odmr_counter.close_odmr_clock()
+        ret_val2 = self._odmr_clock.close_clock()
         if ret_val2 != 0:
             self.log.error('ODMR clock could not be stopped!')
 
