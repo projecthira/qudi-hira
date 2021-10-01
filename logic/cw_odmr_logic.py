@@ -592,14 +592,6 @@ class CwODMRLogic(GenericLogic):
             self._startTime = time.time()
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
-            odmr_status = self._start_odmr_counter()
-
-            if odmr_status < 0:
-                mode, is_running = self._mw_device.get_status()
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                self.module_state.unlock()
-                return -1
-
             mode, is_running = self.mw_sweep_on()
             if not is_running:
                 self._stop_odmr_counter()
@@ -607,6 +599,15 @@ class CwODMRLogic(GenericLogic):
                 return -1
 
             self._initialize_odmr_plots()
+
+            self._odmr_counter.set_odmr_length(length=self.odmr_plot_x.size)
+            odmr_status = self._start_odmr_counter()
+
+            if odmr_status < 0:
+                mode, is_running = self._mw_device.get_status()
+                self.sigOutputStateUpdated.emit(mode, is_running)
+                self.module_state.unlock()
+                return -1
             # initialize raw_data array
             estimated_number_of_lines = self.run_time * self.clock_frequency / self.odmr_plot_x.size
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
@@ -690,10 +691,10 @@ class CwODMRLogic(GenericLogic):
 
             # Stop measurement if stop has been requested
             if self.stopRequested:
-                self.stopRequested = False
                 self.mw_off()
                 self._stop_odmr_counter()
                 self.module_state.unlock()
+                self.stopRequested = False
                 return
 
             # if during the scan a clearing of the ODMR data is needed:
@@ -705,7 +706,7 @@ class CwODMRLogic(GenericLogic):
             self.reset_sweep()
 
             # Acquire count data
-            error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
+            error, new_counts = self._odmr_counter.count_odmr()
             self._odmr_counter.clear_odmr()
 
             if error:
