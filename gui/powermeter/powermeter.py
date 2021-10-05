@@ -93,8 +93,9 @@ class PowermeterGUI(GUIBase):
         """ Update labels, the plot and button states with new data. """
         if isinstance(self._pm_logic.power, float):
             power_in_mW = self._pm_logic.power * 1000
-            self._mw.powerValue.setText('{0:6.3f} mW'.format(power_in_mW))
-            self._mw.calibratedPowerValue.setText('{0:6.3f} mW'.format(self._pm_logic.calibrated_power_mW))
+            self._mw.powerValue.setText('{0:6.1f} mW'.format(power_in_mW))
+            self._mw.calibratedPowerValue.setText('{0:6.1f} mW'.format(self._pm_logic.calibrated_power_mW))
+            self._mw.calibratedPowerValueRT.setText('{0:6.1f} mW'.format(self._pm_logic.calibrated_power_RT_mW))
         else:
             self._mw.powerValue.setText('{}'.format(self._pm_logic.power))
         self._mw.powerMeasureButton.setEnabled(True)

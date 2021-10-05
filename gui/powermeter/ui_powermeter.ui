@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>316</width>
-    <height>303</height>
+    <height>404</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -72,7 +72,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Calculated power at objective</string>
+       <string>Est. power at cryo. objective</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -81,6 +81,43 @@
     </item>
     <item>
      <widget class="QLabel" name="calibratedPowerValue">
+      <property name="font">
+       <font>
+        <pointsize>20</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>0 mW</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_3">
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Est. power at RT objective</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="calibratedPowerValueRT">
       <property name="font">
        <font>
         <pointsize>20</pointsize>

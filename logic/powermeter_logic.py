@@ -67,9 +67,28 @@ class PowermeterLogic(GenericLogic):
             b = 0.0786
         @return: calibrated power value
         """
+        # TODO: Repeat this measurement
         power_mW = power * 1000
         a = 1.1773
         b = 0
+        return a * power_mW + b
+
+    @staticmethod
+    def calibrated_value_rt(power):
+        """
+        Calculate power at objective from power at beamsplitter.
+        Calibration extracted from fit up to 100 mW of laser power (20210816_Laser_power_at_RT.xlsx).
+
+        eg.
+            f(x) =  a*x + b
+            where,
+            a = 1.1773
+            b = 0.0786
+        @return: calibrated power value
+        """
+        power_mW = power * 1000
+        a = 5.4219
+        b = 0.1334
         return a * power_mW + b
 
     @QtCore.Slot(bool)
@@ -77,6 +96,7 @@ class PowermeterLogic(GenericLogic):
         """ Switched external driving on or off. """
         self.power = self._pm.get_process_value()
         self.calibrated_power_mW = self.calibrated_value(self.power)
+        self.calibrated_power_RT_mW = self.calibrated_value_rt(self.power)
 
         for k in self.data:
             self.data[k] = np.roll(self.data[k], -1)
