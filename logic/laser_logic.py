@@ -28,6 +28,7 @@ from core.connector import Connector
 from core.configoption import ConfigOption
 from logic.generic_logic import GenericLogic
 from interface.simple_laser_interface import ControlMode, ShutterState, LaserState
+from core.statusvariable import StatusVar
 
 
 class LaserLogic(GenericLogic):
@@ -37,6 +38,7 @@ class LaserLogic(GenericLogic):
     # waiting time between queries im milliseconds
     laser = Connector(interface='SimpleLaserInterface')
     queryInterval = ConfigOption('query_interval', 100)
+    laser_power_setpoint = StatusVar("laser_power_setpoint", default=13)
 
     sigUpdate = QtCore.Signal()
 
@@ -59,6 +61,8 @@ class LaserLogic(GenericLogic):
         self.laser_shutter = self._laser.get_shutter_state()
         self.laser_external = self._laser.get_external_state()
 
+        self._laser.set_power(self.laser_power_setpoint)
+
         self.laser_can_turn_on = self.laser_state.value <= LaserState.ON.value
         self.laser_current_unit = self._laser.get_current_unit()
         self.laser_power_range = self._laser.get_power_range()
@@ -68,6 +72,7 @@ class LaserLogic(GenericLogic):
         self.laser_extra = self._laser.get_extra_info()
         self.laser_can_power = ControlMode.POWER in self._laser.allowed_control_modes()
         self.laser_can_current = ControlMode.CURRENT in self._laser.allowed_control_modes()
+
         if ControlMode.MIXED in self._laser.allowed_control_modes():
             self.laser_can_power = True
             self.laser_can_current = True
@@ -101,8 +106,8 @@ class LaserLogic(GenericLogic):
             self.laser_shutter = self._laser.get_shutter_state()
             self.laser_external = self._laser.get_external_state()
             self.laser_power = self._laser.get_power()
-            # self.laser_power_setpoint = self._laser.get_power_setpoint()
-            self.laser_power_setpoint = 0.0
+            self.laser_power_setpoint = self._laser.get_power_setpoint()
+            # self.laser_power_setpoint = 0.0
             self.laser_current = self._laser.get_current()
             # self.laser_current_setpoint = self._laser.get_current_setpoint()
             self.laser_current_setpoint = 0.0
