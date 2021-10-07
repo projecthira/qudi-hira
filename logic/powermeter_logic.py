@@ -87,8 +87,8 @@ class PowermeterLogic(GenericLogic):
         @return: calibrated power value
         """
         power_mW = power * 1000
-        a = 5.4219
-        b = 0.1334
+        a = 5.5967
+        b = 0
         return a * power_mW + b
 
     @QtCore.Slot(bool)
