@@ -514,12 +514,12 @@ class SequenceGeneratorLogic(GenericLogic):
                 self.log.error('Can´t load a waveform, because pulser running. Switch off the pulser and try again.')
                 return -1
 
-            t_est_upload = self._benchmark_load.estimate_time(ensemble.sampling_information['number_of_samples'])
-            if t_est_upload > self._info_on_estimated_upload_time:
-                now = datetime.datetime.now()
-                self.log.info("Estimated finish of loading for long waveform:"
-                              " {0:%Y-%m-%d %H:%M:%S} ({1:d} s)".format(
-                    (now + datetime.timedelta(0, t_est_upload)), int(t_est_upload)))
+            # t_est_upload = self._benchmark_load.estimate_time(ensemble.sampling_information['number_of_samples'])
+            # if t_est_upload > self._info_on_estimated_upload_time:
+            #     now = datetime.datetime.now()
+            #     self.log.info("Estimated finish of loading for long waveform:"
+            #                   " {0:%Y-%m-%d %H:%M:%S} ({1:d} s)".format(
+            #         (now + datetime.timedelta(0, t_est_upload)), int(t_est_upload)))
 
             # Actually load the waveforms to the generic channels
             start_time = time.perf_counter()
@@ -1810,12 +1810,12 @@ class SequenceGeneratorLogic(GenericLogic):
             self.sigSampleEnsembleComplete.emit(None)
             return -1, list(), dict()
 
-        t_est_upload = self._benchmark_write.estimate_time(ensemble_info['number_of_samples'])
-        if t_est_upload > self._info_on_estimated_upload_time:
-            now = datetime.datetime.now()
-            self.log.info("Estimated finish of writing for long waveform:"
-                          " {0:%Y-%m-%d %H:%M:%S} ({1:d} s)".format(
-                (now + datetime.timedelta(0, t_est_upload)), int(t_est_upload)))
+        # t_est_upload = self._benchmark_write.estimate_time(ensemble_info['number_of_samples'])
+        # if t_est_upload > self._info_on_estimated_upload_time:
+        #     now = datetime.datetime.now()
+        #     self.log.info("Estimated finish of writing for long waveform:"
+        #                   " {0:%Y-%m-%d %H:%M:%S} ({1:d} s)".format(
+        #         (now + datetime.timedelta(0, t_est_upload)), int(t_est_upload)))
 
         # integer to keep track of the sampls already processed
         processed_samples = 0

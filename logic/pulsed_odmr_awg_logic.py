@@ -97,7 +97,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     sample_rate = 1.25e9
     awg_samples_limit = 5e6
     digital_sync_length = 9e-9  # Synchronize analog and digital channels
-    null_pulse_length = 10e-9
+    null_pulse_length = 50e-9
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -419,7 +419,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.delay_length = delay_length
         self.pi_pulse_length = pi_pulse_length
 
-        self.total_pulse_length = 2 * self.laser_readout_length + 2 * self.delay_length + self.pi_pulse_length + \
+        self.total_pulse_length = 1 * self.laser_readout_length + 1 * self.delay_length + self.pi_pulse_length + \
                                   2 * self.null_pulse_length
         self.total_pulse_samples = int(np.floor(self.sample_rate * self.total_pulse_length))
 
@@ -514,16 +514,15 @@ class AwgPulsedODMRLogic(GenericLogic):
             (
                 null_pulse_sample,
                 laser_readout_pulse_sample,
-                np.zeros(2 * len(delay_pulse_sample) + len(switch_pulse_sample)),
-                laser_readout_pulse_sample,
+                np.zeros(len(delay_pulse_sample) + len(switch_pulse_sample)),
                 null_pulse_sample
             )
         )
         readout_sequence = np.concatenate(
             (
                 null_pulse_sample,
-                np.zeros(len(laser_readout_pulse_sample) + 2 * len(delay_pulse_sample) + len(switch_pulse_sample)),
                 laser_readout_pulse_sample,
+                np.zeros(len(delay_pulse_sample) + len(switch_pulse_sample)),
                 null_pulse_sample
             )
         )
@@ -533,13 +532,12 @@ class AwgPulsedODMRLogic(GenericLogic):
                 null_pulse_sample_inv,
                 np.ones(len(laser_readout_pulse_sample) + len(delay_pulse_sample)),
                 switch_pulse_sample,
-                np.ones(len(delay_pulse_sample) + len(laser_readout_pulse_sample)),
                 null_pulse_sample_inv
             )
         )
 
-        total_sample_length = 2 * len(delay_pulse_sample) + len(switch_pulse_sample) + \
-                              2 * len(laser_readout_pulse_sample) + 2 * len(null_pulse_sample)
+        total_sample_length = 1 * len(delay_pulse_sample) + len(switch_pulse_sample) + \
+                              1 * len(laser_readout_pulse_sample)
         x = np.linspace(start=0, stop=total_sample_length, num=total_sample_length)
         self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
 
