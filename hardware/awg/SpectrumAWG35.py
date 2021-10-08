@@ -119,7 +119,10 @@ class AWG:
         self.init_all_channels()
         self.sequence = None
         self.save_data = True
-        self.max_chunk_size = 5000000  # number of samples that are transfered in one data transfer (reduce value to save memory)
+        # number of samples that are transferred in one data transfer (reduce value to save memory)
+        # self.max_chunk_size = 5000000
+        # Increased by a factor of 20, does not affect stability or pulse characteristics
+        self.max_chunk_size = 5000000 * 20
         self.empty_chunk_array_factor = 1.3
         self.uploading = False
         self.temp_sine = ()  # for square cosine debugging purposes
