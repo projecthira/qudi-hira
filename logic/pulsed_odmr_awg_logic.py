@@ -95,9 +95,9 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     # Sample set to default - 1.25 GSa/sec
     sample_rate = 1.25e9
-    awg_samples_limit = 5e6
     digital_sync_length = 9e-9  # Synchronize analog and digital channels
-    null_pulse_length = 50e-9
+    null_pulse_length = 20e-9
+    freq_rep = 100
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -419,9 +419,9 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.delay_length = delay_length
         self.pi_pulse_length = pi_pulse_length
 
-        self.total_pulse_length = 1 * self.laser_readout_length + 1 * self.delay_length + self.pi_pulse_length + \
-                                  2 * self.null_pulse_length
-        self.total_pulse_samples = int(np.floor(self.sample_rate * self.total_pulse_length))
+        self.single_sweep_pulse_length = self.null_pulse_length + (2 * self.null_pulse_length + self.laser_readout_length +
+                                                                   self.delay_length + self.pi_pulse_length) * self.freq_rep
+        self.single_sweep_pulse_samples = int(np.floor(self.sample_rate * self.single_sweep_pulse_length))
 
         param_dict = {'laser_readout_length': self.laser_readout_length, 'delay_length': self.delay_length,
                       'pi_pulse_length': self.pi_pulse_length}
@@ -493,7 +493,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
-    def list_to_waveform_pulsed(self, freq_list):
+    def list_to_waveform_pulsed_old(self, freq_list):
         # Set up channels to be used
         # I and Q channels
         analog_samples = {'a_ch0': [], 'a_ch1': []}
@@ -535,26 +535,104 @@ class AwgPulsedODMRLogic(GenericLogic):
                 null_pulse_sample_inv
             )
         )
-
-        total_sample_length = 1 * len(delay_pulse_sample) + len(switch_pulse_sample) + \
-                              1 * len(laser_readout_pulse_sample)
+        total_sample_length = len(delay_pulse_sample) + len(switch_pulse_sample) + len(laser_readout_pulse_sample) + \
+                              2 * len(null_pulse_sample)
         x = np.linspace(start=0, stop=total_sample_length, num=total_sample_length)
         self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
 
         # Write each frequency with pulse into channels
         for norm_freq in self.norm_freq_list:
-            digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], laser_sequence)
-            digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], readout_sequence)
-            digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], switch_sequence)
-
+            digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], null_pulse_sample)
+            digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], null_pulse_sample)
+            digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], null_pulse_sample_inv)
             analog_samples['a_ch0'] = np.append(
                 analog_samples['a_ch0'],
-                np.concatenate((null_pulse_sample, np.sin(2 * np.pi * norm_freq * x), null_pulse_sample))
+                null_pulse_sample
             )
             analog_samples['a_ch1'] = np.append(
                 analog_samples['a_ch1'],
-                np.concatenate((null_pulse_sample, np.sin(2 * np.pi * norm_freq * x - np.pi / 2), null_pulse_sample))
+                null_pulse_sample
             )
+
+            for _ in range(100):
+                digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], laser_sequence)
+                digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], readout_sequence)
+                digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], switch_sequence)
+
+                analog_samples['a_ch0'] = np.append(
+                    analog_samples['a_ch0'],
+                    np.sin(2 * np.pi * norm_freq * x)
+                )
+                analog_samples['a_ch1'] = np.append(
+                    analog_samples['a_ch1'],
+                    np.sin(2 * np.pi * norm_freq * x - np.pi / 2)
+                )
+
+        self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
+        self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
+
+        return analog_samples, digital_samples
+
+    def list_to_waveform_pulsed(self, freq_list):
+        # TODO: Add other channels too
+        # Set up channels to be used
+        # I and Q channels
+        analog_samples = {'a_ch0': [], 'a_ch1': []}
+        # Laser, Readout and Switch channels
+        digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': []}
+
+        self.log.info(f"CW freq is {self.cw_mw_frequency}")
+
+        single_sweep_pulse_length = self.null_pulse_length + (self.delay_length + self.pi_pulse_length +
+                                                       self.laser_readout_length + 2 * self.null_pulse_length) * self.freq_rep
+        single_sweep_pulse_samples = int(single_sweep_pulse_length * self.sample_rate * len(freq_list))
+
+        delay_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.delay_length)))
+        switch_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.pi_pulse_length)))
+        null_pulse_sample = np.zeros(int(np.floor(self.null_pulse_length * self.sample_rate)))
+        laser_readout_pulse_sample = np.ones(int(np.floor(self.sample_rate * self.laser_readout_length)))
+
+        laser_sequence = np.zeros(single_sweep_pulse_samples)
+
+        self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
+
+        idxa = 0
+        for freq in freq_list:
+            idxb = idxa + len(null_pulse_sample)
+            laser_sequence[idxa:idxb] = np.zeros(idxb - idxa)
+            print("-------")
+
+            print("a", idxa)
+
+            print("b", idxb)
+
+            idx4 = idxb
+            for idx_freq_rep in range(self.freq_rep):
+                idx1 = idx4
+                print("1", idx1)
+
+                idx2 = idx1 + len(null_pulse_sample)
+                laser_sequence[idx1:idx2] = np.zeros(idx2 - idx1)
+                print("2", idx2)
+
+                idx3 = idx2 + len(laser_readout_pulse_sample)
+                laser_sequence[idx2:idx3] = np.ones(idx3 - idx2)
+                print("3", idx3)
+
+                idx4 = idx3 + len(delay_pulse_sample) + len(switch_pulse_sample) + len(null_pulse_sample)
+                print("4", idx4)
+                laser_sequence[idx3:idx4] = np.zeros(idx4 - idx3)
+
+                print("******")
+
+            idxa = idx4
+
+        digital_samples['d_ch0'] = laser_sequence
+        digital_samples['d_ch1'] = laser_sequence
+        digital_samples['d_ch2'] = laser_sequence
+
+        analog_samples['a_ch0'] = laser_sequence
+        analog_samples['a_ch1'] = laser_sequence
 
         self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
         self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
@@ -605,7 +683,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._awg_device.set_analog_level(amplitude={'a_ch0': v_peak, 'a_ch1': v_peak})
 
         analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
-
+        print(len(analog_samples['a_ch0']))
         num_of_samples, waveform_names = self._awg_device.write_waveform(name='pulsedODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,
@@ -707,14 +785,12 @@ class AwgPulsedODMRLogic(GenericLogic):
             self.sweep_list()
 
             # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
-            self.average_factor = int(self.single_sweep_time / (self.total_pulse_length * len(self.freq_list)))
+            self.average_factor = int(self.single_sweep_time / (self.single_sweep_pulse_length * len(self.freq_list)))
             # Just to make sure we're not averaging on a very low number (or zero...)
             # if self.average_factor < 100:
             #    self.average_factor = 100
 
-            sweep_bin_num = self.average_factor * len(self.freq_list)
-
-            self.log.info(sweep_bin_num)
+            sweep_bin_num = self.average_factor * len(self.freq_list) * 100
             self._odmr_counter.set_odmr_length(length=sweep_bin_num)
 
             odmr_status = self._start_odmr_counter()
@@ -735,7 +811,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             self._initialize_odmr_plots()
             # initialize raw_data array
             estimated_number_of_lines = self.run_time / (
-                        sweep_bin_num * self.total_pulse_length * self.odmr_plot_x.size)
+                    sweep_bin_num * self.single_sweep_pulse_length * self.odmr_plot_x.size)
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
             if estimated_number_of_lines < self.number_of_lines:
                 estimated_number_of_lines = self.number_of_lines
@@ -834,7 +910,9 @@ class AwgPulsedODMRLogic(GenericLogic):
             # Acquire count data
             time.sleep(self.single_sweep_time + 0.05)
 
-            err, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size, pulsed=False)
+            err, new_counts = self._odmr_counter.count_odmr(pulsed=False)
+
+            self.tt_counts = new_counts
 
             self._awg_device.pulser_off()
 
@@ -843,9 +921,18 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.sigNextLine.emit()
                 return
 
-            # Average the sweeps, turning the long array into a short one (whose length is the number of frequencies)
-            new_counts = np.reshape(a=new_counts, newshape=(self.average_factor, len(self.freq_list)))
+            # Reshaping the array into (average_factor, num_of_freq, freq_rep)
+            new_counts = np.reshape(new_counts, newshape=(self.average_factor, len(self.freq_list), 100))
+            # Get the mean across freq_rep
+            new_counts = np.mean(new_counts, axis=2)
+            # Get the mean across average_factor
             new_counts = np.mean(new_counts, axis=0)
+
+            # Average the sweeps, turning the long array into a short one (whose length is the number of frequencies)
+            # new_counts = np.reshape(a=new_counts, newshape=(100, len(self.freq_list)))
+            # new_counts = np.mean(new_counts, axis=0)
+            # new_counts = np.reshape(a=new_counts, newshape=(self.average_factor, len(self.freq_list)))
+            # new_counts = np.mean(new_counts, axis=0)
 
             # Add new count data to raw_data array and append if array is too small
             if self._clearOdmrData:
