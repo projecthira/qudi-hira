@@ -81,7 +81,7 @@ class AwgPulsedODMRGui(GUIBase):
     sigMwPowerChanged = QtCore.Signal(float)
     sigMwCwParamsChanged = QtCore.Signal(float, float)
     sigMwSweepParamsChanged = QtCore.Signal(float, float, float, float, float)
-    sigPulseParamsChanged = QtCore.Signal(float, float, float)
+    sigPulseParamsChanged = QtCore.Signal(float, float, float, int)
     sigClockFreqChanged = QtCore.Signal(float)
     sigOversamplingChanged = QtCore.Signal(int)
     sigLockInChanged = QtCore.Signal(bool)
@@ -138,6 +138,8 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.laser_readout_length_doubleSpinBox.setMinimum(0)
         self._mw.delay_length_doubleSpinBox.setMinimum(0)
         self._mw.pi_pulse_length_doubleSpinBox.setMinimum(0)
+        self._mw.freq_repetition_doubleSpinBox.setMinimum(0)
+        self._mw.freq_repetition_doubleSpinBox.setMaximum(200)
 
         # Add save file tag input box
         self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
@@ -231,6 +233,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.delay_length_doubleSpinBox.setValue(self._odmr_logic.delay_length)
         self._mw.pi_pulse_length_doubleSpinBox.setValue(self._odmr_logic.pi_pulse_length)
         self._mw.single_sweep_time_doubleSpinBox.setValue(self._odmr_logic.single_sweep_time)
+        self._mw.freq_repetition_doubleSpinBox.setValue(self._odmr_logic.freq_rep)
 
         self._sd.matrix_lines_SpinBox.setValue(self._odmr_logic.number_of_lines)
         self._sd.clock_frequency_DoubleSpinBox.setValue(self._odmr_logic.clock_frequency)
@@ -258,6 +261,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.laser_readout_length_doubleSpinBox.editingFinished.connect(self.change_pulse_params)
         self._mw.delay_length_doubleSpinBox.editingFinished.connect(self.change_pulse_params)
         self._mw.pi_pulse_length_doubleSpinBox.editingFinished.connect(self.change_pulse_params)
+        self._mw.freq_repetition_doubleSpinBox.editingFinished.connect(self.change_pulse_params)
 
         self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
         self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime)
@@ -375,6 +379,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.delay_length_doubleSpinBox.editingFinished.disconnect()
         self._mw.pi_pulse_length_doubleSpinBox.editingFinished.disconnect()
         self._mw.single_sweep_time_doubleSpinBox.editingFinished.disconnect()
+        self._mw.freq_repetition_doubleSpinBox.editingFinished.disconnect()
         self._mw.runtime_DoubleSpinBox.editingFinished.disconnect()
         self._mw.odmr_cb_max_DoubleSpinBox.valueChanged.disconnect()
         self._mw.odmr_cb_min_DoubleSpinBox.valueChanged.disconnect()
@@ -411,9 +416,10 @@ class AwgPulsedODMRGui(GUIBase):
             self._mw.step_freq_DoubleSpinBox.setEnabled(False)
             self._mw.stop_freq_DoubleSpinBox.setEnabled(False)
             self._mw.laser_readout_length_doubleSpinBox.setEnabled(False)
-            self._mw.laser_readout_length_doubleSpinBox.setEnabled(False)
+            self._mw.delay_length_doubleSpinBox.setEnabled(False)
             self._mw.pi_pulse_length_doubleSpinBox.setEnabled(False)
             self._mw.single_sweep_time_doubleSpinBox.setEnabled(False)
+            self._mw.freq_repetition_doubleSpinBox.setEnabled(False)
             self._mw.runtime_DoubleSpinBox.setEnabled(False)
             self._sd.clock_frequency_DoubleSpinBox.setEnabled(False)
             self._sd.oversampling_SpinBox.setEnabled(False)
@@ -441,6 +447,7 @@ class AwgPulsedODMRGui(GUIBase):
             self._mw.delay_length_doubleSpinBox.setEnabled(False)
             self._mw.pi_pulse_length_doubleSpinBox.setEnabled(False)
             self._mw.single_sweep_time_doubleSpinBox.setEnabled(False)
+            self._mw.freq_repetition_doubleSpinBox.setEnabled(False)
             self._mw.runtime_DoubleSpinBox.setEnabled(False)
             self._sd.clock_frequency_DoubleSpinBox.setEnabled(False)
             self._sd.oversampling_SpinBox.setEnabled(False)
@@ -496,6 +503,7 @@ class AwgPulsedODMRGui(GUIBase):
                 self._mw.delay_length_doubleSpinBox.setEnabled(False)
                 self._mw.pi_pulse_length_doubleSpinBox.setEnabled(False)
                 self._mw.single_sweep_time_doubleSpinBox.setEnabled(False)
+                self._mw.freq_repetition_doubleSpinBox.setEnabled(False)
                 self._mw.runtime_DoubleSpinBox.setEnabled(False)
                 self._sd.clock_frequency_DoubleSpinBox.setEnabled(False)
                 self._sd.oversampling_SpinBox.setEnabled(False)
@@ -515,6 +523,7 @@ class AwgPulsedODMRGui(GUIBase):
                 self._mw.delay_length_doubleSpinBox.setEnabled(True)
                 self._mw.pi_pulse_length_doubleSpinBox.setEnabled(True)
                 self._mw.single_sweep_time_doubleSpinBox.setEnabled(True)
+                self._mw.freq_repetition_doubleSpinBox.setEnabled(True)
                 self._mw.runtime_DoubleSpinBox.setEnabled(True)
                 self._sd.clock_frequency_DoubleSpinBox.setEnabled(True)
                 self._sd.oversampling_SpinBox.setEnabled(True)
@@ -537,6 +546,7 @@ class AwgPulsedODMRGui(GUIBase):
             self._mw.delay_length_doubleSpinBox.setEnabled(True)
             self._mw.pi_pulse_length_doubleSpinBox.setEnabled(True)
             self._mw.single_sweep_time_doubleSpinBox.setEnabled(True)
+            self._mw.freq_repetition_doubleSpinBox.setEnabled(True)
             self._mw.runtime_DoubleSpinBox.setEnabled(True)
             self._sd.clock_frequency_DoubleSpinBox.setEnabled(True)
             self._sd.oversampling_SpinBox.setEnabled(True)
@@ -755,6 +765,12 @@ class AwgPulsedODMRGui(GUIBase):
             self._mw.single_sweep_time_doubleSpinBox.setValue(param)
             self._mw.single_sweep_time_doubleSpinBox.blockSignals(False)
 
+        param = param_dict.get('freq_repetition')
+        if param is not None:
+            self._mw.freq_repetition_doubleSpinBox.blockSignals(True)
+            self._mw.freq_repetition_doubleSpinBox.setValue(param)
+            self._mw.freq_repetition_doubleSpinBox.blockSignals(False)
+
         param = param_dict.get('run_time')
         if param is not None:
             self._mw.runtime_DoubleSpinBox.blockSignals(True)
@@ -819,8 +835,9 @@ class AwgPulsedODMRGui(GUIBase):
         laser_readout_length = self._mw.laser_readout_length_doubleSpinBox.value()
         delay_length = self._mw.delay_length_doubleSpinBox.value()
         pi_pulse_length = self._mw.pi_pulse_length_doubleSpinBox.value()
+        freq_repetition = self._mw.freq_repetition_doubleSpinBox.value()
 
-        self.sigPulseParamsChanged.emit(laser_readout_length, delay_length, pi_pulse_length)
+        self.sigPulseParamsChanged.emit(laser_readout_length, delay_length, pi_pulse_length, freq_repetition)
         return
 
     def change_sweep_params(self):

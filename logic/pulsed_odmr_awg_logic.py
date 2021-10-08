@@ -84,6 +84,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     delay_length = StatusVar('delay_length', 10e-9)
     laser_readout_length = StatusVar('laser_length', 3e-6)
     single_sweep_time = StatusVar('single_sweep_time', 1)
+    freq_rep = StatusVar('freq_repetition', 100)
 
     number_of_lines = StatusVar('number_of_lines', 50)
     fc = StatusVar('fits', None)
@@ -95,9 +96,10 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     # Sample set to default - 1.25 GSa/sec
     sample_rate = 1.25e9
-    digital_sync_length = 9e-9  # Synchronize analog and digital channels
+    # Synchronize analog and digital channels
+    digital_sync_length = 9e-9
+    # Null pulse to settle instruments
     null_pulse_length = 20e-9
-    freq_rep = 100
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -414,17 +416,22 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.cw_mw_frequency, self.cw_mw_power
 
-    def set_pulse_parameters(self, laser_readout_length, delay_length, pi_pulse_length):
-        self.laser_readout_length = laser_readout_length
-        self.delay_length = delay_length
-        self.pi_pulse_length = pi_pulse_length
+    def set_pulse_parameters(self, laser_readout_length, delay_length, pi_pulse_length, freq_repetition):
+        if self.module_state() != 'locked':
+            self.laser_readout_length = laser_readout_length
+            self.delay_length = delay_length
+            self.pi_pulse_length = pi_pulse_length
+            self.freq_rep = freq_repetition
 
-        self.single_sweep_pulse_length = self.null_pulse_length + (2 * self.null_pulse_length + self.laser_readout_length +
-                                                                   self.delay_length + self.pi_pulse_length) * self.freq_rep
-        self.single_sweep_pulse_samples = int(np.floor(self.sample_rate * self.single_sweep_pulse_length))
+            self.single_sweep_pulse_length = self.null_pulse_length + (
+                        2 * self.null_pulse_length + self.laser_readout_length +
+                        self.delay_length + self.pi_pulse_length) * self.freq_rep
+            self.single_sweep_pulse_samples = int(np.floor(self.sample_rate * self.single_sweep_pulse_length))
+        else:
+            self.log.warning('set_pulse_parameters failed. Logic is locked.')
 
         param_dict = {'laser_readout_length': self.laser_readout_length, 'delay_length': self.delay_length,
-                      'pi_pulse_length': self.pi_pulse_length}
+                      'pi_pulse_length': self.pi_pulse_length, 'freq_repetition': self.freq_rep}
         self.sigParameterUpdated.emit(param_dict)
 
         return self.laser_readout_length, self.delay_length, self.pi_pulse_length
@@ -493,149 +500,77 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
-    def list_to_waveform_pulsed_old(self, freq_list):
-        # Set up channels to be used
-        # I and Q channels
-        analog_samples = {'a_ch0': [], 'a_ch1': []}
-        # Laser, Readout and Switch channels
-        digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': []}
-
-        self.log.info(f"CW freq is {self.cw_mw_frequency}")
-
-        null_pulse_sample = np.zeros(int(np.floor(self.null_pulse_length * self.sample_rate)))
-        null_pulse_sample_inv = np.ones(int(np.floor(self.null_pulse_length * self.sample_rate)))
-
-        # Set up individual pulses for different channels
-        delay_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.delay_length)))
-        laser_readout_pulse_sample = np.ones(int(np.floor(self.sample_rate * self.laser_readout_length)))
-        switch_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.pi_pulse_length)))
-
-        laser_sequence = np.concatenate(
-            (
-                null_pulse_sample,
-                laser_readout_pulse_sample,
-                np.zeros(len(delay_pulse_sample) + len(switch_pulse_sample)),
-                null_pulse_sample
-            )
-        )
-        readout_sequence = np.concatenate(
-            (
-                null_pulse_sample,
-                laser_readout_pulse_sample,
-                np.zeros(len(delay_pulse_sample) + len(switch_pulse_sample)),
-                null_pulse_sample
-            )
-        )
-
-        switch_sequence = np.concatenate(
-            (
-                null_pulse_sample_inv,
-                np.ones(len(laser_readout_pulse_sample) + len(delay_pulse_sample)),
-                switch_pulse_sample,
-                null_pulse_sample_inv
-            )
-        )
-        total_sample_length = len(delay_pulse_sample) + len(switch_pulse_sample) + len(laser_readout_pulse_sample) + \
-                              2 * len(null_pulse_sample)
-        x = np.linspace(start=0, stop=total_sample_length, num=total_sample_length)
-        self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
-
-        # Write each frequency with pulse into channels
-        for norm_freq in self.norm_freq_list:
-            digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], null_pulse_sample)
-            digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], null_pulse_sample)
-            digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], null_pulse_sample_inv)
-            analog_samples['a_ch0'] = np.append(
-                analog_samples['a_ch0'],
-                null_pulse_sample
-            )
-            analog_samples['a_ch1'] = np.append(
-                analog_samples['a_ch1'],
-                null_pulse_sample
-            )
-
-            for _ in range(100):
-                digital_samples['d_ch0'] = np.append(digital_samples['d_ch0'], laser_sequence)
-                digital_samples['d_ch1'] = np.append(digital_samples['d_ch1'], readout_sequence)
-                digital_samples['d_ch2'] = np.append(digital_samples['d_ch2'], switch_sequence)
-
-                analog_samples['a_ch0'] = np.append(
-                    analog_samples['a_ch0'],
-                    np.sin(2 * np.pi * norm_freq * x)
-                )
-                analog_samples['a_ch1'] = np.append(
-                    analog_samples['a_ch1'],
-                    np.sin(2 * np.pi * norm_freq * x - np.pi / 2)
-                )
-
-        self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
-        self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
-
-        return analog_samples, digital_samples
-
     def list_to_waveform_pulsed(self, freq_list):
-        # TODO: Add other channels too
-        # Set up channels to be used
         # I and Q channels
         analog_samples = {'a_ch0': [], 'a_ch1': []}
         # Laser, Readout and Switch channels
         digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': []}
 
-        self.log.info(f"CW freq is {self.cw_mw_frequency}")
-
-        single_sweep_pulse_length = self.null_pulse_length + (self.delay_length + self.pi_pulse_length +
-                                                       self.laser_readout_length + 2 * self.null_pulse_length) * self.freq_rep
-        single_sweep_pulse_samples = int(single_sweep_pulse_length * self.sample_rate * len(freq_list))
-
-        delay_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.delay_length)))
-        switch_pulse_sample = np.zeros(int(np.floor(self.sample_rate * self.pi_pulse_length)))
-        null_pulse_sample = np.zeros(int(np.floor(self.null_pulse_length * self.sample_rate)))
-        laser_readout_pulse_sample = np.ones(int(np.floor(self.sample_rate * self.laser_readout_length)))
-
-        laser_sequence = np.zeros(single_sweep_pulse_samples)
-
         self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
 
-        idxa = 0
-        for freq in freq_list:
-            idxb = idxa + len(null_pulse_sample)
-            laser_sequence[idxa:idxb] = np.zeros(idxb - idxa)
-            print("-------")
+        # Length of a single pulse sequence (laser - delay - pi - wait)
+        single_pulse_length = self.laser_readout_length + self.delay_length + self.pi_pulse_length + \
+                              2 * self.null_pulse_length
+        single_pulse_samples = int(single_pulse_length * self.sample_rate)
 
-            print("a", idxa)
+        # Length of a single frequency (single pulse * frequency repetition rate)
+        single_freq_pulse_length = self.null_pulse_length + single_pulse_length * self.freq_rep
+        single_freq_pulse_samples = int(single_freq_pulse_length * self.sample_rate)
 
-            print("b", idxb)
+        # Length of a full frequency sweep (single frequency * frequency list)
+        single_sweep_pulse_samples = int(single_freq_pulse_samples * len(freq_list))
 
-            idx4 = idxb
-            for idx_freq_rep in range(self.freq_rep):
-                idx1 = idx4
-                print("1", idx1)
+        if single_sweep_pulse_samples > 130e6:
+            self.log.warning("The number of samples is above 130 million, uploading to AWG will fail")
 
-                idx2 = idx1 + len(null_pulse_sample)
-                laser_sequence[idx1:idx2] = np.zeros(idx2 - idx1)
-                print("2", idx2)
+        # Set up all the pulse lengths
+        delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
+        switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
+        null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
+        laser_readout_pulse_sample = int(np.floor(self.sample_rate * self.laser_readout_length))
 
-                idx3 = idx2 + len(laser_readout_pulse_sample)
-                laser_sequence[idx2:idx3] = np.ones(idx3 - idx2)
-                print("3", idx3)
+        # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
+        i_samples = np.zeros(single_sweep_pulse_samples)
+        q_samples = np.zeros(single_sweep_pulse_samples)
+        laser_samples = np.zeros(single_sweep_pulse_samples)
+        readout_samples = np.zeros(single_sweep_pulse_samples)
+        switch_samples = np.ones(single_sweep_pulse_samples)
 
-                idx4 = idx3 + len(delay_pulse_sample) + len(switch_pulse_sample) + len(null_pulse_sample)
-                print("4", idx4)
-                laser_sequence[idx3:idx4] = np.zeros(idx4 - idx3)
+        # All channels indexes are relative to the current_freq_idx
+        current_freq_idx = 0
+        for norm_freq in self.norm_freq_list:
+            end_freq_idx = current_freq_idx + single_freq_pulse_samples
+            # I and Q are switch on for the whole duration of the freq repetition pulses
+            i_samples[current_freq_idx:end_freq_idx] = np.sin(
+                2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples))
+            q_samples[current_freq_idx:end_freq_idx] = np.sin(
+                2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples) - np.pi / 2)
 
-                print("******")
+            for _ in range(self.freq_rep):
+                # Null pulses are added to take into account the settling time of the instruments
+                single_freq_start = current_freq_idx + null_pulse_sample * 2
 
-            idxa = idx4
+                laser_start = single_freq_start
+                laser_stop = laser_start + laser_readout_pulse_sample
 
-        digital_samples['d_ch0'] = laser_sequence
-        digital_samples['d_ch1'] = laser_sequence
-        digital_samples['d_ch2'] = laser_sequence
+                switch_start = single_freq_start + delay_pulse_sample
+                switch_stop = switch_start + switch_pulse_sample
 
-        analog_samples['a_ch0'] = laser_sequence
-        analog_samples['a_ch1'] = laser_sequence
+                laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                switch_samples[switch_start:switch_stop] = np.zeros(switch_stop - switch_start)
 
-        self.log.info(f"a_ch0 array size is {np.size(analog_samples['a_ch0'])}")
-        self.log.info(f"d_ch0 array size is {np.size(digital_samples['d_ch0'])}")
+                current_freq_idx += single_pulse_samples
+
+        # Digital and analog channels are mapped to the sequences
+        digital_samples['d_ch0'] = laser_samples
+        digital_samples['d_ch1'] = readout_samples
+        digital_samples['d_ch2'] = switch_samples
+
+        analog_samples['a_ch0'] = i_samples
+        analog_samples['a_ch1'] = q_samples
+
+        self.log.info(f"Generated analog and digital arrays")
 
         return analog_samples, digital_samples
 
@@ -928,12 +863,6 @@ class AwgPulsedODMRLogic(GenericLogic):
             # Get the mean across average_factor
             new_counts = np.mean(new_counts, axis=0)
 
-            # Average the sweeps, turning the long array into a short one (whose length is the number of frequencies)
-            # new_counts = np.reshape(a=new_counts, newshape=(100, len(self.freq_list)))
-            # new_counts = np.mean(new_counts, axis=0)
-            # new_counts = np.reshape(a=new_counts, newshape=(self.average_factor, len(self.freq_list)))
-            # new_counts = np.mean(new_counts, axis=0)
-
             # Add new count data to raw_data array and append if array is too small
             if self._clearOdmrData:
                 self.odmr_raw_data[:, :, :] = 0
@@ -1072,6 +1001,10 @@ class AwgPulsedODMRLogic(GenericLogic):
             parameters['Step size (Hz)'] = self.mw_step
             parameters['Clock Frequency (Hz)'] = self.clock_frequency
             parameters['Channel'] = '{0}: {1}'.format(nch, channel)
+            parameters['Laser readout length´(s)'] = self.laser_readout_length
+            parameters['Delay Length (s)'] = self.delay_length
+            parameters['Pi pulse length (s)'] = self.pi_pulse_length
+
             if self.fc.current_fit != 'No Fit':
                 parameters['Fit function'] = self.fc.current_fit
 

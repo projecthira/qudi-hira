@@ -683,6 +683,20 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Frequency Repetition</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QDoubleSpinBox" name="freq_repetition_doubleSpinBox">
+       <property name="decimals">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
