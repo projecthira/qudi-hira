@@ -48,6 +48,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
     _z_scanner = ConfigOption("z_scanner", default=None)
     _controllername = ConfigOption("controllername", missing="error")
+    fine_scanning_mode = True
     _refmodes = None
     pidevice = None
 
@@ -207,6 +208,15 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         """
         pass
 
+    def set_fine_scanning_mode(self, mode):
+        """
+        Switch between fine and coarse scanning
+        @param mode: bool, values can be True (fine) and False (coarse)
+        @return:
+        """
+        self.fine_scanning_mode = mode
+        return 0
+
     def scanner_set_position(self, x=None, y=None, z=None, a=None):
         """Move stage to x, y, z, a (where a is the fourth voltage channel).
 
@@ -268,9 +278,10 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         # Takes longer but does more error checking
         # pitools.waitontarget(self.pidevice, axes=axes)
 
-        # Check if axes have reached the target.
-        while not all(list(self.pidevice.qONT(axes).values())):
-            time.sleep(0.04)
+        if self.fine_scanning_mode:
+            # Check if axes have reached the target.
+            while not all(list(self.pidevice.qONT(axes).values())):
+                time.sleep(0.04)
         return 0
 
     def get_scanner_position(self):

@@ -57,6 +57,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         self._current_position = [0., 0., 0., 0.][0:len(self._scanner_hw.get_scanner_axes())]
         self._position_range = self.get_position_range()
 
+        self.fine_scanning_mode = self._scanner_hw.fine_scanning_mode
+
     def on_deactivate(self):
         self.reset_hardware()
 
@@ -207,4 +209,8 @@ class SlowCounterScannerInterfuse(Base, ConfocalScannerInterface):
         """
         # self._scanner_hw.close_scanner_clock()
         self.log.debug("Lying to ConfocalLogic : close_scanner_clock")
+        return 0
+
+    def set_fine_scanning_mode(self, mode):
+        self._scanner_hw.set_fine_scanning_mode(mode)
         return 0

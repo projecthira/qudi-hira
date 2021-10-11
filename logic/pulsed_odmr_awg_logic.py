@@ -44,17 +44,6 @@ from interface.microwave_interface import TriggerEdge
 from logic.generic_logic import GenericLogic
 
 
-# A temporary function to debug the code
-def save_count_data(index, data):
-    path = 'C:\\Users\\finklera\\Desktop\\temp_count_data\\'
-    filename = path + 'count_rate_' + str(index) + '.txt'
-    file = open(filename, 'w')
-    file.write(str(data))
-    file.close()
-    print('Count data saved to file')
-    return
-
-
 class AwgPulsedODMRLogic(GenericLogic):
     """This is the Logic class for ODMR."""
     _modclass = 'odmrlogic'
@@ -145,6 +134,10 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
         self.mw_trigger_pol = TriggerEdge.RISING
+
+        self.single_sweep_pulse_length = self.null_pulse_length + (2 * self.null_pulse_length +
+                                                                   self.laser_readout_length + self.delay_length +
+                                                                   self.pi_pulse_length) * self.freq_rep
 
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
@@ -618,7 +611,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._awg_device.set_analog_level(amplitude={'a_ch0': v_peak, 'a_ch1': v_peak})
 
         analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
-        print(len(analog_samples['a_ch0']))
         num_of_samples, waveform_names = self._awg_device.write_waveform(name='pulsedODMR',
                                                                          analog_samples=analog_samples,
                                                                          digital_samples=digital_samples,

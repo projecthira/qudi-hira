@@ -380,6 +380,7 @@ class ConfocalGui(GUIBase):
         # Take the default values from logic:
         self._mw.xy_res_InputWidget.setValue(self._scanning_logic.xy_resolution)
         self._mw.z_res_InputWidget.setValue(self._scanning_logic.z_resolution)
+        self._mw.fineScannercheckBox.setChecked(self._scanning_logic.fine_scanning_mode)
 
         # Update the inputed/displayed numbers if the cursor has left the field:
         self._mw.x_current_InputWidget.editingFinished.connect(self.update_from_input_x)
@@ -544,6 +545,8 @@ class ConfocalGui(GUIBase):
 
         # Blink correction
         self._mw.actionBlink_correction_view.triggered.connect(self.blink_correction_clicked)
+
+        self._mw.fineScannercheckBox.stateChanged.connect(self.set_fine_scanning_mode)
 
         ###################################################################
         #               Icons for the scan actions                        #
@@ -869,6 +872,13 @@ class ConfocalGui(GUIBase):
                 a=0.0
             )
         self.enable_scan_actions()
+
+    def set_fine_scanning_mode(self):
+        mode = self._mw.fineScannercheckBox.isChecked()
+        if mode:
+            self._scanning_logic.set_fine_scanning_mode(True)
+        else:
+            self._scanning_logic.set_fine_scanning_mode(False)
 
     def set_history_actions(self, enable):
         """ Enable or disable history arrows taking history state into account. """

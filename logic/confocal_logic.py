@@ -277,6 +277,7 @@ class ConfocalLogic(GenericLogic):
     signal_tilt_correction_update = QtCore.Signal()
     signal_draw_figure_completed = QtCore.Signal()
     signal_position_changed = QtCore.Signal()
+    signal_fine_scanning_active = QtCore.Signal(bool)
 
     _signal_save_xy = QtCore.Signal(object, object, str)
     _signal_save_depth = QtCore.Signal(object, object)
@@ -311,6 +312,8 @@ class ConfocalLogic(GenericLogic):
         self.y_range = self._scanning_device.get_position_range()[1]
         self.z_range = self._scanning_device.get_position_range()[2]
 
+        self.fine_scanning_mode = self._scanning_device.fine_scanning_mode
+
         # restore here ...
         self.history = []
         for i in reversed(range(1, self.max_history_length)):
@@ -343,6 +346,7 @@ class ConfocalLogic(GenericLogic):
         self.signal_scan_lines_next.connect(self._scan_line, QtCore.Qt.QueuedConnection)
         self.signal_start_scanning.connect(self.start_scanner, QtCore.Qt.QueuedConnection)
         self.signal_continue_scanning.connect(self.continue_scanner, QtCore.Qt.QueuedConnection)
+        self.signal_fine_scanning_active.connect(self.set_fine_scanning_mode, QtCore.Qt.QueuedConnection)
 
         self._signal_save_xy.connect(self._save_xy_data, QtCore.Qt.QueuedConnection)
         self._signal_save_depth.connect(self._save_depth_data, QtCore.Qt.QueuedConnection)
@@ -684,6 +688,12 @@ class ConfocalLogic(GenericLogic):
             self._change_position(tag)
             self.signal_change_position.emit(tag)
             return 0
+
+    @QtCore.Slot(bool)
+    def set_fine_scanning_mode(self, mode):
+        self.fine_scanning_mode = mode
+        self._scanning_device.set_fine_scanning_mode(self.fine_scanning_mode)
+        return 0
 
     def _change_position(self, tag):
         """ Threaded method to change the hardware position.
