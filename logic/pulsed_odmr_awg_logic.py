@@ -717,7 +717,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             # if self.average_factor < 100:
             #    self.average_factor = 100
 
-            sweep_bin_num = self.average_factor * len(self.freq_list) * 100
+            sweep_bin_num = self.average_factor * len(self.freq_list) * self.freq_rep
             self._odmr_counter.set_odmr_length(length=sweep_bin_num)
 
             odmr_status = self._start_odmr_counter()
@@ -849,7 +849,7 @@ class AwgPulsedODMRLogic(GenericLogic):
                 return
 
             # Reshaping the array into (average_factor, num_of_freq, freq_rep)
-            new_counts = np.reshape(new_counts, newshape=(self.average_factor, len(self.freq_list), 100))
+            new_counts = np.reshape(new_counts, newshape=(self.average_factor, len(self.freq_list), self.freq_rep))
             # Get the mean across freq_rep
             new_counts = np.mean(new_counts, axis=2)
             # Get the mean across average_factor
