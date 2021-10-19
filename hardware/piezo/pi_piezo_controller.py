@@ -57,6 +57,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
             @return: error code (0:OK, -1:error)
         """
+        self.sleeper = 0.02
         try:
             self.pidevice = GCSDevice(self._controllername)
             self.pidevice.ConnectTCPIP(self._ipaddress, self._ipport)
@@ -275,13 +276,18 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         except Exception as exc:
             self.log.error(f"Exception when moving: {exc}")
             return -1
+
         # Takes longer but does more error checking
         # pitools.waitontarget(self.pidevice, axes=axes)
 
         if self.fine_scanning_mode:
             # Check if axes have reached the target.
             while not all(list(self.pidevice.qONT(axes).values())):
-                time.sleep(0.04)
+                # Can go as low as 1 ms
+                time.sleep(self.sleeper)
+        else:
+            #
+            time.sleep(self.sleeper)
         return 0
 
     def get_scanner_position(self):

@@ -138,6 +138,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         # The present laser output power in watts
         response = self._communicate('sh pow')
         power = float(re.search('PIC  = (.*) uW', response).group(1)) * 1e-6
+        # TODO: Catch AttributeError
         return power
 
     def get_power_setpoint(self):

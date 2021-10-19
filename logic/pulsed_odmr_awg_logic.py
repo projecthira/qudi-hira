@@ -27,7 +27,6 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import datetime
 import time
 from collections import OrderedDict
 from datetime import datetime
@@ -960,7 +959,7 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
-        timestamp = datetime.datetime.now()
+        timestamp = datetime.now()
 
         if tag is None:
             tag = ''
@@ -996,6 +995,8 @@ class AwgPulsedODMRLogic(GenericLogic):
             parameters['Laser readout length´(s)'] = self.laser_readout_length
             parameters['Delay Length (s)'] = self.delay_length
             parameters['Pi pulse length (s)'] = self.pi_pulse_length
+            parameters['Frequency repetition'] = self.freq_rep
+            parameters['Single sweep time (s)'] = self.single_sweep_time
 
             if self.fc.current_fit != 'No Fit':
                 parameters['Fit function'] = self.fc.current_fit
