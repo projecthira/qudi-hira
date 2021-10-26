@@ -139,7 +139,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.delay_length_doubleSpinBox.setMinimum(0)
         self._mw.pi_pulse_length_doubleSpinBox.setMinimum(0)
         self._mw.freq_repetition_doubleSpinBox.setMinimum(0)
-        self._mw.freq_repetition_doubleSpinBox.setMaximum(200)
+        self._mw.freq_repetition_doubleSpinBox.setMaximum(10000)
 
         # Add save file tag input box
         self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)

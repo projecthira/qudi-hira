@@ -48,7 +48,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
     _y_scanner = ConfigOption("y_scanner", default='2', missing="warn")
     _z_scanner = ConfigOption("z_scanner", default=None)
     _controllername = ConfigOption("controllername", missing="error")
-    fine_scanning_mode = True
+    fine_scanning_mode = ConfigOption("fine_scanning_mode", default=False, missing="warn")
     _refmodes = None
     pidevice = None
 
