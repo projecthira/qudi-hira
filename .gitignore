@@ -22,8 +22,6 @@
 
 /saved_pulsed_assets
 
-/notebooks/scanfile.txt
-
 # Simulated Subversion default ignores end here
 # The contents of the svn:ignore property on the branch root.
 /crash.log
