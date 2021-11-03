@@ -266,7 +266,11 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
                 # ALL axes can move. All axes start moving simultaneously.
                 # Servo must be enabled for all commanded axes prior to using this command.
-                self.pidevice.MOV(axes=axes, values=[x*1.e6, y*1.e6])
+
+                # Transform x and y position
+                x_pos = (x / 4) * 1e9
+                y_pos = (y / 4) * 1e9
+                self.pidevice.MOV(axes=axes, values=[x_pos, y_pos])
             else:
                 axes = [self._x_scanner, self._y_scanner, self._z_scanner]
                 # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
@@ -297,7 +301,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         """
         position = self.pidevice.qPOS()
         if self._z_scanner is None:
-            return [position['1'] * 1e-6, position['2'] * 1e-6, 0., 0.]
+            return [position['1'] * 4 * 1e-3, position['2'] * 4 * 1e-3, 0., 0.]
         else:
             self.log.error(position)
             return [position['1'] * 1e-6, position['2'] * 1e-6, position['3'] * 1e-6, 0.]
