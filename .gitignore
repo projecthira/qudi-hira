@@ -35,4 +35,4 @@
 *.log
 *.log.*
 
-/hardware/nanonis/scanfile.txt
+hardware/nanonis/scanfile.txt
