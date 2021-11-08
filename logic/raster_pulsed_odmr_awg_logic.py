@@ -43,13 +43,14 @@ from interface.microwave_interface import TriggerEdge
 from logic.generic_logic import GenericLogic
 
 
-class AwgPulsedODMRLogic(GenericLogic):
+class RasterAwgPulsedODMRLogic(GenericLogic):
     """This is the Logic class for ODMR."""
     _modclass = 'odmrlogic'
     _modtype = 'logic'
 
     # declare connectors
     odmrcounter = Connector(interface='ODMRCounterInterface')
+    scanner = Connector(interface="MotorInterface")
     fitlogic = Connector(interface='FitLogic')
     microwave1 = Connector(interface='MicrowaveInterface')
     pulsegenerator = Connector(interface='PulserInterface')
@@ -110,6 +111,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         # Get connectors
         self._mw_device = self.microwave1()
         self._awg_device = self.pulsegenerator()
+        self._nanonis_scanner = self.scanner()
         self._fit_logic = self.fitlogic()
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
@@ -748,6 +750,35 @@ class AwgPulsedODMRLogic(GenericLogic):
                  len(self._odmr_counter.get_odmr_channels()),
                  self.odmr_plot_x.size]
             )
+
+            self.log.info("Triggered, waiting 20s for Nanonis scanfile..")
+            idx = 0
+            while True:
+                idx += 1
+                if self._nanonis_scanner.get_status()["nanonis_running"]:
+                    total_rows, total_cols = self._nanonis_scanner.get_pos(param_list=["total"]).values()
+
+                    self.scan_odmr_data = np.zeros((total_rows, total_cols, self.odmr_plot_x.size))
+
+                    while True:
+                        try:
+                            self.row, self.col = self._nanonis_scanner.get_pos(param_list=["current"]).values()
+                            self.row, self.col = -2, -2
+                            time.sleep(0.01)
+                        except ValueError as exc:
+                            time.sleep(0.05)
+                        else:
+                            break
+                    self.log.info("Found Nanonis scanfile, scanning..")
+                    break
+                elif idx == 4000:
+                    self.log.info("Didn't find Nanonis scanfile, stopping..")
+                    self.stopRequested = True
+                    break
+                else:
+                    time.sleep(0.005)
+            self.timestamp = datetime.now()
+
             self.sigNextLine.emit()
             return 0
 
@@ -824,12 +855,20 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return
 
-            # # if during the scan a clearing of the ODMR data is needed:
-            # if self._clearOdmrData:
-            #     self.elapsed_sweeps = 0
-            #     self._startTime = time.time()
+            current_row, current_col = self._nanonis_scanner.get_pos(param_list=["current"]).values()
 
-            # reset position so every line starts from the same frequency
+            if current_row == -1 and current_col == -1:
+                self.stopRequested = True
+                self.sigNextLine.emit()
+            if current_row != self.row or current_col != self.col:
+                self.elapsed_sweeps = 0
+                self._startTime = time.time()
+                self.log.info(f"Row = {current_row}, Col = {current_col}")
+                self.row = current_row
+                self.col = current_col
+                self.save_odmr_data()
+                self._clearOdmrData = True
+
             self._odmr_counter.clear_odmr()
 
             self._awg_device.pulser_on()
@@ -890,6 +929,8 @@ class AwgPulsedODMRLogic(GenericLogic):
                     axis=0,
                     dtype=np.float64
                 )
+
+            self.scan_odmr_data[self.row, self.col] = self.odmr_plot_y
 
             # Set plot slice of matrix
             self.odmr_plot_xy = self.odmr_raw_data[:self.number_of_lines, :, :]
@@ -959,7 +1000,8 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
-        timestamp = datetime.now()
+
+        timestamp = self.timestamp
 
         if tag is None:
             tag = ''
@@ -973,13 +1015,14 @@ class AwgPulsedODMRLogic(GenericLogic):
                 filelabel2 = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
             else:
                 filelabel = 'ODMR_data_ch{0}'.format(nch)
-                filelabel2 = 'ODMR_data_ch{0}_raw'.format(nch)
+                filelabel2 = 'ODMR_data_ch{0}_raw_{1}_{2}'.format(nch,
+                                                                  *self._nanonis_scanner.get_pos(["current"]).values())
 
             # prepare the data in a dict or in an OrderedDict:
             data = OrderedDict()
             data2 = OrderedDict()
             data['frequency (Hz)'] = self.odmr_plot_x
-            data['count data (counts/s)'] = self.odmr_plot_y[nch]
+            data['count data (counts/s)'] = self.scan_odmr_data
             data2['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
 
             parameters = OrderedDict()
@@ -1005,19 +1048,14 @@ class AwgPulsedODMRLogic(GenericLogic):
             for name, param in self.fc.current_fit_param.items():
                 parameters[name] = str(param)
 
-            fig = self.draw_figure(
-                nch,
-                cbar_range=colorscale_range,
-                percentile_range=percentile_range)
-
             self._save_logic.save_data(data,
                                        filepath=filepath,
+                                       filetype="npz",
                                        parameters=parameters,
                                        filelabel=filelabel,
                                        fmt='%.6e',
                                        delimiter='\t',
-                                       timestamp=timestamp,
-                                       plotfig=fig)
+                                       timestamp=timestamp)
 
             self._save_logic.save_data(data2,
                                        filepath=filepath2,

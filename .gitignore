@@ -34,3 +34,5 @@
 # log files
 *.log
 *.log.*
+
+/hardware/nanonis/scanfile.txt

@@ -388,8 +388,9 @@ class SaveLogic(GenericLogic):
                     found_1d = True
                     max_row_num += 1
             else:
-                self.log.error('Found data array with dimension >2. Unable to save data.')
-                return -1
+                if filetype != "npz":
+                    self.log.error('Found data array with dimension >2. Unable to save data.')
+                    return -1
 
             # determine array data types
             if len(arr_dtype) > 0:
