@@ -965,8 +965,8 @@ class AwgPulsedODMRLogic(GenericLogic):
             tag = ''
         for nch, channel in enumerate(self.get_odmr_channels()):
             # two paths to save the raw data and the odmr scan data.
-            filepath = self._save_logic.get_path_for_module(module_name='ODMR')
-            filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
+            filepath = self._save_logic.get_path_for_module(module_name='pulsedODMR')
+            filepath2 = self._save_logic.get_path_for_module(module_name='pulsedODMR')
 
             if len(tag) > 0:
                 filelabel = '{0}_ODMR_data_ch{1}'.format(tag, nch)

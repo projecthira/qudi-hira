@@ -14,7 +14,7 @@
    <enum>Qt::DefaultContextMenu</enum>
   </property>
   <property name="windowTitle">
-   <string>qudi-hira: pulsedODMR (AWG)</string>
+   <string>qudi-hira: Raster pulsedODMR (AWG)</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">

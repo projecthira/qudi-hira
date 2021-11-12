@@ -860,7 +860,8 @@ class RasterAwgPulsedODMRLogic(GenericLogic):
             if current_row == -1 and current_col == -1:
                 self.stopRequested = True
                 self.sigNextLine.emit()
-            if current_row != self.row or current_col != self.col:
+                self.log.info(f"Raster scan complete")
+            elif current_row != self.row or current_col != self.col:
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
                 self.log.info(f"Row = {current_row}, Col = {current_col}")
@@ -1007,23 +1008,23 @@ class RasterAwgPulsedODMRLogic(GenericLogic):
             tag = ''
         for nch, channel in enumerate(self.get_odmr_channels()):
             # two paths to save the raw data and the odmr scan data.
-            filepath = self._save_logic.get_path_for_module(module_name='ODMR')
-            filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
+            filepath = self._save_logic.get_path_for_module(module_name='rasterODMR')
+            # filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
 
             if len(tag) > 0:
                 filelabel = '{0}_ODMR_data_ch{1}'.format(tag, nch)
-                filelabel2 = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
+                # filelabel2 = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
             else:
                 filelabel = 'ODMR_data_ch{0}'.format(nch)
-                filelabel2 = 'ODMR_data_ch{0}_raw_{1}_{2}'.format(nch,
-                                                                  *self._nanonis_scanner.get_pos(["current"]).values())
+                # filelabel2 = 'ODMR_data_ch{0}_raw_{1}_{2}'.format(nch,
+                #                                                   *self._nanonis_scanner.get_pos(["current"]).values())
 
             # prepare the data in a dict or in an OrderedDict:
             data = OrderedDict()
-            data2 = OrderedDict()
+            # data2 = OrderedDict()
             data['frequency (Hz)'] = self.odmr_plot_x
             data['count data (counts/s)'] = self.scan_odmr_data
-            data2['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
+            # data2['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
 
             parameters = OrderedDict()
             parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
@@ -1057,15 +1058,15 @@ class RasterAwgPulsedODMRLogic(GenericLogic):
                                        delimiter='\t',
                                        timestamp=timestamp)
 
-            self._save_logic.save_data(data2,
-                                       filepath=filepath2,
-                                       parameters=parameters,
-                                       filelabel=filelabel2,
-                                       fmt='%.6e',
-                                       delimiter='\t',
-                                       timestamp=timestamp)
+            # self._save_logic.save_data(data2,
+            #                            filepath=filepath2,
+            #                            parameters=parameters,
+            #                            filelabel=filelabel2,
+            #                            fmt='%.6e',
+            #                            delimiter='\t',
+            #                            timestamp=timestamp)
 
-            self.log.info('ODMR data saved to:\n{0}'.format(filepath))
+            # self.log.info('ODMR data saved to:\n{0}'.format(filepath))
         return
 
     def draw_figure(self, channel_number, cbar_range=None, percentile_range=None):
