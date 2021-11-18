@@ -1,12 +1,13 @@
 import csv
 import time
 
+from typing import Tuple
 import numpy as np
 import visa
 from RsInstrument import RsInstrument
 
 
-def read_from_dat(filepath: str):
+def read_from_dat(filepath: str) -> Tuple[list,list]:
     output_frequency, output_power = [], []
     with open(filepath, 'r') as file:
         reader = csv.reader(file, delimiter=';')
@@ -21,7 +22,7 @@ def read_from_dat(filepath: str):
     return output_frequency, output_power
 
 
-def read_from_csv(filepath: str):
+def read_from_csv(filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     frequency, power, corrected_power = [], [], []
     with open(filepath, 'r') as file:
         reader = csv.reader(file)
@@ -45,7 +46,7 @@ def write_to_csv(frequency: list, power: list, corrected_power: list, filepath: 
             writer.writerow({'Frequency': f, 'Power': p, "Corrected_Power": cp})
 
 
-def generate_f_p_strings(frequency, power):
+def generate_f_p_strings(frequency, power) -> Tuple[str, str]:
     if not len(frequency) == len(power):
         raise ValueError()
 
@@ -67,6 +68,32 @@ def get_corrected_power(power: np.ndarray):
     return -power - (np.max(-power) - 30)
 
 
+# Save and load ZVL traces
+def save_trace(frequency: list, power: list, filepath: str):
+    with open(filepath, "w", newline="") as file:
+        header = ['Frequency', 'Power']
+        writer = csv.DictWriter(file, fieldnames=header)
+
+        writer.writeheader()
+        for f, p in zip(frequency, power):
+            writer.writerow({'Frequency': f, 'Power': p})
+    print(f"Trace saved to {filepath}")
+
+
+def load_trace(filepath: str) -> Tuple[np.ndarray, np.ndarray]:
+    frequency, power = [], []
+
+    with open(filepath, 'r') as file:
+        reader = csv.reader(file)
+        for idx, row in enumerate(reader):
+            if idx == 0:
+                continue
+            frequency.append(float(row[0]))
+            power.append(float(row[1]))
+
+    return np.array(frequency), np.array(power)
+
+
 class RohdeSchwarzZVL:
     def __init__(self, address: str):
         self.instr = RsInstrument(address)
@@ -76,9 +103,12 @@ class RohdeSchwarzZVL:
     def convert_str_to_float_list(string: str):
         return list(map(float, string.split(",")))
 
-    def get_trace(self, points: int = 1000):
+    def get_trace(self, points: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
+        print("Measuring trace...")
+
         self.instr.write_str(f'SWE:POIN {points}')
         time.sleep(1.5)
+
         self.instr.write_str('CALC:FORM MLOG; :FORM ASCII; FORM:DEXP:SOUR FDAT')
         time.sleep(1.5)
 
