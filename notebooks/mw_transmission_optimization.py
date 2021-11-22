@@ -141,3 +141,6 @@ class MWSMF100A:
     def load_user_correction_and_turn_on(self, name: str):
         self.inst.write(f"SOUR:CORR:CSET '/var/user/{name}'")
         self.inst.write("SOUR:CORR ON")
+
+    def disable_user_correction(self):
+        self.inst.write("SOUR:CORR OFF")

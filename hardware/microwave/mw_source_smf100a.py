@@ -373,6 +373,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         limits.sweep_minstep = 1.e-3
         limits.sweep_maxstep = 22e9
+        limits.list_maxentries = 100
 
         limits.min_power = -30
         limits.max_power = 30

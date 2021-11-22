@@ -411,10 +411,11 @@ class ConfocalLogic(GenericLogic):
 
         if self._zscan:
             self._zscan_continuable = True
+            self._scanning_device.scanner_set_position(z=self.z_range[0])
         else:
             self._xyscan_continuable = True
 
-        self._scanning_device.scanner_set_position(self.x_range[0], self.y_range[0])
+        self._scanning_device.scanner_set_position(x=self.x_range[0], y=self.y_range[0])
 
         self.signal_start_scanning.emit(tag)
         self.signal_scan_lines_next.emit()
