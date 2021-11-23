@@ -426,3 +426,26 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         while int(float(self.inst.query('*OPC?'))) != 1:
             time.sleep(0.1)
         return
+
+    # Additional functionality for power transmission flattening
+    def enable_user_correction(self):
+        self.inst.write("SOUR:CORR ON")
+
+    def disable_user_correction(self):
+        self.inst.write("SOUR:CORR OFF")
+
+    def create_user_correction_file(self, name: str):
+        self.inst.write(f"CORR:CSET '/var/user/{name}'")
+        self.inst.write(f"CORR:DEXC:SEL '/var/user/{name}'")
+        return name
+
+    def write_string_to_device(self, frequency_string: str, power_string: str):
+        self.inst.write(f"CORR:CSET:DATA:FREQ {frequency_string}")
+        self.inst.write(f"CORR:CSET:DATA:POW {power_string}")
+
+    def check_number_of_points(self):
+        return self.inst.query("CORR:CSET:DATA:FREQ:POIN?"), self.inst.query("CORR:CSET:DATA:POW:POIN?")
+
+    def load_user_correction_and_turn_on(self, name: str):
+        self.inst.write(f"SOUR:CORR:CSET '/var/user/{name}'")
+        self.enable_user_correction()
