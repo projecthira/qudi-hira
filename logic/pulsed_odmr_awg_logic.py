@@ -513,58 +513,58 @@ class AwgPulsedODMRLogic(GenericLogic):
         single_sweep_pulse_samples = int(single_freq_pulse_samples * len(freq_list))
 
         if single_sweep_pulse_samples > 130e6:
-            self.log.warning("The number of samples is above 130 million, uploading to AWG will fail")
+            self.log.error("The number of samples is above the AWG memory limit. Stopping ODMR.")
+            return False, False
+        else:
+            # Set up all the pulse lengths
+            delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
+            switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
+            null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
+            laser_readout_pulse_sample = int(np.floor(self.sample_rate * self.laser_readout_length))
 
-        # Set up all the pulse lengths
-        delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
-        switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
-        null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
-        laser_readout_pulse_sample = int(np.floor(self.sample_rate * self.laser_readout_length))
+            # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
+            i_samples = np.zeros(single_sweep_pulse_samples)
+            q_samples = np.zeros(single_sweep_pulse_samples)
+            laser_samples = np.zeros(single_sweep_pulse_samples)
+            readout_samples = np.zeros(single_sweep_pulse_samples)
+            switch_samples = np.ones(single_sweep_pulse_samples)
 
-        # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
-        i_samples = np.zeros(single_sweep_pulse_samples)
-        q_samples = np.zeros(single_sweep_pulse_samples)
-        laser_samples = np.zeros(single_sweep_pulse_samples)
-        readout_samples = np.zeros(single_sweep_pulse_samples)
-        switch_samples = np.ones(single_sweep_pulse_samples)
+            # All channels indexes are relative to the current_freq_idx
+            current_freq_idx = 0
+            for norm_freq in self.norm_freq_list:
+                end_freq_idx = current_freq_idx + single_freq_pulse_samples
+                # I and Q are switch on for the whole duration of the freq repetition pulses
+                i_samples[current_freq_idx:end_freq_idx] = np.sin(
+                    2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples))
+                q_samples[current_freq_idx:end_freq_idx] = np.sin(
+                    2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples) - np.pi / 2)
 
-        # All channels indexes are relative to the current_freq_idx
-        current_freq_idx = 0
-        for norm_freq in self.norm_freq_list:
-            end_freq_idx = current_freq_idx + single_freq_pulse_samples
-            # I and Q are switch on for the whole duration of the freq repetition pulses
-            i_samples[current_freq_idx:end_freq_idx] = np.sin(
-                2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples))
-            q_samples[current_freq_idx:end_freq_idx] = np.sin(
-                2 * np.pi * norm_freq * np.arange(single_freq_pulse_samples) - np.pi / 2)
+                for _ in range(self.freq_rep):
+                    # Null pulses are added to take into account the settling time of the instruments
+                    single_freq_start = current_freq_idx + null_pulse_sample * 2
 
-            for _ in range(self.freq_rep):
-                # Null pulses are added to take into account the settling time of the instruments
-                single_freq_start = current_freq_idx + null_pulse_sample * 2
+                    laser_start = single_freq_start
+                    laser_stop = laser_start + laser_readout_pulse_sample
 
-                laser_start = single_freq_start
-                laser_stop = laser_start + laser_readout_pulse_sample
+                    switch_start = single_freq_start + delay_pulse_sample
+                    switch_stop = switch_start + switch_pulse_sample
 
-                switch_start = single_freq_start + delay_pulse_sample
-                switch_stop = switch_start + switch_pulse_sample
+                    laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                    readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                    switch_samples[switch_start:switch_stop] = np.zeros(switch_stop - switch_start)
 
-                laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
-                readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
-                switch_samples[switch_start:switch_stop] = np.zeros(switch_stop - switch_start)
+                    current_freq_idx += single_pulse_samples
 
-                current_freq_idx += single_pulse_samples
+            # Digital and analog channels are mapped to the sequences
+            digital_samples['d_ch0'] = laser_samples
+            digital_samples['d_ch1'] = readout_samples
+            digital_samples['d_ch2'] = switch_samples
 
-        # Digital and analog channels are mapped to the sequences
-        digital_samples['d_ch0'] = laser_samples
-        digital_samples['d_ch1'] = readout_samples
-        digital_samples['d_ch2'] = switch_samples
+            analog_samples['a_ch0'] = i_samples
+            analog_samples['a_ch1'] = q_samples
 
-        analog_samples['a_ch0'] = i_samples
-        analog_samples['a_ch1'] = q_samples
-
-        self.log.info(f"Generated analog and digital arrays")
-
-        return analog_samples, digital_samples
+            self.log.info(f"Generated analog and digital arrays")
+            return analog_samples, digital_samples
 
     def sweep_list(self):
         freq_range_size = np.abs(self.mw_stop - self.mw_start)
@@ -610,13 +610,21 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._awg_device.set_analog_level(amplitude={'a_ch0': v_peak, 'a_ch1': v_peak})
 
         analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
-        num_of_samples, waveform_names = self._awg_device.write_waveform(name='pulsedODMR',
-                                                                         analog_samples=analog_samples,
-                                                                         digital_samples=digital_samples,
-                                                                         is_first_chunk=True,
-                                                                         is_last_chunk=True,
-                                                                         total_number_of_samples=len(
-                                                                             analog_samples['a_ch0']))
+
+        if not analog_samples and not digital_samples:
+            mode = "sweep"
+            is_running = False
+            self.sigOutputStateUpdated.emit(mode, is_running)
+            return mode, is_running
+
+        num_of_samples, waveform_names = self._awg_device.write_waveform(
+            name='pulsedODMR',
+            analog_samples=analog_samples,
+            digital_samples=digital_samples,
+            is_first_chunk=True,
+            is_last_chunk=True,
+            total_number_of_samples=len(analog_samples['a_ch0'])
+        )
         self._awg_device.load_waveform(load_dict=waveform_names)
         self._awg_device.set_reps(self.average_factor)
         self._mw_device.cw_on()
@@ -992,7 +1000,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             parameters['Step size (Hz)'] = self.mw_step
             parameters['Clock Frequency (Hz)'] = self.clock_frequency
             parameters['Channel'] = '{0}: {1}'.format(nch, channel)
-            parameters['Laser readout length´(s)'] = self.laser_readout_length
+            parameters['Laser readout length(s)'] = self.laser_readout_length
             parameters['Delay Length (s)'] = self.delay_length
             parameters['Pi pulse length (s)'] = self.pi_pulse_length
             parameters['Frequency repetition'] = self.freq_rep
