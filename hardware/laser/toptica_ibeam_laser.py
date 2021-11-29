@@ -313,7 +313,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         return self.get_laser_state()
 
     def get_extra_info(self):
-        """ Show dianostic information about lasers.
+        """ Show diagnostic information about lasers.
           @return str: diagnostic info as a string
         """
         serial_num = re.search('SN: (.*)', self._communicate('serial')).group(1)
@@ -381,6 +381,49 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
                 continue
             break
         return full_response
+
+    def _communicate_to_arr(self, query):
+        response = []
+        while True:
+            try:
+                self._send(query)
+                time.sleep(0.05)
+
+                response_len = self.ibeam.inWaiting()
+                response = []
+
+                if response_len == 0:
+                    raise ValueError
+
+                while response_len > 0:
+                    this_response_line = self.ibeam.readline().decode().strip()
+                    response.append(this_response_line)
+                    time.sleep(0.05)
+                    response_len = self.ibeam.inWaiting()
+                    if response_len == 5:
+                        response.append('')
+                        self.ibeam.flushInput()
+                        self.ibeam.flushOutput()
+                        response_len = self.ibeam.inWaiting()
+                if response is None or response == '':
+                    raise ValueError
+
+            except Exception as exc:
+                self.log.debug(exc)
+                continue
+            break
+        return response
+
+    def find_value_response(self, query, search):
+        idx = 0
+        while idx <= 3:
+            responce = self._communicate_to_arr(query)
+            for res in responce:
+                if search in res:
+                    value = float(re.findall(r'\d+\.*\d*', res)[-1])
+                    return value
+            idx += 1
+        raise ValueError(f"Unable to find {search} from query {query}")
 
     """
     Internal methods
