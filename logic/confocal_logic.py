@@ -709,8 +709,6 @@ class ConfocalLogic(GenericLogic):
         for i, ch in enumerate(self.get_scanner_axes()):
             pos_dict[ch_array[i]] = pos_array[i]
 
-        #print(pos_dict)
-
         self._scanning_device.scanner_set_position(**pos_dict)
         return 0
 

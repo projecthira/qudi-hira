@@ -270,27 +270,26 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 # Transform x and y position
                 x_pos = (x / 4) * 1e9
                 y_pos = (y / 4) * 1e9
-                self.pidevice.MOV(axes=axes, values=[x_pos, y_pos])
+
+                if self.fine_scanning_mode:
+                    pitools.moveandwait(self.pidevice, axes=axes, values=[x_pos, y_pos])
+                else:
+                    self.pidevice.MOV(axes=axes, values=[x_pos, y_pos])
             else:
                 axes = [self._x_scanner, self._y_scanner, self._z_scanner]
                 # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
                 # ALL axes can move. All axes start moving simultaneously.
                 # Servo must be enabled for all commanded axes prior to using this command.
-                self.pidevice.MOV(axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
+                if self.fine_scanning_mode:
+                    pitools.moveandwait(self.pidevice, axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
+                else:
+                    self.pidevice.MOV(axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
+
         except Exception as exc:
             self.log.error(f"Exception when moving: {exc}")
             return -1
 
-        # Takes longer but does more error checking
-        # pitools.waitontarget(self.pidevice, axes=axes)
-
-        if self.fine_scanning_mode:
-            # Check if axes have reached the target.
-            while not all(list(self.pidevice.qONT(axes).values())):
-                # Can go as low as 1 ms
-                time.sleep(self.sleeper)
-        else:
-            #
+        if not self.fine_scanning_mode:
             time.sleep(self.sleeper)
         return 0
 
