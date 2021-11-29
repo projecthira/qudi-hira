@@ -136,10 +136,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             @return float: laser power in watts
         """
         # The present laser output power in watts
-        response = self._communicate('sh pow')
-        power = float(re.search('PIC  = (.*) uW', response).group(1)) * 1e-6
-        # TODO: Catch AttributeError
-        return power
+        return self.find_value_in_response("sh pow", "uW") * 1e-6
 
     def get_power_setpoint(self):
         """ Get the laser power setpoint for Channel 2.
@@ -147,9 +144,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         @return float: laser power setpoint in watts
         """
         # The present laser power level setting in watts (set level)
-        response = self._communicate('sh level pow')
-        power = float(re.search('CH2, PWR:(.*) mW', response).group(1)) * 1e-3
-        return power
+        return self.find_value_in_response("sh level pow", "CH2, PWR") * 1e-3
 
     def get_ch1_power_setpoint(self):
         """ Get the laser power setpoint for channel 1.
@@ -157,9 +152,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
           @return float: laser power setpoint in watts
           """
         # The present laser power level setting in watts (set level)
-        response = self._communicate('sh level pow')
-        power = float(re.search('CH1, PWR: (.*)mWCH2,', response).group(1)) * 1e-3
-        return power
+        return self.find_value_in_response("sh level pow", "CH1, PWR") * 1e-3
 
     def get_power_range(self):
         """ Get laser power range.
@@ -196,9 +189,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: current laser current in amps
         """
-        response = self._communicate('sh cur')
-        current = float(re.search('scaledLDC  = (.*) mA', response).group(1)) * 1e-3
-        return current
+        return self.find_value_in_response("sh cur", "LDC") * 1e-3
 
     def get_current_setpoint(self):
         """ Current laser current setpoint.
@@ -414,12 +405,14 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
             break
         return response
 
-    def find_value_response(self, query, search):
+    def find_value_in_response(self, query, search):
+        """ Much cleaner solution than before. Doesn't work for text string but very robust for values."""
         idx = 0
         while idx <= 3:
-            responce = self._communicate_to_arr(query)
-            for res in responce:
+            response = self._communicate_to_arr(query)
+            for res in response:
                 if search in res:
+                    # Find all digits/floats in string
                     value = float(re.findall(r'\d+\.*\d*', res)[-1])
                     return value
             idx += 1
@@ -433,9 +426,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: laser diode temperature
         """
-        response = self._communicate('sh temp')
-        temp = float(re.search('scaledTEMP = (.*)  C', response).group(1))
-        return temp
+        return self.find_value_in_response("sh temp", "TEMP")
 
     def _get_internal_temperature(self):
         """ Get internal laser temperature
@@ -449,9 +440,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
 
         @return float: laser base plate temperature
         """
-        response = self._communicate('sh temp sys')
-        temp = float(re.search('TEMP = (.*) C', response).group(1))
-        return temp
+        return self.find_value_in_response("sh temp sys", "TEMP")
 
     def _fine_on(self):
         """ Set FINE mode on

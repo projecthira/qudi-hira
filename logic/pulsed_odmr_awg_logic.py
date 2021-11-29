@@ -473,20 +473,15 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
-        if self.module_state() == 'locked':
-            self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        self.cw_mw_frequency, self.cw_mw_power, mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
+        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
         else:
-            self.cw_mw_frequency, \
-            self.cw_mw_power, \
-            mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-            param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-            self.sigParameterUpdated.emit(param_dict)
-            if mode != 'cw':
-                self.log.error('Switching to CW microwave output mode failed.')
-            else:
-                err_code = self._mw_device.rf_on()
-                if err_code < 0:
-                    self.log.error('Activation of microwave output failed.')
+            err_code = self._mw_device.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
@@ -627,7 +622,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         )
         self._awg_device.load_waveform(load_dict=waveform_names)
         self._awg_device.set_reps(self.average_factor)
-        self._mw_device.cw_on()
+        self.mw_cw_on()
 
         # Following lines update the corrected parameters to the GUI
         param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,

@@ -201,7 +201,7 @@ class AutocorrelationGui(GUIBase):
         """ The function that grabs the data and sends it to the plot.
         """
         if self._correlation_logic.module_state() == 'locked':
-            self.curves[0].setData(y=self._correlation_logic.rawdata, x=self._correlation_logic.delay/1e12)
+            self.curves[0].setData(y=self._correlation_logic.rawdata_norm, x=self._correlation_logic.delay/1e12)
 
         return
 

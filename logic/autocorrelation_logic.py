@@ -249,7 +249,7 @@ class AutocorrelationLogic(GenericLogic):
                 #                            self.get_bin_width() / 1e12)
                 self.delay = self._correlation_device.get_bin_times()
                 self.rawdata = self._correlation_device.get_data_trace()
-                # self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
+                self.rawdata_norm = self._correlation_device.get_normalized_data_trace()
 
                 if self.rawdata[0] < 0:
                     self.log.error('The correlation went wrong, killing the correlator.')
@@ -334,7 +334,7 @@ class AutocorrelationLogic(GenericLogic):
         @return: fig fig: a matplotlib figure object to be saved to file.
         """
 
-        count_data = data['g2(t)']
+        count_data = data['g2(t) norm']
         time_data = data['Time (ps)']
 
         # Use qudi style
@@ -342,7 +342,7 @@ class AutocorrelationLogic(GenericLogic):
 
         # Create figure
         fig, ax = plt.subplots()
-        ax.plot(time_data, count_data, 'o', linewidth=0.5)
+        ax.plot(time_data, count_data, '.-', linewidth=0.5)
         ax.set_xlabel('Time (ps)')
         ax.set_ylabel('Counts')
         return fig
