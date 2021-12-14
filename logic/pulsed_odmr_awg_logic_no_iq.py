@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
 """
+New ODMR logic module for QUEST@WIS
+
+A logic module to perform ODMR measurements, using the ODMR GUI module, that is adapted to the hardware configuration
+we have here. The MW instrument doesn't have a sweep function, so the sweeping is done using an AWG
+and IQ mixing.
+Dan
+
 This file contains the Qudi Logic module base class.
 
 Qudi is free software: you can redistribute it and/or modify
@@ -20,53 +27,67 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-from qtpy import QtCore
+import time
 from collections import OrderedDict
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+import numpy as np
+from qtpy import QtCore
+
+from core.module import Connector
+from core.statusvariable import StatusVar
+from core.util.mutex import Mutex
 from interface.microwave_interface import MicrowaveMode
 from interface.microwave_interface import TriggerEdge
-import numpy as np
-import time
-import datetime
-import matplotlib.pyplot as plt
-
 from logic.generic_logic import GenericLogic
-from core.util.mutex import Mutex
-from core.connector import Connector
-from core.configoption import ConfigOption
-from core.statusvariable import StatusVar
 
 
-class CwODMRLogic(GenericLogic):
+class AwgPulsedODMRLogic(GenericLogic):
     """This is the Logic class for ODMR."""
+    _modclass = 'odmrlogic'
+    _modtype = 'logic'
 
     # declare connectors
     odmrcounter = Connector(interface='ODMRCounterInterface')
-    odmrclock = Connector(interface='ODMRClockInterface')
     fitlogic = Connector(interface='FitLogic')
     microwave1 = Connector(interface='MicrowaveInterface')
+    pulsegenerator = Connector(interface='PulserInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
 
     # config option
-    mw_scanmode = ConfigOption(
-                    'scanmode',
-                    'SWEEP',
-                    missing='warn',
-                    converter=lambda x: MicrowaveMode[x.upper()])
+    mw_scanmode = MicrowaveMode.SWEEP
 
     clock_frequency = StatusVar('clock_frequency', 200)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
     cw_mw_power = StatusVar('cw_mw_power', -30)
-    sweep_mw_power = StatusVar('sweep_mw_power', -30)
+    sweep_mw_power = StatusVar('sweep_mw_power', -20)
     mw_start = StatusVar('mw_start', 2800e6)
     mw_stop = StatusVar('mw_stop', 2950e6)
     mw_step = StatusVar('mw_step', 2e6)
     run_time = StatusVar('run_time', 60)
+
+    pi_pulse_length = StatusVar('pi_pulse_length', 100e-9)
+    delay_length = StatusVar('delay_length', 10e-9)
+    laser_readout_length = StatusVar('laser_length', 3e-6)
+    single_sweep_time = StatusVar('single_sweep_time', 1)
+    freq_rep = StatusVar('freq_repetition', 100)
+
     number_of_lines = StatusVar('number_of_lines', 50)
     fc = StatusVar('fits', None)
     lines_to_average = StatusVar('lines_to_average', 0)
     _oversampling = StatusVar('oversampling', default=10)
     _lock_in_active = StatusVar('lock_in_active', default=False)
+
+    freq_list = []
+
+    # Sample set to default - 1.25 GSa/sec
+    sample_rate = 1.25e9
+    # Synchronize analog and digital channels
+    digital_sync_length = 9e-9
+    # Null pulse to settle instruments
+    null_pulse_length = 30e-9
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -88,27 +109,32 @@ class CwODMRLogic(GenericLogic):
         """
         # Get connectors
         self._mw_device = self.microwave1()
+        self._awg_device = self.pulsegenerator()
         self._fit_logic = self.fitlogic()
         self._odmr_counter = self.odmrcounter()
-        self._odmr_clock = self.odmrclock()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
 
+        # self._awg_device.reset()
+
         # Get hardware constraints
-        limits = self.get_hw_constraints()
+        mw_limits = self.get_hw_constraints()
+        awg_limits = self.get_awg_constraints()
 
         # Set/recall microwave source parameters
-        self.cw_mw_frequency = limits.frequency_in_range(self.cw_mw_frequency)
-        self.cw_mw_power = limits.power_in_range(self.cw_mw_power)
-        self.sweep_mw_power = limits.power_in_range(self.sweep_mw_power)
-        self.mw_start = limits.frequency_in_range(self.mw_start)
-        self.mw_stop = limits.frequency_in_range(self.mw_stop)
-        self.mw_step = limits.list_step_in_range(self.mw_step)
-        self._odmr_counter.oversampling = self._oversampling
-        self._odmr_counter.lock_in_active = self._lock_in_active
+        self.cw_mw_frequency = mw_limits.frequency_in_range(self.cw_mw_frequency)
+        self.cw_mw_power = mw_limits.power_in_range(self.cw_mw_power)
+        self.sweep_mw_power = mw_limits.power_in_range(self.sweep_mw_power)
+
+        self.mw_start = mw_limits.frequency_in_range(self.mw_start)
+        self.mw_stop = mw_limits.frequency_in_range(self.mw_stop)
+        self.mw_step = mw_limits.list_step_in_range(self.mw_step)
+
+        self.single_sweep_pulse_length = self.null_pulse_length + (2 * self.null_pulse_length +
+                                                                   self.laser_readout_length + self.delay_length +
+                                                                   self.pi_pulse_length) * self.freq_rep
 
         # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
-        # theoretically this can be changed, but the current counting scheme will not support that
         self.mw_trigger_pol = TriggerEdge.RISING
         self.set_trigger(self.mw_trigger_pol)
 
@@ -128,10 +154,11 @@ class CwODMRLogic(GenericLogic):
         self.odmr_raw_data = np.zeros(
             [self.number_of_lines,
              len(self._odmr_counter.get_odmr_channels()),
-            self.odmr_plot_x.size]
-            )
+             self.odmr_plot_x.size]
+        )
 
         # Switch off microwave and set CW frequency and power
+        self._awg_device.pulser_off()
         self.mw_off()
         self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
 
@@ -155,13 +182,24 @@ class CwODMRLogic(GenericLogic):
                                'running but can not be stopped after 30 sec.')
                 break
         # Switch off microwave source for sure (also if CW mode is active or module is still locked)
+        self.log.info('Deactivated ODMRAWGLogic')
         self._mw_device.off()
         # Disconnect signals
         self.sigNextLine.disconnect()
 
+    @staticmethod
+    def dbm_to_vpeak_converter(power_dbm):
+        power_mw = 1e-3 * 10 ** (power_dbm / 10)
+        v_eff = np.sqrt(power_mw * 50)
+        v_peak = np.sqrt(2) * v_eff
+        return v_peak
+
+    @staticmethod
+    def vpeak_to_dbm_converter(v_peak):
+        return 10 * np.log10(v_peak ** 2 * 10)
+
     @fc.constructor
     def sv_set_fits(self, val):
-        # Setup fit container
         fc = self.fitlogic().make_fit_container('ODMR sum', '1d')
         fc.set_units(['Hz', 'c/s'])
         if isinstance(val, dict) and len(val) > 0:
@@ -171,23 +209,23 @@ class CwODMRLogic(GenericLogic):
             d1['Lorentzian dip'] = {
                 'fit_function': 'lorentzian',
                 'estimator': 'dip'
-                }
+            }
             d1['Two Lorentzian dips'] = {
                 'fit_function': 'lorentziandouble',
                 'estimator': 'dip'
-                }
+            }
             d1['N14'] = {
                 'fit_function': 'lorentziantriple',
                 'estimator': 'N14'
-                }
+            }
             d1['N15'] = {
                 'fit_function': 'lorentziandouble',
                 'estimator': 'N15'
-                }
+            }
             d1['Two Gaussian dips'] = {
                 'fit_function': 'gaussiandouble',
                 'estimator': 'dip'
-                }
+            }
             default_fits = OrderedDict()
             default_fits['1d'] = d1
             fc.load_from_dict(default_fits)
@@ -213,24 +251,6 @@ class CwODMRLogic(GenericLogic):
         current_fit = self.fc.current_fit
         self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
         return
-
-    def set_trigger(self, trigger_pol):
-        """
-        Set trigger polarity of external microwave trigger (for list and sweep mode).
-
-        @param object trigger_pol: one of [TriggerEdge.RISING, TriggerEdge.FALLING]
-        @param float frequency: trigger frequency during ODMR scan
-
-        @return object: actually set trigger polarity returned from hardware
-        """
-        if self.module_state() != 'locked':
-            self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 0)
-        else:
-            self.log.warning('set_trigger failed. Logic is locked.')
-
-        update_dict = {'trigger_pol': self.mw_trigger_pol}
-        self.sigParameterUpdated.emit(update_dict)
-        return self.mw_trigger_pol
 
     def set_average_length(self, lines_to_average):
         """
@@ -376,8 +396,8 @@ class CwODMRLogic(GenericLogic):
             constraints = self.get_hw_constraints()
             frequency_to_set = constraints.frequency_in_range(frequency)
             power_to_set = constraints.power_in_range(power)
-            self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
-                                                                                   power_to_set)
+            self.cw_mw_frequency, self.cw_mw_power, _ = self._mw_device.set_cw(frequency_to_set, power_to_set)
+            # self._mw_device.set_pulse_mod()
         else:
             self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
                              'no integer or float.')
@@ -386,7 +406,27 @@ class CwODMRLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.cw_mw_frequency, self.cw_mw_power
 
-    def set_sweep_parameters(self, start, stop, step, power):
+    def set_pulse_parameters(self, laser_readout_length, delay_length, pi_pulse_length, freq_repetition):
+        if self.module_state() != 'locked':
+            self.laser_readout_length = laser_readout_length
+            self.delay_length = delay_length
+            self.pi_pulse_length = pi_pulse_length
+            self.freq_rep = freq_repetition
+
+            self.single_sweep_pulse_length = self.null_pulse_length + (
+                        2 * self.null_pulse_length + self.laser_readout_length +
+                        self.delay_length + self.pi_pulse_length) * self.freq_rep
+            self.single_sweep_pulse_samples = int(np.floor(self.sample_rate * self.single_sweep_pulse_length))
+        else:
+            self.log.warning('set_pulse_parameters failed. Logic is locked.')
+
+        param_dict = {'laser_readout_length': self.laser_readout_length, 'delay_length': self.delay_length,
+                      'pi_pulse_length': self.pi_pulse_length, 'freq_repetition': self.freq_rep}
+        self.sigParameterUpdated.emit(param_dict)
+
+        return self.laser_readout_length, self.delay_length, self.pi_pulse_length
+
+    def set_sweep_parameters(self, start, stop, step, power, single_sweep_time):
         """ Set the desired frequency parameters for list and sweep mode
 
         @param float start: start frequency to set in Hz
@@ -398,26 +438,32 @@ class CwODMRLogic(GenericLogic):
                                             current freq_step, current power
         """
         limits = self.get_hw_constraints()
+        limits_awg = self.get_awg_constraints()
+
+        # How long will a sweep be
+        self.single_sweep_time = single_sweep_time
+
         if self.module_state() != 'locked':
-            if isinstance(start, (int, float)):
+            if isinstance(start, (int, float)) and isinstance(stop, (int, float)) and isinstance(step, (int, float)):
                 self.mw_start = limits.frequency_in_range(start)
-            if isinstance(stop, (int, float)) and isinstance(step, (int, float)):
-                if stop <= start:
-                    stop = start + step
                 self.mw_stop = limits.frequency_in_range(stop)
-                if self.mw_scanmode == MicrowaveMode.LIST:
-                    self.mw_step = limits.list_step_in_range(step)
-                elif self.mw_scanmode == MicrowaveMode.SWEEP:
-                    self.mw_step = limits.sweep_step_in_range(step)
+                self.mw_step = limits.list_step_in_range(step)
+                if self.mw_stop <= self.mw_start:
+                    self.mw_stop = self.mw_start + self.mw_step
+                if self.mw_stop - self.mw_start > 8e8:
+                    self.mw_stop = self.mw_start + np.floor(8e8 / self.mw_step) * self.mw_step
+                self.cw_mw_frequency = (self.mw_stop + self.mw_start) / 2
             if isinstance(power, (int, float)):
-                self.sweep_mw_power = limits.power_in_range(power)
+                self.sweep_mw_power = self.vpeak_to_dbm_converter(
+                    limits_awg.power_in_range(self.dbm_to_vpeak_converter(power)))
         else:
             self.log.warning('set_sweep_parameters failed. Logic is locked.')
 
-        param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop, 'mw_step': self.mw_step,
-                      'sweep_mw_power': self.sweep_mw_power}
+        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'mw_start': self.mw_start,
+                      'mw_stop': self.mw_stop, 'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power,
+                      'single_sweep_time': self.single_sweep_time}
         self.sigParameterUpdated.emit(param_dict)
-        return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power
+        return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
 
     def mw_cw_on(self):
         """
@@ -425,32 +471,124 @@ class CwODMRLogic(GenericLogic):
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
-        if self.module_state() == 'locked':
-            self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        self.cw_mw_frequency, self.cw_mw_power, mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
+        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
         else:
-            self.cw_mw_frequency, \
-            self.cw_mw_power, \
-            mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-            param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-            self.sigParameterUpdated.emit(param_dict)
-            if mode != 'cw':
-                self.log.error('Switching to CW microwave output mode failed.')
-            else:
-                err_code = self._mw_device.cw_on()
-                if err_code < 0:
-                    self.log.error('Activation of microwave output failed.')
+            err_code = self._mw_device.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
+
+    def list_to_waveform_pulsed(self, freq_list):
+        # Laser, Readout, Switch and MW trigger channels
+        analog_samples = {'a_ch0': []}
+        digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': [], 'd_ch5': []}
+
+        # Length of a single pulse sequence (laser - delay - pi - wait)
+        single_pulse_length = self.laser_readout_length + self.delay_length + self.pi_pulse_length + \
+                              2 * self.null_pulse_length
+        single_pulse_samples = int(single_pulse_length * self.sample_rate)
+
+        # Length of a single frequency (single pulse * frequency repetition rate)
+        single_freq_pulse_length = self.null_pulse_length + single_pulse_length * self.freq_rep
+        single_freq_pulse_samples = int(single_freq_pulse_length * self.sample_rate)
+
+        # Length of a full frequency sweep (single frequency * frequency list)
+        single_sweep_pulse_samples = int(single_freq_pulse_samples * len(freq_list))
+
+        if single_sweep_pulse_samples > 130e6:
+            self.log.error("The number of samples is above the AWG memory limit. Stopping ODMR.")
+            return False, False
+        else:
+            # Set up all the pulse lengths
+            mw_trig_pulse_sample = int(np.floor(15e-9 * self.sample_rate))
+            delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
+            switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
+            null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
+            laser_readout_pulse_sample = int(np.floor(self.sample_rate * self.laser_readout_length))
+
+            # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
+            mw_trig_samples = np.zeros(single_sweep_pulse_samples)
+            laser_samples = np.zeros(single_sweep_pulse_samples)
+            readout_samples = np.zeros(single_sweep_pulse_samples)
+            switch_samples = np.ones(single_sweep_pulse_samples)
+
+            # All channels indexes are relative to the current_freq_idx
+            current_freq_idx = 0
+            for _ in freq_list:
+                end_freq_idx = current_freq_idx + single_freq_pulse_samples
+                # I and Q are switch on for the whole duration of the freq repetition pulses
+                mw_trig_samples[current_freq_idx:current_freq_idx + mw_trig_pulse_sample] = 1
+
+                for _ in range(self.freq_rep):
+                    # Null pulses are added to take into account the settling time of the instruments
+                    single_freq_start = current_freq_idx + null_pulse_sample * 2
+
+                    laser_start = single_freq_start
+                    laser_stop = laser_start + laser_readout_pulse_sample
+
+                    switch_start = single_freq_start + delay_pulse_sample
+                    switch_stop = switch_start + switch_pulse_sample
+
+                    laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                    readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+                    switch_samples[switch_start:switch_stop] = np.zeros(switch_stop - switch_start)
+
+                    current_freq_idx += single_pulse_samples
+
+            # Digital and analog channels are mapped to the sequences
+            digital_samples['d_ch0'] = laser_samples
+            digital_samples['d_ch1'] = readout_samples
+            digital_samples['d_ch2'] = switch_samples
+            digital_samples['d_ch5'] = mw_trig_samples
+            analog_samples['a_ch0'] = np.zeros(single_sweep_pulse_samples)
+
+            self.log.info(f"Generated analog and digital arrays")
+            return analog_samples, digital_samples
+
+    def sweep_list(self):
+        freq_range_size = np.abs(self.mw_stop - self.mw_start)
+
+        # adjust the end frequency in order to have an integer multiple of step size
+        # The master module (i.e. GUI) will be notified about the changed end frequency
+        num_steps = int(freq_range_size / self.mw_step)
+        end_freq = self.mw_start + num_steps * self.mw_step
+        self.freq_list = np.linspace(self.mw_start, end_freq, num_steps + 1)
+        return 0
+
+    def write_test_waveform(self):
+        self.sweep_list()
+
+        analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
+        num_of_samples, waveform_names = \
+            self._awg_device.write_waveform(
+                name='pulsedODMRnoiq',
+                analog_samples=analog_samples,
+                digital_samples=digital_samples,
+                is_first_chunk=True,
+                is_last_chunk=True,
+                total_number_of_samples=len(digital_samples['d_ch0'])
+            )
+        self._awg_device.load_waveform(load_dict=waveform_names)
+        self._awg_device.set_reps(100)
+        self._mw_device.cw_on()
+        return num_of_samples, waveform_names
 
     def mw_sweep_on(self):
         """
         Switching on the mw source in list/sweep mode.
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
-        """
 
+        When using the AWG the sweep mode is redundant, so we leave only the list options.
+        """
+        # Load Sweep data onto MW source
         limits = self.get_hw_constraints()
         param_dict = {}
 
@@ -492,6 +630,9 @@ class CwODMRLogic(GenericLogic):
         else:
             self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
 
+        self.sweep_list()
+        self._mw_device.set_ext_trigger(self.mw_trigger_pol)
+
         self.sigParameterUpdated.emit(param_dict)
 
         if mode != 'list' and mode != 'sweep':
@@ -505,18 +646,65 @@ class CwODMRLogic(GenericLogic):
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
 
-        mode, is_running = self._mw_device.get_status()
+        # Load Trigger pulses onto AWG
+        analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
+
+        if not analog_samples and not digital_samples:
+            mode = "sweep"
+            is_running = False
+            self.sigOutputStateUpdated.emit(mode, is_running)
+            return mode, is_running
+
+        num_of_samples, waveform_names = self._awg_device.write_waveform(
+            name='pulsedODMRnoiq',
+            analog_samples=analog_samples,
+            digital_samples=digital_samples,
+            is_first_chunk=True,
+            is_last_chunk=True,
+            total_number_of_samples=len(analog_samples['a_ch0'])
+        )
+        self._awg_device.load_waveform(load_dict=waveform_names)
+
+        # Following lines update the corrected parameters to the GUI
+        param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
+                      'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
+        self.sigParameterUpdated.emit(param_dict)
+
+        num, status = self._awg_device.get_status()
+        if num == 0:
+            mode = "sweep"
+            is_running = 1
+        else:
+            self.log.error("AWG is not ready")
+
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
+    def set_trigger(self, trigger_pol):
+        """
+        Set trigger polarity of external microwave trigger (for list and sweep mode).
+
+        @param object trigger_pol: one of [TriggerEdge.RISING, TriggerEdge.FALLING]
+        @param float frequency: trigger frequency during ODMR scan
+
+        @return object: actually set trigger polarity returned from hardware
+        """
+        if self.module_state() != 'locked':
+            self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 0)
+        else:
+            self.log.warning('set_trigger failed. Logic is locked.')
+
+        update_dict = {'trigger_pol': self.mw_trigger_pol}
+        self.sigParameterUpdated.emit(update_dict)
+        return self.mw_trigger_pol
+
     def reset_sweep(self):
         """
-        Resets the list/sweep mode of the microwave source to the first frequency step.
+        Resets the AWG, starting the sweep from the beginning.
         """
-        if self.mw_scanmode == MicrowaveMode.SWEEP:
-            self._mw_device.reset_sweeppos()
-        elif self.mw_scanmode == MicrowaveMode.LIST:
-            self._mw_device.reset_listpos()
+        self._awg_device.pulser_off()
+        time.sleep(0.1)
+        self._awg_device.pulser_on()
         return
 
     def mw_off(self):
@@ -524,8 +712,12 @@ class CwODMRLogic(GenericLogic):
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
-        error_code = self._mw_device.off()
-        if error_code < 0:
+        error_code_pulsar = self._awg_device.pulser_off()
+        if error_code_pulsar < 0:
+            self.log.error('Switching off pulsar source failed.')
+
+        error_code_mw = self._mw_device.off()
+        if error_code_mw < 0:
             self.log.error('Switching off microwave source failed.')
 
         mode, is_running = self._mw_device.get_status()
@@ -538,16 +730,7 @@ class CwODMRLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-
-        clock_status = self._odmr_clock.set_up_odmr_clock(clock_frequency=self.clock_frequency)
-        if clock_status < 0:
-            return -1
-
-        counter_status = self._odmr_counter.set_up_odmr()
-        if counter_status < 0:
-            self._odmr_counter.close_odmr_clock()
-            return -1
-
+        self._odmr_counter.set_up_odmr()
         return 0
 
     def _stop_odmr_counter(self):
@@ -556,11 +739,10 @@ class CwODMRLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-
         ret_val1 = self._odmr_counter.close_odmr()
         if ret_val1 != 0:
             self.log.error('ODMR counter could not be stopped!')
-        ret_val2 = self._odmr_clock.close_clock()
+        ret_val2 = self._odmr_counter.close_odmr_clock()
         if ret_val2 != 0:
             self.log.error('ODMR clock could not be stopped!')
 
@@ -590,14 +772,24 @@ class CwODMRLogic(GenericLogic):
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
             mode, is_running = self.mw_sweep_on()
+
             if not is_running:
                 self._stop_odmr_counter()
                 self.module_state.unlock()
                 return -1
 
-            self._initialize_odmr_plots()
+            # Defining the frequency list, making sure the end frequency is a multiple of freq step
+            # Calculate the average factor - number of sweeps in a single acquisition based on a single sweep time
+            self.average_factor = int(self.single_sweep_time / (self.single_sweep_pulse_length * len(self.freq_list)))
+            # Just to make sure we're not averaging on a very low number (or zero...)
+            # if self.average_factor < 100:
+            #    self.average_factor = 100
+            self._awg_device.set_reps(self.average_factor)
+            # self.mw_cw_on()
 
-            self._odmr_counter.set_odmr_length(length=self.odmr_plot_x.size)
+            sweep_bin_num = self.average_factor * len(self.freq_list) * self.freq_rep
+            self._odmr_counter.set_odmr_length(length=sweep_bin_num)
+
             odmr_status = self._start_odmr_counter()
 
             if odmr_status < 0:
@@ -605,12 +797,14 @@ class CwODMRLogic(GenericLogic):
                 self.sigOutputStateUpdated.emit(mode, is_running)
                 self.module_state.unlock()
                 return -1
+
+            self._initialize_odmr_plots()
             # initialize raw_data array
-            estimated_number_of_lines = self.run_time * self.clock_frequency / self.odmr_plot_x.size
+            estimated_number_of_lines = self.run_time / (
+                    sweep_bin_num * self.single_sweep_pulse_length * self.odmr_plot_x.size)
             estimated_number_of_lines = int(1.5 * estimated_number_of_lines)  # Safety
             if estimated_number_of_lines < self.number_of_lines:
                 estimated_number_of_lines = self.number_of_lines
-
             self.log.debug('Estimated number of raw data lines: {0:d}'
                            ''.format(estimated_number_of_lines))
             self.odmr_raw_data = np.zeros(
@@ -631,8 +825,6 @@ class CwODMRLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            self.set_trigger(self.mw_trigger_pol)
-
             self.module_state.lock()
             self.stopRequested = False
             self.fc.clear_result()
@@ -641,6 +833,7 @@ class CwODMRLogic(GenericLogic):
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
             odmr_status = self._start_odmr_counter()
+
             if odmr_status < 0:
                 mode, is_running = self._mw_device.get_status()
                 self.sigOutputStateUpdated.emit(mode, is_running)
@@ -688,28 +881,43 @@ class CwODMRLogic(GenericLogic):
 
             # Stop measurement if stop has been requested
             if self.stopRequested:
+                self.stopRequested = False
                 self.mw_off()
+                self._awg_device.pulser_off()
                 self._stop_odmr_counter()
                 self.module_state.unlock()
-                self.stopRequested = False
                 return
 
-            # if during the scan a clearing of the ODMR data is needed:
-            if self._clearOdmrData:
-                self.elapsed_sweeps = 0
-                self._startTime = time.time()
+            # # if during the scan a clearing of the ODMR data is needed:
+            # if self._clearOdmrData:
+            #     self.elapsed_sweeps = 0
+            #     self._startTime = time.time()
 
             # reset position so every line starts from the same frequency
-            self.reset_sweep()
-
-            # Acquire count data
-            error, new_counts = self._odmr_counter.count_odmr()
             self._odmr_counter.clear_odmr()
 
-            if error:
+            self._awg_device.pulser_on()
+
+            # Acquire count data
+            time.sleep(self.single_sweep_time + 0.05)
+
+            err, new_counts = self._odmr_counter.count_odmr(pulsed=False)
+
+            self.tt_counts = new_counts
+
+            self._awg_device.pulser_off()
+
+            if err:
                 self.stopRequested = True
                 self.sigNextLine.emit()
                 return
+
+            # Reshaping the array into (average_factor, num_of_freq, freq_rep)
+            new_counts = np.reshape(new_counts, newshape=(self.average_factor, len(self.freq_list), self.freq_rep))
+            # Get the mean across freq_rep
+            new_counts = np.mean(new_counts, axis=2)
+            # Get the mean across average_factor
+            new_counts = np.mean(new_counts, axis=0)
 
             # Add new count data to raw_data array and append if array is too small
             if self._clearOdmrData:
@@ -765,6 +973,15 @@ class CwODMRLogic(GenericLogic):
     def get_odmr_channels(self):
         return self._odmr_counter.get_odmr_channels()
 
+    def get_awg_constraints(self):
+        return self._awg_device.get_limits()
+
+    def get_awg_power_constraints_in_dbm(self):
+        constraints = self.get_awg_constraints()
+        constraints.max_power = self.vpeak_to_dbm_converter(constraints.max_power)
+        constraints.min_power = self.vpeak_to_dbm_converter(constraints.min_power)
+        return constraints
+
     def get_hw_constraints(self):
         """ Return the names of all ocnfigured fit functions.
         @return object: Hardware constraints object
@@ -807,14 +1024,14 @@ class CwODMRLogic(GenericLogic):
 
     def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
-        timestamp = datetime.datetime.now()
+        timestamp = datetime.now()
 
         if tag is None:
             tag = ''
         for nch, channel in enumerate(self.get_odmr_channels()):
             # two paths to save the raw data and the odmr scan data.
-            filepath = self._save_logic.get_path_for_module(module_name='ODMR')
-            filepath2 = self._save_logic.get_path_for_module(module_name='ODMR')
+            filepath = self._save_logic.get_path_for_module(module_name='pulsedODMR')
+            filepath2 = self._save_logic.get_path_for_module(module_name='pulsedODMR')
 
             if len(tag) > 0:
                 filelabel = '{0}_ODMR_data_ch{1}'.format(tag, nch)
@@ -840,6 +1057,12 @@ class CwODMRLogic(GenericLogic):
             parameters['Step size (Hz)'] = self.mw_step
             parameters['Clock Frequency (Hz)'] = self.clock_frequency
             parameters['Channel'] = '{0}: {1}'.format(nch, channel)
+            parameters['Laser readout length(s)'] = self.laser_readout_length
+            parameters['Delay Length (s)'] = self.delay_length
+            parameters['Pi pulse length (s)'] = self.pi_pulse_length
+            parameters['Frequency repetition'] = self.freq_rep
+            parameters['Single sweep time (s)'] = self.single_sweep_time
+
             if self.fc.current_fit != 'No Fit':
                 parameters['Fit function'] = self.fc.current_fit
 
@@ -948,10 +1171,10 @@ class CwODMRLogic(GenericLogic):
             vmin=cbar_range[0],
             vmax=cbar_range[1],
             extent=[np.min(freq_data),
-                np.max(freq_data),
-                0,
-                self.number_of_lines
-                ],
+                    np.max(freq_data),
+                    0,
+                    self.number_of_lines
+                    ],
             aspect='auto',
             interpolation='nearest')
 
@@ -997,7 +1220,7 @@ class CwODMRLogic(GenericLogic):
 
         return fig
 
-    def perform_odmr_measurement(self, freq_start, freq_step, freq_stop, power, channel, runtime,
+    def perform_odmr_measurement(self, freq_start, freq_step, freq_stop, power, runtime,
                                  fit_function='No Fit', save_after_meas=True, name_tag=''):
         """ An independant method, which can be called by a task with the proper input values
             to perform an odmr measurement.
@@ -1012,10 +1235,11 @@ class CwODMRLogic(GenericLogic):
             if timeout <= 0:
                 self.log.error('perform_odmr_measurement failed. Logic module was still locked '
                                'and 30 sec timeout has been reached.')
-                return tuple()
+                return {}
 
         # set all relevant parameter:
-        self.set_sweep_parameters(freq_start, freq_stop, freq_step, power)
+        self.set_power(power)
+        self.set_sweep_frequencies(freq_start, freq_stop, freq_step)
         self.set_runtime(runtime)
 
         # start the scan
@@ -1030,7 +1254,7 @@ class CwODMRLogic(GenericLogic):
 
         # Perform fit if requested
         if fit_function != 'No Fit':
-            self.do_fit(fit_function, channel_index=channel)
+            self.do_fit(fit_function)
             fit_params = self.fc.current_fit_param
         else:
             fit_params = None

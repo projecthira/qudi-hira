@@ -67,7 +67,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         # self._command_wait('*RST')
         self.inst.write('*RST')
         # Fix issue of timeout during first time startup
-        time.sleep(0.5)
+        time.sleep(1)
         self.inst.write('POW:ALC OFF')
 
     def on_deactivate(self):
@@ -380,7 +380,7 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         return limits
 
-    def set_ext_trigger(self, pol, timing):
+    def set_ext_trigger(self, pol, timing=0):
         """ Set the external trigger for this device with proper polarization.
 
         @param TriggerEdge pol: polarisation of the trigger (basically rising edge or falling edge)
@@ -389,6 +389,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
         @return object, float: current trigger polarity [TriggerEdge.RISING, TriggerEdge.FALLING],
             trigger timing
         """
+        # Minimum pulse width is 10ns for MW trigger
+
         mode, is_running = self.get_status()
         if is_running:
             self.off()
