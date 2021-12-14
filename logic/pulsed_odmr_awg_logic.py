@@ -495,7 +495,7 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         self.norm_freq_list = (self.cw_mw_frequency - freq_list) / self.sample_rate
 
-        # Length of a single pulse sequence (laser - delay - pi - wait)
+        # Length of a single pulse sequence (laser -- delay -- pi -- wait)
         single_pulse_length = self.laser_readout_length + self.delay_length + self.pi_pulse_length + \
                               2 * self.null_pulse_length
         single_pulse_samples = int(single_pulse_length * self.sample_rate)

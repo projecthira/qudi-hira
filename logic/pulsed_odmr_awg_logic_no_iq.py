@@ -61,7 +61,7 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     clock_frequency = StatusVar('clock_frequency', 200)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
-    cw_mw_power = StatusVar('cw_mw_power', -30)
+    cw_mw_power = StatusVar('cw_mw_power', -20)
     sweep_mw_power = StatusVar('sweep_mw_power', -20)
     mw_start = StatusVar('mw_start', 2800e6)
     mw_stop = StatusVar('mw_stop', 2950e6)
@@ -69,8 +69,8 @@ class AwgPulsedODMRLogic(GenericLogic):
     run_time = StatusVar('run_time', 60)
 
     pi_pulse_length = StatusVar('pi_pulse_length', 100e-9)
-    delay_length = StatusVar('delay_length', 10e-9)
-    laser_readout_length = StatusVar('laser_length', 3e-6)
+    delay_length = StatusVar('delay_length', 1e-6)
+    laser_readout_length = StatusVar('laser_length', 350e-9)
     single_sweep_time = StatusVar('single_sweep_time', 1)
     freq_rep = StatusVar('freq_repetition', 100)
 
