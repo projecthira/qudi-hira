@@ -268,13 +268,9 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 # Servo must be enabled for all commanded axes prior to using this command.
 
                 # Transform x and y position
-                x_pos = (x / 4) * 1e9
-                y_pos = (y / 4) * 1e9
-
-                if self.fine_scanning_mode:
-                    pitools.moveandwait(self.pidevice, axes=axes, values=[x_pos, y_pos])
-                else:
-                    self.pidevice.MOV(axes=axes, values=[x_pos, y_pos])
+                # x_pos = (x / 4) * 1e9
+                # y_pos = (y / 4) * 1e9
+                self.pidevice.MOV(axes=axes, values=[x * 1e6, y * 1e6])
             else:
                 axes = [self._x_scanner, self._y_scanner, self._z_scanner]
                 # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and

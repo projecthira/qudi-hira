@@ -344,7 +344,7 @@ class CounterLogic(GenericLogic):
 
         # Create figure
         fig, ax = plt.subplots()
-        ax.plot(time_data, count_data, linestyle=':', linewidth=0.5)
+        ax.plot(time_data, count_data, linestyle='-', linewidth=0.5)
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Fluorescence (' + counts_prefix + 'c/s)')
         return fig
