@@ -26,9 +26,10 @@ from core.module import Base
 from core.connector import Connector
 from core.configoption import ConfigOption
 from interface.odmr_counter_interface import ODMRCounterInterface
+from interface.odmr_clock_interface import ODMRClockInterface
 
 
-class ODMRCounterDummy(Base, ODMRCounterInterface):
+class ODMRCounterDummy(Base, ODMRCounterInterface, ODMRClockInterface):
     """ Dummy hardware class to simulate the controls for a simple ODMR.
 
     Example config for copy-paste:
