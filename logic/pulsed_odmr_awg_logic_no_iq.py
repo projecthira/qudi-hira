@@ -55,6 +55,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     pulsegenerator = Connector(interface='PulserInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    laserlogic = Connector(interface='SimpleLaserInterface')
 
     # config option
     mw_scanmode = MicrowaveMode.SWEEP
@@ -114,12 +115,13 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._laser_logic = self.laserlogic()
 
         # self._awg_device.reset()
+        self._laser_logic.set_external_state(True)
 
         # Get hardware constraints
         mw_limits = self.get_hw_constraints()
-        awg_limits = self.get_awg_constraints()
 
         # Set/recall microwave source parameters
         self.cw_mw_frequency = mw_limits.frequency_in_range(self.cw_mw_frequency)
@@ -631,7 +633,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
 
         self.sweep_list()
-        self._mw_device.set_ext_trigger(self.mw_trigger_pol)
+        self.set_trigger(self.mw_trigger_pol)
 
         self.sigParameterUpdated.emit(param_dict)
 
@@ -759,7 +761,7 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            self.set_trigger(self.mw_trigger_pol)
+            self._laser_logic.set_external_state(True)
 
             self.module_state.lock()
             self._clearOdmrData = False
@@ -832,6 +834,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             self._startTime = time.time() - self.elapsed_time
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
+            self._laser_logic.set_external_state(True)
             odmr_status = self._start_odmr_counter()
 
             if odmr_status < 0:
