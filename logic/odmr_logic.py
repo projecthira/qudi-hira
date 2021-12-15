@@ -46,6 +46,7 @@ class ODMRLogic(GenericLogic):
     microwave1 = Connector(interface='MicrowaveInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    laser = Connector(interface='SimpleLaserInterface')
 
     # config option
     mw_scanmode = ConfigOption(
@@ -95,6 +96,7 @@ class ODMRLogic(GenericLogic):
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._laser = self.laser()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -640,6 +642,7 @@ class ODMRLogic(GenericLogic):
                 return -1
 
             self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
+            self._laser.set_external_state(True)
 
             self.module_state.lock()
             self._clearOdmrData = False
@@ -691,6 +694,7 @@ class ODMRLogic(GenericLogic):
                 return -1
 
             self.set_trigger(self.mw_trigger_pol, self.clock_frequency)
+            self._laser.set_external_state(True)
 
             self.module_state.lock()
             self.stopRequested = False

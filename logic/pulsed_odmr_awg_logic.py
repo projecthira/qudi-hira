@@ -55,6 +55,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     pulsegenerator = Connector(interface='PulserInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    laser = Connector(interface='SimpleLaserInterface')
 
     # config option
     mw_scanmode = MicrowaveMode.LIST
@@ -114,6 +115,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._laser = self.laser()
 
         # self._awg_device.reset()
 
@@ -700,6 +702,8 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
+            self._laser.set_external_state(True)
+
             self.module_state.lock()
             self._clearOdmrData = False
             self.stopRequested = False
@@ -763,6 +767,8 @@ class AwgPulsedODMRLogic(GenericLogic):
             if self.module_state() == 'locked':
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
+
+            self._laser.set_external_state(True)
 
             self.module_state.lock()
             self.stopRequested = False

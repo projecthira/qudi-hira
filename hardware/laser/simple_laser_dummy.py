@@ -46,6 +46,7 @@ class SimpleLaserDummy(Base, SimpleLaserInterface):
         self.mode = ControlMode.POWER
         self.current_setpoint = 0
         self.power_setpoint = 0
+        self.external = False
 
     def on_activate(self):
         """ Activate module.
@@ -237,3 +238,9 @@ class SimpleLaserDummy(Base, SimpleLaserInterface):
         """
         return "Dummy laser v0.9.9\nnot used very much\nvery cheap price very good quality"
 
+    def set_external_state(self, state):
+        self.external = state
+        return self.external
+
+    def get_external_state(self):
+        return self.external
