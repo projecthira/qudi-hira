@@ -83,7 +83,7 @@ class AwgPulsedODMRLogic(GenericLogic):
     freq_list = []
 
     # Sample set to default - 1.25 GSa/sec
-    sample_rate = 1.25e9
+    sample_rate = 0.625e9
     # Synchronize analog and digital channels
     digital_sync_length = 9e-9
     # Null pulse to settle instruments
@@ -238,6 +238,19 @@ class AwgPulsedODMRLogic(GenericLogic):
             return val.save_to_dict()
         else:
             return None
+
+    def change_sample_rate(self, resolution: str) -> float:
+        if resolution == "low":
+            self.sample_rate = 0.3125e9
+        elif resolution == "med":
+            self.sample_rate = 0.625e9
+        elif resolution == "high":
+            self.sample_rate = 1.25e9
+        else:
+            self.log.error("Incorrect resolution: use 'low', 'med' or 'high'")
+
+        self.log.info(f"Sample rate set to {self.sample_rate / 1e9} GSa/s")
+        return self.sample_rate
 
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
@@ -507,7 +520,7 @@ class AwgPulsedODMRLogic(GenericLogic):
             return False, False
         else:
             # Set up all the pulse lengths
-            mw_trig_pulse_sample = int(np.floor(15e-9 * self.sample_rate))
+            mw_trig_pulse_sample = int(np.floor(20e-9 * self.sample_rate))
             delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
             switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
             null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
