@@ -364,7 +364,7 @@ class PoiManagerLogic(GenericLogic):
 
     # status vars
     _roi = StatusVar(default=dict())  # Notice constructor and representer further below
-    _refocus_period = StatusVar(default=600)
+    _refocus_period = StatusVar(default=120)
     _active_poi = StatusVar(default=None)
     _move_scanner_after_optimization = StatusVar(default=True)
     _poi_threshold = StatusVar(default=5)
