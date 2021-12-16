@@ -118,7 +118,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._laser_logic = self.laserlogic()
 
         # self._awg_device.reset()
-        self._laser_logic.set_external_state(True)
 
         # Get hardware constraints
         mw_limits = self.get_hw_constraints()
