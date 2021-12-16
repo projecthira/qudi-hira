@@ -33,6 +33,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
     """
 
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
+    fine_scanning_mode = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
