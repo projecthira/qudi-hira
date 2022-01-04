@@ -67,13 +67,9 @@ class LaserGUI(GUIBase):
     """
     laserlogic = Connector(interface='LaserLogic')
 
-    sigLaser = QtCore.Signal(bool)
-    sigShutter = QtCore.Signal(bool)
-    sigExternal = QtCore.Signal(bool)
+    sigStartLaserLoop = QtCore.Signal()
+    sigStopLaserLoop = QtCore.Signal()
 
-    sigPower = QtCore.Signal(float)
-    sigCurrent = QtCore.Signal(float)
-    sigCtrlMode = QtCore.Signal(ControlMode)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -128,19 +124,20 @@ class LaserGUI(GUIBase):
         self.plot1.vb.sigResized.connect(self.updateViews)
 
         self.updateButtonsEnabled()
+
+        self._mw.start_laser_loop_Action.triggered.connect(self.start_clicked)
+
+
         self._mw.laserButton.clicked.connect(self.changeLaserState)
         self._mw.shutterButton.clicked.connect(self.changeShutterState)
         self._mw.externalButton.clicked.connect(self.changeExternalState)
-        self.sigLaser.connect(self._laser_logic.set_laser_state)
-        self.sigShutter.connect(self._laser_logic.set_shutter_state)
-        self.sigExternal.connect(self._laser_logic.set_external_state)
-        self.sigCurrent.connect(self._laser_logic.set_current)
-        self.sigPower.connect(self._laser_logic.set_power)
-        self.sigCtrlMode.connect(self._laser_logic.set_control_mode)
         self._mw.controlModeButtonGroup.buttonClicked.connect(self.changeControlMode)
+
         self.sliderProxy = pg.SignalProxy(self._mw.setValueVerticalSlider.valueChanged, 0.1, 5, self.updateFromSlider)
         self._mw.setValueDoubleSpinBox.editingFinished.connect(self.updateFromSpinBox)
+
         self._laser_logic.sigUpdate.connect(self.updateGui)
+        self._laser_logic.
 
         self._mw.extraLabel.setText(self._laser_logic.laser_extra)
 

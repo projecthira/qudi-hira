@@ -41,6 +41,15 @@ class LaserLogic(GenericLogic):
     laser_power_setpoint = StatusVar("laser_power_setpoint", default=0.1)
 
     sigUpdate = QtCore.Signal()
+    sigLaserNext = QtCore.Signal()
+
+    sigLaserStateChanged = QtCore.Signal(bool)
+    sigShutter = QtCore.Signal(bool)
+    sigExternalStateChanged = QtCore.Signal(bool)
+    sigPowerChanged = QtCore.Signal(float)
+
+    sigCurrent = QtCore.Signal(float)
+    sigCtrlMode = QtCore.Signal(ControlMode)
 
     def on_activate(self):
         """ Prepare logic module for work.
@@ -49,12 +58,6 @@ class LaserLogic(GenericLogic):
         self.stopRequest = False
         self.bufferLength = 20
         self.data = {}
-
-        # delay timer for querying laser
-        self.queryTimer = QtCore.QTimer()
-        self.queryTimer.setInterval(self.queryInterval)
-        self.queryTimer.setSingleShot(True)
-        self.queryTimer.timeout.connect(self.check_laser_loop, QtCore.Qt.QueuedConnection)
 
         # get laser capabilities
         self.laser_state = self._laser.get_laser_state()
@@ -81,59 +84,66 @@ class LaserLogic(GenericLogic):
         self.can_turn_on_external = True
 
         self.init_data_logging()
-        self.start_query_loop()
+
+        self.sigLaserNext.connect(self.query_loop_body, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
         """ Deactivate modeule.
         """
-        self.stop_query_loop()
-        for i in range(5):
-            time.sleep(self.queryInterval / 1000)
-            QtCore.QCoreApplication.processEvents()
+        if self.module_state() == "locked":
+            self.stop_query_loop()
 
-    @QtCore.Slot()
-    def check_laser_loop(self):
-        """ Get power, current, shutter state and temperatures from laser. """
-        if self.stopRequest:
-            if self.module_state.can('stop'):
-                self.module_state.stop()
-            self.stopRequest = False
-            return
-        qi = self.queryInterval
-        try:
-            # print('laserloop', QtCore.QThread.currentThreadId())
-            self.laser_state = self._laser.get_laser_state()
-            self.laser_shutter = self._laser.get_shutter_state()
-            self.laser_external = self._laser.get_external_state()
-            self.laser_power = self._laser.get_power()
-            self.laser_power_setpoint = self._laser.get_power_setpoint()
-            # self.laser_power_setpoint = 0.0
-            self.laser_current = self._laser.get_current()
-            # self.laser_current_setpoint = self._laser.get_current_setpoint()
-            self.laser_current_setpoint = 0.0
-            self.laser_temps = self._laser.get_temperatures()
-
-            for k in self.data:
-                self.data[k] = np.roll(self.data[k], -1)
-
-            self.data['power'][-1] = self.laser_power
-            # self.data['current'][-1] = self.laser_current
-            self.data['time'][-1] = time.time()
-
-            for k, v in self.laser_temps.items():
-                self.data[k][-1] = v
-        except:
-            qi = 3000
-            self.log.exception("Exception in laser status loop, throttling refresh rate.")
-
-        self.queryTimer.start(qi)
-        self.sigUpdate.emit()
+        self.sigLaserNext.disconnect()
+        return
 
     @QtCore.Slot()
     def start_query_loop(self):
         """ Start the readout loop. """
-        self.module_state.run()
-        self.queryTimer.start(self.queryInterval)
+        with self.threadlock:
+            # Lock module
+            if self.module_state() != 'locked':
+                self.module_state.lock()
+            else:
+                self.log.warning('Laser loop already running. Method call ignored.')
+                return 0
+
+        self.sigLaserNext().emit()
+        return
+
+    def query_loop_body(self):
+        if self.module_state() == "locked":
+            with self.threadlock:
+                if self.stopRequest:
+                    self.module_state.unlock()
+                    self.stopRequest = False
+                    return
+
+                # print('laserloop', QtCore.QThread.currentThreadId())
+                self.laser_state = self._laser.get_laser_state()
+                self.laser_shutter = self._laser.get_shutter_state()
+                self.laser_external = self._laser.get_external_state()
+                self.laser_power = self._laser.get_power()
+                self.laser_power_setpoint = self._laser.get_power_setpoint()
+                # self.laser_power_setpoint = 0.0
+                self.laser_current = self._laser.get_current()
+                # self.laser_current_setpoint = self._laser.get_current_setpoint()
+                self.laser_current_setpoint = 0.0
+                self.laser_temps = self._laser.get_temperatures()
+
+                for k in self.data:
+                    self.data[k] = np.roll(self.data[k], -1)
+
+                self.data['power'][-1] = self.laser_power
+                # self.data['current'][-1] = self.laser_current
+                self.data['time'][-1] = time.time()
+
+                for k, v in self.laser_temps.items():
+                    self.data[k][-1] = v
+                time.sleep(1)
+
+            self.sigUpdate().emit()
+            self.sigLaserNext().emit()
+        return
 
     @QtCore.Slot()
     def stop_query_loop(self):
@@ -179,10 +189,14 @@ class LaserLogic(GenericLogic):
             self._laser.off()
         self.sigUpdate.emit()
 
-    @QtCore.Slot(bool)
     def set_external_state(self, state):
         """ Switched external driving on or off. """
+        if self.module_state == "locked":
+            self.stop_query_loop()
+
         self._laser.set_external_state(state)
+
+        self.start_query_loop()
 
     @QtCore.Slot(bool)
     def set_shutter_state(self, state):
