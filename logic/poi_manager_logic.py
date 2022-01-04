@@ -359,7 +359,7 @@ class PoiManagerLogic(GenericLogic):
     optimizerlogic = Connector(interface='OptimizerLogic')
     scannerlogic = Connector(interface='ConfocalLogic')
     savelogic = Connector(interface='SaveLogic')
-    odmrlogic = Connector(interface='ODMRLogic', optional=True)
+    odmrlogic = Connector(interface='AwgPulsedODMRLogic', optional=True)
     pulsedmeasurementlogic = Connector(interface='PulsedMeasurementLogic', optional=True)
 
     # status vars
