@@ -37,7 +37,7 @@ class LaserLogic(GenericLogic):
 
     # waiting time between queries im milliseconds
     laser = Connector(interface='SimpleLaserInterface')
-    queryInterval = ConfigOption('query_interval', 1000)
+    queryInterval = ConfigOption('query_interval', 3000)
     laser_power_setpoint = StatusVar("laser_power_setpoint", default=0.1)
 
     sigUpdate = QtCore.Signal()
