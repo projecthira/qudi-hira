@@ -415,6 +415,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
                     # Find all digits/floats in string
                     value = float(re.findall(r'\d+\.*\d*', res)[-1])
                     return value
+            time.sleep(0.2)
             idx += 1
         raise ValueError(f"Unable to find {search} from query {query}")
 

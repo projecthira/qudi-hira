@@ -118,6 +118,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._laser_logic = self.laserlogic()
 
         # self._awg_device.reset()
+        self._laser_logic.set_external_state(True)
 
         # Get hardware constraints
         mw_limits = self.get_hw_constraints()
@@ -872,7 +873,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         with self.threadlock:
             if self.module_state() == 'locked':
                 self.stopRequested = True
-        self._laser_logic.set_external_state(False)
         return 0
 
     def clear_odmr_data(self):
