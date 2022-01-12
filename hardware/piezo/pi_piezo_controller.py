@@ -247,9 +247,16 @@ class PIPiezoController(Base, ConfocalScannerInterface):
             y = self._current_position[1]
 
         if z is not None:
-            if not (self._scanner_position_ranges[2][0] <= z <= self._scanner_position_ranges[2][1]):
-                self.log.error('You want to set z out of range: {0:f}.'.format(z))
-                return -1
+            # This is a quick bugfix as the z optimizer often finds points
+            # just outside the z range. This is handled in the logic, but somehow
+            # it does not work quite correctly so it has to be handled here
+            if z < self._scanner_position_ranges[2][0]:
+                self.log.warning("Z outside lower range: {} < {}, but ignoring it".format(z,  self._scanner_position_ranges[2][0]))
+                z = self._scanner_position_ranges[2][0]
+            elif z > self._scanner_position_ranges[2][1]:
+                self.log.warning("Z outside upper range: {} > {}, but ignoring it".format(z,  self._scanner_position_ranges[2][1]))
+                z = self._scanner_position_ranges[2][1]
+
             self._current_position[2] = np.float(z)
         else:
             z = self._current_position[2]

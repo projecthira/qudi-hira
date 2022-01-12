@@ -594,7 +594,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._mw_device.cw_on()
         return num_of_samples, waveform_names
 
-    def mw_sweep_on(self):
+    def mw_sweep_on(self, continue_scan=False):
         """
         Switching on the mw source in list/sweep mode.
 
@@ -660,29 +660,30 @@ class AwgPulsedODMRLogic(GenericLogic):
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
 
-        # Load Trigger pulses onto AWG
-        analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
+        if not continue_scan:
+            # Load Trigger pulses onto AWG
+            analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
 
-        if not analog_samples and not digital_samples:
-            mode = "sweep"
-            is_running = False
-            self.sigOutputStateUpdated.emit(mode, is_running)
-            return mode, is_running
+            if not analog_samples and not digital_samples:
+                mode = "sweep"
+                is_running = False
+                self.sigOutputStateUpdated.emit(mode, is_running)
+                return mode, is_running
 
-        num_of_samples, waveform_names = self._awg_device.write_waveform(
-            name='pulsedODMRnoiq',
-            analog_samples=analog_samples,
-            digital_samples=digital_samples,
-            is_first_chunk=True,
-            is_last_chunk=True,
-            total_number_of_samples=len(analog_samples['a_ch0'])
-        )
-        self._awg_device.load_waveform(load_dict=waveform_names)
+            num_of_samples, waveform_names = self._awg_device.write_waveform(
+                name='pulsedODMRnoiq',
+                analog_samples=analog_samples,
+                digital_samples=digital_samples,
+                is_first_chunk=True,
+                is_last_chunk=True,
+                total_number_of_samples=len(analog_samples['a_ch0'])
+            )
+            self._awg_device.load_waveform(load_dict=waveform_names)
 
-        # Following lines update the corrected parameters to the GUI
-        param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
-                      'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
-        self.sigParameterUpdated.emit(param_dict)
+            # Following lines update the corrected parameters to the GUI
+            param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
+                          'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
+            self.sigParameterUpdated.emit(param_dict)
 
         num, status = self._awg_device.get_status()
         if num == 0:
@@ -703,10 +704,8 @@ class AwgPulsedODMRLogic(GenericLogic):
 
         @return object: actually set trigger polarity returned from hardware
         """
-        if self.module_state() != 'locked':
-            self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 0)
-        else:
-            self.log.warning('set_trigger failed. Logic is locked.')
+        self.mw_trigger_pol, triggertime = self._mw_device.set_ext_trigger(trigger_pol, 0)
+        self.log.info("MW polarity set to {}".format(self.mw_trigger_pol))
 
         update_dict = {'trigger_pol': self.mw_trigger_pol}
         self.sigParameterUpdated.emit(update_dict)
@@ -855,7 +854,7 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return -1
 
-            mode, is_running = self.mw_sweep_on()
+            mode, is_running = self.mw_sweep_on(continue_scan=True)
             if not is_running:
                 self._stop_odmr_counter()
                 self.module_state.unlock()
