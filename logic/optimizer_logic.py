@@ -421,6 +421,18 @@ class OptimizerLogic(GenericLogic):
         self.sigImageUpdated.emit()
         self._sigDoNextOptimizationStep.emit()
 
+    def do_z_optimization_max(self):
+        """ Use a maximum for finding the NV """
+        # z scaning
+        self._scan_z_line()
+
+        max_value_index = np.argmax(self.z_refocus_line[:, self.opt_channel].max())
+        self.optim_pos_z = self._zimage_Z_values[max_value_index]
+        self.optim_sigma_z = 0.2e-6
+
+        self.sigImageUpdated.emit()
+        self._sigDoNextOptimizationStep.emit()
+
     def do_z_optimization(self):
         """ Do the z axis optimization."""
         # z scaning
