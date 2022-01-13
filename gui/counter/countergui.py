@@ -165,6 +165,15 @@ class CounterGui(GUIBase):
         self._mw.trace_3_radiobutton.released.connect(self.trace_display_changed)
         self._mw.trace_4_radiobutton.released.connect(self.trace_display_changed)
 
+        # Add save file tag input box
+        self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
+        self._mw.save_tag_LineEdit.setMaximumWidth(500)
+        self._mw.save_tag_LineEdit.setMinimumWidth(200)
+        self._mw.save_tag_LineEdit.setToolTip('Enter a nametag which will be\n'
+                                              'added to the filename.')
+        self._mw.counting_control_ToolBar.addWidget(self._mw.save_tag_LineEdit)
+
+
         # Connect the default view action
         self._mw.restore_default_view_Action.triggered.connect(self.restore_default_view)
 
@@ -323,7 +332,8 @@ class CounterGui(GUIBase):
         """
         if self._counting_logic.get_saving_state():
             self._mw.record_counts_Action.setText('Start Saving Data')
-            self._counting_logic.save_data()
+            filetag = self._mw.save_tag_LineEdit.text()
+            self._counting_logic.save_data(postfix=filetag)
         else:
             self._mw.record_counts_Action.setText('Save')
             self._counting_logic.start_saving()
