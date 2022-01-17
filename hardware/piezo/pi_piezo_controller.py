@@ -78,7 +78,7 @@ class PIPiezoController(Base, ConfocalScannerInterface):
         # self._set_servo_state(False)
         # If not shutdown, keep servo on to stay on target.
         try:
-            self.pidevice.CloseConnection()
+            self.pidevice.close()
             self.log.info("PI Device has been closed connection !")
             return 0
         except GCSError as error:
@@ -323,7 +323,13 @@ class PIPiezoController(Base, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.pidevice.HLT()
+        if self._z_scanner is None:
+            axes = [self._x_scanner, self._y_scanner]
+            self.pidevice.HLT(axes=axes)
+        else:
+            axes = [self._x_scanner, self._y_scanner, self._z_scanner]
+            self.pidevice.HLT(axes=axes)
+
         return 0
 
     def close_scanner_clock(self, power=0):

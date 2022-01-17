@@ -452,7 +452,6 @@ class AwgPulsedODMRLogic(GenericLogic):
                                             current freq_step, current power
         """
         limits = self.get_hw_constraints()
-        limits_awg = self.get_awg_constraints()
 
         # How long will a sweep be
         self.single_sweep_time = single_sweep_time
@@ -468,8 +467,7 @@ class AwgPulsedODMRLogic(GenericLogic):
                     self.mw_stop = self.mw_start + np.floor(8e8 / self.mw_step) * self.mw_step
                 self.cw_mw_frequency = (self.mw_stop + self.mw_start) / 2
             if isinstance(power, (int, float)):
-                self.sweep_mw_power = self.vpeak_to_dbm_converter(
-                    limits_awg.power_in_range(self.dbm_to_vpeak_converter(power)))
+                self.sweep_mw_power = limits.power_in_range(power)
         else:
             self.log.warning('set_sweep_parameters failed. Logic is locked.')
 

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>qudi: Slow Counter</string>
+   <string>qudi-hira: Slow Counter</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QDockWidget" name="trace_selection_DockWidget">

@@ -128,10 +128,8 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.cw_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
         # Get hardware constraints to set limits for input widgets
-        contraints_awg = self._odmr_logic.get_awg_power_constraints_in_dbm()
-
-        self._mw.sweep_power_DoubleSpinBox.setMaximum(contraints_awg.max_power)
-        self._mw.sweep_power_DoubleSpinBox.setMinimum(contraints_awg.min_power)
+        self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
+        self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
         self._mw.single_sweep_time_doubleSpinBox.setMaximum(100)
         self._mw.single_sweep_time_doubleSpinBox.setMinimum(0.1)

@@ -15,6 +15,7 @@
 *.#*
 .*.swp
 .DS_store
+*.png
 
 # Local config directories
 /config/qo-config
