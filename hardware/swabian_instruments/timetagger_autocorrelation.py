@@ -62,7 +62,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         """
         if self.module_state() == 'locked':
             self.correlation.stop()
-        self.correlation.clear()
+            self.correlation.clear()
         self.correlation = None
         self._tagger.reset()
         return 0

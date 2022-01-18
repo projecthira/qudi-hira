@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>qudi: Slow Counter</string>
+   <string>qudi-hira: Slow Counter</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QDockWidget" name="trace_selection_DockWidget">
@@ -118,7 +118,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>18</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -289,6 +289,7 @@ Timestamps in oversampling interval are all equal to the averaging time.</string
    </attribute>
    <addaction name="start_counter_Action"/>
    <addaction name="record_counts_Action"/>
+   <addaction name="separator"/>
   </widget>
   <action name="start_counter_Action">
    <property name="checkable">

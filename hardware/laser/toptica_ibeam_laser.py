@@ -75,12 +75,12 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
         if not connected:
             self.log.error('Laser does not seem to be connected.')
             return -1
-        else:
-            self._communicate("ini la")
-            self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
-            self.init_channel_1()
-            self.set_external_state(True)
-            return 0
+
+        self._communicate("ini la")
+        self._model_name = 'SN: iBEAM-SMART-515-S-A3-15384'
+        self.init_channel_1()
+        self.set_external_state(False)
+        self.external = False
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -415,6 +415,7 @@ class TopticaIBeamLaser(Base, SimpleLaserInterface):
                     # Find all digits/floats in string
                     value = float(re.findall(r'\d+\.*\d*', res)[-1])
                     return value
+            time.sleep(0.2)
             idx += 1
         raise ValueError(f"Unable to find {search} from query {query}")
 

@@ -39,6 +39,9 @@ class NetworkAnalyzerZVL6(Base):
         self.instr = RsInstrument(self._zvl_visa_address)
         self.log.info(f"Success! Connected to {self.instr.query_str('*IDN?')}")
 
+    def on_deactivate(self):
+        self.instr.close()
+
     @staticmethod
     def convert_str_to_float_list(string: str):
         return list(map(float, string.split(",")))
