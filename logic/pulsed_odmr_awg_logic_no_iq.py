@@ -161,7 +161,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         # Switch off microwave and set CW frequency and power
         self._awg_device.pulser_off()
         self.mw_off()
-        self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
 
         # Connect signals
         self.sigNextLine.connect(self._scan_odmr_line, QtCore.Qt.QueuedConnection)
@@ -398,28 +397,6 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigParameterUpdated.emit(update_dict)
         return self.run_time
 
-    def set_cw_parameters(self, frequency, power):
-        """ Set the desired new cw mode parameters.
-
-        @param float frequency: frequency to set in Hz
-        @param float power: power to set in dBm
-
-        @return (float, float): actually set frequency in Hz, actually set power in dBm
-        """
-        if self.module_state() != 'locked' and isinstance(frequency, (int, float)) and isinstance(power, (int, float)):
-            constraints = self.get_hw_constraints()
-            frequency_to_set = constraints.frequency_in_range(frequency)
-            power_to_set = constraints.power_in_range(power)
-            self.cw_mw_frequency, self.cw_mw_power, _ = self._mw_device.set_cw(frequency_to_set, power_to_set)
-            # self._mw_device.set_pulse_mod()
-        else:
-            self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
-                             'no integer or float.')
-
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-        self.sigParameterUpdated.emit(param_dict)
-        return self.cw_mw_frequency, self.cw_mw_power
-
     def set_pulse_parameters(self, laser_readout_length, delay_length, pi_pulse_length, freq_repetition):
         if self.module_state() != 'locked':
             self.laser_readout_length = laser_readout_length
@@ -478,26 +455,6 @@ class AwgPulsedODMRLogic(GenericLogic):
                       'single_sweep_time': self.single_sweep_time}
         self.sigParameterUpdated.emit(param_dict)
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
-
-    def mw_cw_on(self):
-        """
-        Switching on the mw source in cw mode.
-
-        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
-        """
-        self.cw_mw_frequency, self.cw_mw_power, mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-        self.sigParameterUpdated.emit(param_dict)
-        if mode != 'cw':
-            self.log.error('Switching to CW microwave output mode failed.')
-        else:
-            err_code = self._mw_device.cw_on()
-            if err_code < 0:
-                self.log.error('Activation of microwave output failed.')
-
-        mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(mode, is_running)
-        return mode, is_running
 
     def list_to_waveform_pulsed(self, freq_list):
         # Laser, Readout, Switch and MW trigger channels
@@ -591,7 +548,6 @@ class AwgPulsedODMRLogic(GenericLogic):
             )
         self._awg_device.load_waveform(load_dict=waveform_names)
         self._awg_device.set_reps(100)
-        self._mw_device.cw_on()
         return num_of_samples, waveform_names
 
     def mw_sweep_on(self):
@@ -799,7 +755,6 @@ class AwgPulsedODMRLogic(GenericLogic):
             # if self.average_factor < 100:
             #    self.average_factor = 100
             self._awg_device.set_reps(self.average_factor)
-            # self.mw_cw_on()
 
             sweep_bin_num = self.average_factor * len(self.freq_list) * self.freq_rep
             self._odmr_counter.set_odmr_length(length=sweep_bin_num)
