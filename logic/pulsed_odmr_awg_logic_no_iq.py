@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-New ODMR logic module for QUEST@WIS
-
-A logic module to perform ODMR measurements, using the ODMR GUI module, that is adapted to the hardware configuration
-we have here. The MW instrument doesn't have a sweep function, so the sweeping is done using an AWG
-and IQ mixing.
-Dan
+ODMR logic for pulsed measurements without an IQ mixer.
 
 This file contains the Qudi Logic module base class.
 
@@ -23,7 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 
-Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
+Copyright (c) Dinesh Pinto. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
@@ -83,12 +78,18 @@ class AwgPulsedODMRLogic(GenericLogic):
 
     freq_list = []
 
+    # Set up all the constants of the system, these are chosen after optimizing for
+    # performance and accuracy
     # Sample set to default - 1.25 GSa/sec
     sample_rate = 0.625e9
     # Synchronize analog and digital channels
     digital_sync_length = 9e-9
     # Null pulse to settle instruments
     null_pulse_length = 30e-9
+    # MW trigger length, detected at POS edge
+    mw_trig_length = 20e-9
+    # Max samples supported by AWG
+    max_samples = 130e6
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -471,16 +472,17 @@ class AwgPulsedODMRLogic(GenericLogic):
         # Length of a full frequency sweep (single frequency * frequency list)
         single_sweep_pulse_samples = int(single_freq_pulse_samples * len(freq_list))
 
-        if single_sweep_pulse_samples > 130e6:
-            self.log.error("The number of samples is above the AWG memory limit. Stopping ODMR.")
+        if single_sweep_pulse_samples > self.max_samples:
+            self.log.error(f"The number of samples {single_sweep_pulse_samples:.e} is above the AWG memory limit of "
+                           f"{self.max_samples:.e}. Stopping ODMR execution.")
             return False, False
         else:
             # Set up all the pulse lengths
-            mw_trig_pulse_sample = int(np.floor(20e-9 * self.sample_rate))
+            mw_trig_pulse_sample = int(np.floor(self.mw_trig_length * self.sample_rate))
             delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
             switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
             null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
-            laser_readout_pulse_sample = int(np.floor(self.sample_rate * self.laser_readout_length))
+            laser_readout_pulse_sample = int(np.floor(self.laser_readout_length * self.sample_rate))
 
             # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
             mw_trig_samples = np.zeros(single_sweep_pulse_samples)
