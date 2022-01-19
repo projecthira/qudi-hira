@@ -473,8 +473,8 @@ class AwgPulsedODMRLogic(GenericLogic):
         single_sweep_pulse_samples = int(single_freq_pulse_samples * len(freq_list))
 
         if single_sweep_pulse_samples > self.max_samples:
-            self.log.error(f"The number of samples {single_sweep_pulse_samples:.e} is above the AWG memory limit of "
-                           f"{self.max_samples:.e}. Stopping ODMR execution.")
+            self.log.error(f"The number of samples {single_sweep_pulse_samples:.2e} is above the AWG memory limit of "
+                           f"{self.max_samples:.2e}. Stopping ODMR execution.")
             return False, False
         else:
             # Set up all the pulse lengths
@@ -550,15 +550,41 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._awg_device.set_reps(100)
         return num_of_samples, waveform_names
 
-    def mw_sweep_on(self, continue_scan=False):
-        """
-        Switching on the mw source in list/sweep mode.
+    def mw_cw_on(self):
+        pass
 
-        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+    def set_cw_parameters(self, freq, power):
+        pass
 
-        When using the AWG the sweep mode is redundant, so we leave only the list options.
-        """
-        # Load Sweep data onto MW source
+    def _awg_on(self):
+        self.sweep_list()
+
+        # Load Trigger pulses onto AWG
+        analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
+
+        if not analog_samples and not digital_samples:
+            mode = "sweep"
+            is_running = False
+            self.sigOutputStateUpdated.emit(mode, is_running)
+            return mode, is_running
+
+        num_of_samples, waveform_names = self._awg_device.write_waveform(
+            name='pulsedODMRnoiq',
+            analog_samples=analog_samples,
+            digital_samples=digital_samples,
+            is_first_chunk=True,
+            is_last_chunk=True,
+            total_number_of_samples=len(analog_samples['a_ch0'])
+        )
+        self._awg_device.load_waveform(load_dict=waveform_names)
+
+        # Following lines update the corrected parameters to the GUI
+        param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
+                      'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
+        self.sigParameterUpdated.emit(param_dict)
+
+    def _mw_on(self):
+        # LOAD MW PARAMETERS
         limits = self.get_hw_constraints()
         param_dict = {}
 
@@ -600,11 +626,29 @@ class AwgPulsedODMRLogic(GenericLogic):
         else:
             self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
 
-        self.sweep_list()
         self.set_trigger(self.mw_trigger_pol)
-
         self.sigParameterUpdated.emit(param_dict)
+        return mode
 
+    def mw_sweep_on(self, continue_scan=False):
+        """
+        Switching on the mw source in list/sweep mode.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+
+        When using the AWG the sweep mode is redundant, so we leave only the list options.
+        """
+        # LOAD AWG PARAMETERS
+        if not continue_scan:
+            self._awg_on()
+
+        num, status = self._awg_device.get_status()
+        if num == 0:
+            is_running = 1
+        else:
+            self.log.error("AWG is not ready")
+
+        mode = self._mw_on()
         if mode != 'list' and mode != 'sweep':
             self.log.error('Switching to list/sweep microwave output mode failed.')
         elif self.mw_scanmode == MicrowaveMode.SWEEP:
@@ -616,39 +660,8 @@ class AwgPulsedODMRLogic(GenericLogic):
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
 
-        if not continue_scan:
-            # Load Trigger pulses onto AWG
-            analog_samples, digital_samples = self.list_to_waveform_pulsed(self.freq_list)
-
-            if not analog_samples and not digital_samples:
-                mode = "sweep"
-                is_running = False
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                return mode, is_running
-
-            num_of_samples, waveform_names = self._awg_device.write_waveform(
-                name='pulsedODMRnoiq',
-                analog_samples=analog_samples,
-                digital_samples=digital_samples,
-                is_first_chunk=True,
-                is_last_chunk=True,
-                total_number_of_samples=len(analog_samples['a_ch0'])
-            )
-            self._awg_device.load_waveform(load_dict=waveform_names)
-
-            # Following lines update the corrected parameters to the GUI
-            param_dict = {'mw_start': self.mw_start, 'mw_stop': self.mw_stop,
-                          'mw_step': self.mw_step, 'sweep_mw_power': self.sweep_mw_power}
-            self.sigParameterUpdated.emit(param_dict)
-
-        num, status = self._awg_device.get_status()
-        if num == 0:
-            mode = "sweep"
-            is_running = 1
-        else:
-            self.log.error("AWG is not ready")
-
         self.sigOutputStateUpdated.emit(mode, is_running)
+
         return mode, is_running
 
     def set_trigger(self, trigger_pol):
@@ -858,29 +871,23 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return
 
-            # # if during the scan a clearing of the ODMR data is needed:
-            # if self._clearOdmrData:
-            #     self.elapsed_sweeps = 0
-            #     self._startTime = time.time()
-
             # reset position so every line starts from the same frequency
             self._odmr_counter.clear_odmr()
+            self._mw_device.reset_sweeppos()
 
             self._awg_device.pulser_on()
-
             # Acquire count data
             time.sleep(self.single_sweep_time + 0.05)
 
             err, new_counts = self._odmr_counter.count_odmr(pulsed=False)
 
-            self.tt_counts = new_counts
-
-            self._awg_device.pulser_off()
-
             if err:
                 self.stopRequested = True
                 self.sigNextLine.emit()
                 return
+
+            # self._awg_device.pulser_off()
+            # self._mw_device.simple_off()
 
             # Reshaping the array into (average_factor, num_of_freq, freq_rep)
             new_counts = np.reshape(new_counts, newshape=(self.average_factor, len(self.freq_list), self.freq_rep))
