@@ -62,3 +62,12 @@ class NetworkAnalyzerZVL6(Base):
         power = np.array(self.convert_str_to_float_list(power))
 
         return frequency, power
+
+    def print_screen_to_usb(self, filename: str) -> str:
+        self.instr.write_str('HCOP:DEV:LANG PNG')
+        filepath = f"D:\{filename}.PNG"
+
+        self.instr.write_str(f"MMEM:NAME '{filepath}'")
+        self.instr.write_str("HCOP:ITEM:ALL")
+        self.instr.write_str("HCOP")
+        return filepath
