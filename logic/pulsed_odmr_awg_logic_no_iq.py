@@ -868,6 +868,7 @@ class AwgPulsedODMRLogic(GenericLogic):
                 self.mw_off()
                 self._awg_device.pulser_off()
                 self._stop_odmr_counter()
+                self._laser_logic.set_external_state(False)
                 self.module_state.unlock()
                 return
 
