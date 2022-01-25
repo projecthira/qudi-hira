@@ -38,7 +38,7 @@ from interface.microwave_interface import TriggerEdge
 from logic.generic_logic import GenericLogic
 
 
-class AwgPulsedODMRLogic(GenericLogic):
+class AwgODMRLogicNoIQ(GenericLogic):
     """This is the Logic class for ODMR."""
     _modclass = 'odmrlogic'
     _modtype = 'logic'
@@ -448,13 +448,79 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.mw_start, self.mw_stop, self.mw_step, self.sweep_mw_power, self.cw_mw_frequency
 
+    def list_to_waveform_cw(self):
+        analog_samples = {'a_ch0': []}
+        digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': [], 'd_ch5': []}
+
+        # Length of a single frequency (single pulse * frequency repetition rate)
+        single_freq_pulse_length = (self.laser_readout_length + self.null_pulse_length) * self.freq_rep
+
+        total_pulse_length = self.mw_trig_length + 2 * self.null_pulse_length + single_freq_pulse_length
+        total_pulse_samples = int(np.floor(total_pulse_length * self.sample_rate))
+        self.total_pulse_length = total_pulse_length
+
+        if total_pulse_length < 2.0e-3:
+            self.log.error(f"Repetition too low, pulses may not work correctly")
+            return False, False
+
+        if total_pulse_samples > self.max_samples:
+            self.log.error(f"Too many samples {total_pulse_samples} > {self.max_samples}")
+            return False, False
+
+        # Set up all the pulse lengths
+        mw_trig_pulse_sample = int(np.floor(self.mw_trig_length * self.sample_rate))
+        laser_readout_pulse_sample = int(np.floor(self.laser_readout_length * self.sample_rate))
+        null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
+
+        # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
+        mw_trig_samples = np.zeros(total_pulse_samples)
+        laser_samples = np.zeros(total_pulse_samples)
+        readout_samples = np.zeros(total_pulse_samples)
+        switch_samples = np.zeros(total_pulse_samples)
+
+        mw_trig_samples[0:mw_trig_pulse_sample] = 1
+        # Null pulses are added to take into account the settling time of the instruments
+        current_freq_idx = mw_trig_pulse_sample + 2 * null_pulse_sample
+
+        for _ in range(self.freq_rep):
+            laser_start = current_freq_idx
+            laser_stop = laser_start + laser_readout_pulse_sample
+
+            laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+            readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
+
+            current_freq_idx += laser_readout_pulse_sample + null_pulse_sample
+
+        # Digital and analog channels are mapped to the sequences
+        digital_samples['d_ch0'] = laser_samples
+        digital_samples['d_ch1'] = readout_samples
+        digital_samples['d_ch2'] = switch_samples
+        digital_samples['d_ch5'] = mw_trig_samples
+        analog_samples['a_ch0'] = np.zeros(total_pulse_samples)
+
+        self.log.info(f"Finished generating CW analog and digital arrays")
+        return analog_samples, digital_samples
+
     def list_to_waveform_pulsed(self):
         # Laser, Readout, Switch and MW trigger channels
         analog_samples = {'a_ch0': []}
         digital_samples = {'d_ch0': [], 'd_ch1': [], 'd_ch2': [], 'd_ch5': []}
 
+        if self.pi_pulse_length < 50.0e-9:
+            self.log.error(f"Pi pulse too short: {self.pi_pulse_length * 1e9} ns < 50.0 ns")
+            return False, False
+
+        # Change pi pulse length according to hardware spec
+        if 50.0e-9 < self.pi_pulse_length < 60.0e-9:
+            pi_pulse_length = self.pi_pulse_length - 40.0e-9
+        else:
+            pi_pulse_length = self.pi_pulse_length - 50.0e-9
+
+        self.log.warning(f"pi_pulse_length changed from {self.pi_pulse_length * 1e9} ns to "
+                         f"{pi_pulse_length * 1e9} ns to match hardware.")
+
         # Length of a single frequency (single pulse * frequency repetition rate)
-        single_freq_pulse_length = (self.laser_readout_length + self.delay_length + self.pi_pulse_length +
+        single_freq_pulse_length = (self.laser_readout_length + self.delay_length + pi_pulse_length +
                                     self.null_pulse_length) * self.freq_rep
 
         total_pulse_length = self.mw_trig_length + 2 * self.null_pulse_length + single_freq_pulse_length
@@ -472,7 +538,7 @@ class AwgPulsedODMRLogic(GenericLogic):
         # Set up all the pulse lengths
         mw_trig_pulse_sample = int(np.floor(self.mw_trig_length * self.sample_rate))
         delay_pulse_sample = int(np.floor(self.delay_length * self.sample_rate))
-        switch_pulse_sample = int(np.floor(self.pi_pulse_length * self.sample_rate))
+        switch_pulse_sample = int(np.floor(pi_pulse_length * self.sample_rate))
         null_pulse_sample = int(np.floor(self.null_pulse_length * self.sample_rate))
         laser_readout_pulse_sample = int(np.floor(self.laser_readout_length * self.sample_rate))
 
@@ -503,14 +569,14 @@ class AwgPulsedODMRLogic(GenericLogic):
             current_freq_idx += laser_readout_pulse_sample + delay_pulse_sample + switch_pulse_sample + \
                                 null_pulse_sample
 
-            # Digital and analog channels are mapped to the sequences
-            digital_samples['d_ch0'] = laser_samples
-            digital_samples['d_ch1'] = readout_samples
-            digital_samples['d_ch2'] = switch_samples
-            digital_samples['d_ch5'] = mw_trig_samples
-            analog_samples['a_ch0'] = np.zeros(total_pulse_samples)
+        # Digital and analog channels are mapped to the sequences
+        digital_samples['d_ch0'] = laser_samples
+        digital_samples['d_ch1'] = readout_samples
+        digital_samples['d_ch2'] = switch_samples
+        digital_samples['d_ch5'] = mw_trig_samples
+        analog_samples['a_ch0'] = np.zeros(total_pulse_samples)
 
-        self.log.info(f"Finished generating analog and digital arrays")
+        self.log.info(f"Finished generating pulsedODMR analog and digital arrays")
         return analog_samples, digital_samples
 
     def sweep_list(self):
@@ -526,10 +592,10 @@ class AwgPulsedODMRLogic(GenericLogic):
     def write_test_waveform(self):
         self.sweep_list()
 
-        analog_samples, digital_samples = self.list_to_waveform_pulsed()
+        analog_samples, digital_samples = self.list_to_waveform_cw()
         num_of_samples, waveform_names = \
             self._awg_device.write_waveform(
-                name='pulsedODMRnoiq',
+                name='noiqODMR',
                 analog_samples=analog_samples,
                 digital_samples=digital_samples,
                 is_first_chunk=True,
@@ -540,8 +606,13 @@ class AwgPulsedODMRLogic(GenericLogic):
         self._awg_device.set_reps(100)
         return num_of_samples, waveform_names
 
-    def mw_cw_on(self):
-        pass
+    def cw_mode_on(self):
+        self.cw_mode_on = True
+        self.log.info("CW mode switched on")
+
+    def cw_mode_off(self):
+        self.cw_mode_on = False
+        self.log.info("CW mode switched off")
 
     def set_cw_parameters(self, freq, power):
         pass
@@ -550,7 +621,11 @@ class AwgPulsedODMRLogic(GenericLogic):
         self.sweep_list()
 
         # Load Trigger pulses onto AWG
-        analog_samples, digital_samples = self.list_to_waveform_pulsed()
+        if self.cw_mode_on:
+            analog_samples, digital_samples = self.list_to_waveform_cw()
+        else:
+            analog_samples, digital_samples = self.list_to_waveform_pulsed()
+
 
         if not analog_samples and not digital_samples:
             mode = "sweep"

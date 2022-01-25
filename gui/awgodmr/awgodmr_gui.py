@@ -63,13 +63,13 @@ class ODMRSettingDialog(QtWidgets.QDialog):
         uic.loadUi(ui_file, self)
 
 
-class AwgPulsedODMRGui(GUIBase):
+class AwgODMRGui(GUIBase):
     """
     This is the GUI Class for ODMR measurements
     """
 
     # declare connectors
-    odmrlogic1 = Connector(interface='AwgPulsedODMRLogic')
+    odmrlogic1 = Connector(interface='AwgODMRLogicNoIQ')
     savelogic = Connector(interface='SaveLogic')
 
     sigStartOdmrScan = QtCore.Signal()
@@ -77,6 +77,7 @@ class AwgPulsedODMRGui(GUIBase):
     sigContinueOdmrScan = QtCore.Signal()
     sigClearData = QtCore.Signal()
     sigCwMwOn = QtCore.Signal()
+    sigCwMwOff = QtCore.Signal()
     sigMwOff = QtCore.Signal()
     sigMwPowerChanged = QtCore.Signal(float)
     sigMwCwParamsChanged = QtCore.Signal(float, float)
@@ -135,7 +136,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.single_sweep_time_doubleSpinBox.setMinimum(0.1)
         self._mw.laser_readout_length_doubleSpinBox.setMinimum(0)
         self._mw.delay_length_doubleSpinBox.setMinimum(0)
-        self._mw.pi_pulse_length_doubleSpinBox.setMinimum(0)
+        self._mw.pi_pulse_length_doubleSpinBox.setMinimum(50.0e-9)
         self._mw.freq_repetition_doubleSpinBox.setMinimum(0)
         self._mw.freq_repetition_doubleSpinBox.setMaximum(100000)
 
@@ -268,19 +269,22 @@ class AwgPulsedODMRGui(GUIBase):
         self._mw.odmr_cb_high_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
         self._mw.odmr_cb_low_percentile_DoubleSpinBox.valueChanged.connect(self.colorscale_changed)
         self._mw.average_level_SpinBox.valueChanged.connect(self.average_level_changed)
+        self._mw.cw_mode_toggle_checkBox.stateChanged.connect(self.toggle_cw_mode)
+
         # Internal trigger signals
         self._mw.odmr_cb_manual_RadioButton.clicked.connect(self.colorscale_changed)
         self._mw.odmr_cb_centiles_RadioButton.clicked.connect(self.colorscale_changed)
         self._mw.clear_odmr_PushButton.clicked.connect(self.clear_odmr_data)
         self._mw.action_run_stop.triggered.connect(self.run_stop_odmr)
         self._mw.action_resume_odmr.triggered.connect(self.resume_odmr)
-        self._mw.action_toggle_cw.triggered.connect(self.toggle_cw_mode)
+        self._mw.action_toggle_cw.triggered.connect(self._toggle_cw_mode)
         self._mw.action_Save.triggered.connect(self.save_data)
         self._mw.action_RestoreDefault.triggered.connect(self.restore_defaultview)
         self._mw.do_fit_PushButton.clicked.connect(self.do_fit)
 
         # Control/values-changed signals to logic
-        self.sigCwMwOn.connect(self._odmr_logic.mw_cw_on, QtCore.Qt.QueuedConnection)
+        self.sigCwMwOn.connect(self._odmr_logic.cw_mode_on, QtCore.Qt.QueuedConnection)
+        self.sigCwMwOff.connect(self._odmr_logic.cw_mode_off, QtCore.Qt.QueuedConnection)
         self.sigMwOff.connect(self._odmr_logic.mw_off, QtCore.Qt.QueuedConnection)
         self.sigClearData.connect(self._odmr_logic.clear_odmr_data, QtCore.Qt.QueuedConnection)
         self.sigStartOdmrScan.connect(self._odmr_logic.start_odmr_scan, QtCore.Qt.QueuedConnection)
@@ -342,6 +346,7 @@ class AwgPulsedODMRGui(GUIBase):
         self._odmr_logic.sigOdmrFitUpdated.disconnect()
         self._odmr_logic.sigOdmrElapsedTimeUpdated.disconnect()
         self.sigCwMwOn.disconnect()
+        self.sigCwMwOff.disconnect()
         self.sigMwOff.disconnect()
         self.sigClearData.disconnect()
         self.sigStartOdmrScan.disconnect()
@@ -457,19 +462,27 @@ class AwgPulsedODMRGui(GUIBase):
             self._mw.action_toggle_cw.setEnabled(False)
             self.sigStopOdmrScan.emit()
         return
+#
+    def _toggle_cw_mode(self, is_checked):
+        """ Starts or stops CW microwave output if no measurement is running. """
+        if is_checked:
+            self._mw.action_toggle_cw.setEnabled(True)
+            self.sigCwMwOn.emit()
+        else:
+            self._mw.action_toggle_cw.setEnabled(True)
+            self.sigCwMwOff.emit()
+        return
 
     def toggle_cw_mode(self, is_checked):
         """ Starts or stops CW microwave output if no measurement is running. """
         if is_checked:
-            self._mw.action_run_stop.setEnabled(False)
-            self._mw.action_resume_odmr.setEnabled(False)
-            self._mw.action_toggle_cw.setEnabled(False)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            self._mw.delay_length_doubleSpinBox.setEnabled(False)
+            self._mw.pi_pulse_length_doubleSpinBox.setEnabled(False)
             self.sigCwMwOn.emit()
         else:
-            self._mw.action_toggle_cw.setEnabled(False)
-            self.sigMwOff.emit()
+            self._mw.delay_length_doubleSpinBox.setEnabled(True)
+            self._mw.pi_pulse_length_doubleSpinBox.setEnabled(True)
+            self.sigCwMwOff.emit()
         return
 
     def update_status(self, mw_mode, is_running):
@@ -531,9 +544,9 @@ class AwgPulsedODMRGui(GUIBase):
                 self._mw.action_toggle_cw.setChecked(True)
         else:
             self._mw.action_resume_odmr.setEnabled(True)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(True)
+            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(True)
+            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.clear_odmr_PushButton.setEnabled(False)
             self._mw.action_run_stop.setEnabled(True)
             self._mw.action_toggle_cw.setEnabled(True)
