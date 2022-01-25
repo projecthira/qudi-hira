@@ -317,7 +317,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         # To trigger externally, make sure to check set_ext_trigger for trigger polarity
         self.inst.write(':TRIG:FSW:SOUR EXT')
-        self.inst.write(':FREQ:MODE SWE')
+        # Sweep runs from start to end, then again from start
+        self.inst.write(':SWE:SHAP SAWT')
 
         actual_power = self.get_power()
         actual_start, actual_stop, actual_step = self.get_frequency()
