@@ -608,11 +608,11 @@ class AwgODMRLogicNoIQ(GenericLogic):
         return num_of_samples, waveform_names
 
     def cw_mode_on(self):
-        self.cw_mode_on = True
+        self._cw_mode_on = True
         self.log.info("CW mode switched on")
 
     def cw_mode_off(self):
-        self.cw_mode_on = False
+        self._cw_mode_on = False
         self.log.info("CW mode switched off")
 
     def set_cw_parameters(self, freq, power):
@@ -622,7 +622,7 @@ class AwgODMRLogicNoIQ(GenericLogic):
         self.sweep_list()
 
         # Load Trigger pulses onto AWG
-        if self.cw_mode_on:
+        if self._cw_mode_on:
             analog_samples, digital_samples = self.list_to_waveform_cw()
         else:
             analog_samples, digital_samples = self.list_to_waveform_pulsed()
