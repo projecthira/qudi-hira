@@ -158,6 +158,7 @@ class AwgODMRLogicNoIQ(GenericLogic):
         )
 
         # Switch off microwave and set CW frequency and power
+        self.cw_mode_off()
         self._awg_device.pulser_off()
         self.mw_off()
 
@@ -498,7 +499,7 @@ class AwgODMRLogicNoIQ(GenericLogic):
         digital_samples['d_ch5'] = mw_trig_samples
         analog_samples['a_ch0'] = np.zeros(total_pulse_samples)
 
-        self.log.info(f"Finished generating CW analog and digital arrays")
+        self.log.info(f"Finished generating cwODMR analog and digital arrays")
         return analog_samples, digital_samples
 
     def list_to_waveform_pulsed(self):
@@ -626,7 +627,6 @@ class AwgODMRLogicNoIQ(GenericLogic):
         else:
             analog_samples, digital_samples = self.list_to_waveform_pulsed()
 
-
         if not analog_samples and not digital_samples:
             mode = "sweep"
             is_running = False
@@ -634,7 +634,7 @@ class AwgODMRLogicNoIQ(GenericLogic):
             return mode, is_running
 
         num_of_samples, waveform_names = self._awg_device.write_waveform(
-            name='pulsedODMRnoiq',
+            name='noiqODMR',
             analog_samples=analog_samples,
             digital_samples=digital_samples,
             is_first_chunk=True,
