@@ -90,10 +90,8 @@ class SequenceGeneratorLogic(GenericLogic):
                                                             ('laser_length', 3e-6),
                                                             ('laser_delay', 500e-9),
                                                             ('wait_time', 1e-6),
-                                                            ('analog_trigger_voltage', 0.0),
-                                                            ('i_channel', 'a_ch0'),
-                                                            ('q_channel', 'a_ch1'),
-                                                            ('iq_amplitude', 0.0)]))
+                                                            ('analog_trigger_voltage', 0.0)
+                                                            ]))
 
     # The created pulse objects (PulseBlock, PulseBlockEnsemble, PulseSequence) are saved in
     # these dictionaries. The keys are the names.
@@ -388,7 +386,7 @@ class SequenceGeneratorLogic(GenericLogic):
                         self.__activation_config = (config_name, set_config)
                     else:
                         self.log.error('Unable to set activation config "{0}".\n'
-                                       'Not found in pmicrowave_channelulser constraints.'.format(activation_config))
+                                       'Not found in pulsar constraints.'.format(activation_config))
                 elif isinstance(activation_config, tuple):
                     if activation_config in available_configs.items():
                         set_config = self._apply_activation_config(activation_config[1])

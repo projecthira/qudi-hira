@@ -1094,10 +1094,6 @@ class PredefinedGeneratorBase:
         return self.generation_parameters.get('rabi_period')
 
     @property
-    def iq_amplitude(self):
-        return self.generation_parameters.get('iq_amplitude')
-
-    @property
     def sample_rate(self):
         return self.pulse_generator_settings.get('sample_rate')
 
