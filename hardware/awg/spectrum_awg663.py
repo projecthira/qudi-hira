@@ -50,6 +50,7 @@ class AWG663(Base, PulserInterface):
     sequence_folder = ConfigOption(name="sequence_folder",
                                    default=os.path.join(get_home_dir(), 'saved_pulsed_assets', 'sequence'),
                                    missing="warn")
+    invert_channel = ConfigOption(name="invert_channel", default="d_ch2", missing="warn")
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -199,10 +200,10 @@ class AWG663(Base, PulserInterface):
         # Low and high voltage level of the digital channels
         constraints.d_ch_low.default = 0.0
         constraints.d_ch_low.min = 0.0
-        constraints.d_ch_low.max = 0.0
+        constraints.d_ch_low.max = 3.3
 
         constraints.d_ch_high.default = 3.3
-        constraints.d_ch_high.min = 3.3
+        constraints.d_ch_high.min = 0.0
         constraints.d_ch_high.max = 3.3
 
         activation_config = OrderedDict()
@@ -650,24 +651,20 @@ class AWG663(Base, PulserInterface):
         channels = self.get_constraints().activation_config['hira_config']
         d_ch = [ch for ch in channels if 'd' in ch]
 
-        if low is None:
-            low = []
-        if high is None:
-            high = []
+        if low or high:
+            self.log.error("Vales were passed to get_digital_level, they will be ignored")
 
         low_val = {}
         high_val = {}
 
-        if (low == []) and (high == []):
-            for ch in d_ch:
-                low_val[ch] = 0.0
+        for ch in d_ch:
+            if ch == "d_ch2":
+                # Invert for the switch channel
+                low_val[ch] = 3.3
+                high_val[ch] = 0
+            else:
+                low_val[ch] = 0
                 high_val[ch] = 3.3
-
-        for d_ch in low:
-            low_val[d_ch] = 0
-
-        for d_ch in low:
-            high_val[d_ch] = 1
 
         return low_val, high_val
 
@@ -882,6 +879,11 @@ class AWG663(Base, PulserInterface):
             total_length = len(full_signal)
 
         for chan, value in digital_samples.items():
+            # Fix for inverting channel 2 (switch channel)
+            if chan == self.invert_channel:
+                self.log.info(f"Inverting channel {chan}")
+                value = np.invert(value)
+
             # maybe need to convert to boolian
             full_name = '{0}_{1}'.format(name, chan)
             wavename = '{0}.pkl'.format(full_name)
@@ -955,26 +957,19 @@ class AWG663(Base, PulserInterface):
         @return list: a list of deleted waveform names.
         """
         # TODO: Seems to only delete waveforms from the awg folder, not the device itself
-        self.log.warn("Seems to only delete waveforms from the awg folder, not the device itself")
-        path = os.path.join(os.getcwd(), 'awg', 'WaveFormDict.pkl')
-        pkl_file = open(path, 'rb')
-        wave_dict = pickle.load(pkl_file)
-        pkl_file.close()
+        files_removed = []
+        for file in os.listdir(self.waveform_folder):
+            filename, ext = file.split(".")
+            if filename[:-6] == waveform_name:
+                os.remove(os.path.join(self.waveform_folder, file))
+                files_removed.append(file)
 
-        names = list()
-        for wave in waveform_name:
-            if wave in wave_dict.keys():
-                wave_dict.pop(wave, "None")
-                names.append = wave
-            else:
-                self.log.error("Unable to delete {}. Waveform not in list. ".format(wave))
+        if files_removed:
+            self.log.info(f"Removed {waveform_name} from {self.waveform_folder}")
+        else:
+            self.log.warn(f"Unable to remove {waveform_name} from {self.waveform_folder}")
 
-        path = os.path.join(os.getcwd(), 'awg', 'WaveFormDict.pkl')
-        output = open(path, 'wb')
-        pickle.dump(wave_dict, output)
-        output.close()
-
-        return names
+        return files_removed
 
     def delete_sequence(self, sequence_name):
         """ Delete the sequence with name "sequence_name" from the device memory.

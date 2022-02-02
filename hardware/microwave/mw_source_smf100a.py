@@ -164,11 +164,11 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         return 0
 
-    def set_cw(self, freq=None, power=None, useinterleave=None):
+    def set_cw(self, frequency=None, power=None, useinterleave=None):
         """
         Configures the device for cw-mode and optionally sets frequency and/or power
 
-        @param float freq: frequency to set in Hz
+        @param float frequency: frequency to set in Hz
         @param float power: power to set in dBm
 
         @return tuple(float, float, str): with the relation
@@ -184,8 +184,8 @@ class MicrowaveSMF(Base, MicrowaveInterface):
 
         if mode != 'cw':
             self._command_wait(':FREQ:MODE CW')
-        if freq is not None:
-            self._command_wait(':SOUR:FREQ:CW {}'.format(freq))
+        if frequency is not None:
+            self._command_wait(':SOUR:FREQ:CW {}'.format(frequency))
         if power is not None:
             self._command_wait(':SOUR:POW:POW {}'.format(power))
         if useinterleave is not None:
