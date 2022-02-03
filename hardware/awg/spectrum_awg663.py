@@ -303,7 +303,6 @@ class AWG663(Base, PulserInterface):
 
         if isinstance(load_dict, list):
             new_dict = dict()
-            self.log.info('Using waveform set "{}" from "{}"'.format(load_dict[0], self.waveform_folder))
             for waveform in load_dict:
                 wave_name = waveform.rsplit('.pkl')[0]
                 channel_num = int(wave_name.rsplit('_ch', 1)[1])
@@ -377,7 +376,8 @@ class AWG663(Base, PulserInterface):
         # data_list is a list of analog and digital values
         # data_list[0, 1, 4, 5, 6] goes to card 0
         # data_list[2, 3, 7, 8, 9] goes to card 1
-        self.log.info('Uploading waveform to AWG...')
+        waveform_set = list(self.loaded_assets)[0].rsplit('_')[0]
+        self.log.info(f'Uploading waveform set "{waveform_set}" from {self.waveform_folder} to AWG...')
         if not data_size == 0:
             self.instance.upload(data_list, data_size, mem_offset=0)
             self.typeloaded = 'waveform'
