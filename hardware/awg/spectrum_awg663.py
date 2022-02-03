@@ -470,7 +470,7 @@ class AWG663(Base, PulserInterface):
                              respective asset loaded into the channel,
                              string describing the asset type ('waveform' or 'sequence')
         """
-        self.log.info("Assets have been retrieved from memory, not the AWG.")
+        self.log.info(f"Assets retrieved from {self.waveform_folder}")
         return self.loaded_assets, self.typeloaded
 
     def clear_all(self):
@@ -977,7 +977,7 @@ class AWG663(Base, PulserInterface):
         if files_removed:
             self.log.info(f"Removed {waveform_name} from {self.waveform_folder}")
         else:
-            self.log.warn(f"Unable to remove {waveform_name} from {self.waveform_folder}")
+            self.log.warn(f"No files to remove from {self.waveform_folder}")
 
         return files_removed
 
