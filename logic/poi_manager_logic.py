@@ -987,8 +987,9 @@ class PoiManagerLogic(GenericLogic):
                 self._pulsed_was_paused = True
             while self._odmr_was_paused and self.odmrlogic().module_state() != 'idle':
                 time.sleep(0.1)
-            while self._pulsed_was_paused and not self.pulsedmeasurementlogic().__is_paused:
-                time.sleep(0.1)
+                # No way to check pulsedmeasurement module state
+            if self._pulsed_was_paused:
+                time.sleep(0.2)
             self.optimizerlogic().start_refocus(initial_pos=self.get_poi_position(name),
                                                 caller_tag=tag)
             self.sigRefocusStateUpdated.emit(True)
