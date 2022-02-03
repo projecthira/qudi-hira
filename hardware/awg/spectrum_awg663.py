@@ -478,7 +478,18 @@ class AWG663(Base, PulserInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        return self.instance.reset()
+        self.instance.reset()
+
+        self.instance.init_all_channels()
+        # Set the amplitude of a channel in mV (into 50 Ohms)
+        self.instance.cards[0].set_amplitude(0, 500)
+        self.instance.cards[0].set_amplitude(1, 500)
+        self.instance.cards[1].set_amplitude(0, 100)
+        self.instance.cards[1].set_amplitude(1, 100)
+        active_chan = self.get_constraints().activation_config['hira_config']
+        self.loaded_assets = dict.fromkeys(active_chan)
+
+        return 0
 
     def get_status(self):
         """ Retrieves the status of the pulsing hardware
