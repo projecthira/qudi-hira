@@ -977,7 +977,7 @@ class AWG663(Base, PulserInterface):
         if files_removed:
             self.log.info(f"Removed {waveform_name} from {self.waveform_folder}")
         else:
-            self.log.warn(f"No files to remove from {self.waveform_folder}")
+            self.log.info(f"No files to remove from {self.waveform_folder}")
 
         return files_removed
 
