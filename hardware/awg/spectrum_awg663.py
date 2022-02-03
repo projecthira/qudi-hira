@@ -478,16 +478,15 @@ class AWG663(Base, PulserInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.instance.reset()
+        files_removed = []
+        for file in os.listdir(self.waveform_folder):
+            os.remove(os.path.join(self.waveform_folder, file))
+            files_removed.append(file)
 
-        self.instance.init_all_channels()
-        # Set the amplitude of a channel in mV (into 50 Ohms)
-        self.instance.cards[0].set_amplitude(0, 500)
-        self.instance.cards[0].set_amplitude(1, 500)
-        self.instance.cards[1].set_amplitude(0, 100)
-        self.instance.cards[1].set_amplitude(1, 100)
-        active_chan = self.get_constraints().activation_config['hira_config']
-        self.loaded_assets = dict.fromkeys(active_chan)
+        if files_removed:
+            self.log.info(f"Removed {len(files_removed)} files from {self.waveform_folder}")
+        else:
+            self.log.warn(f"Unable to remove {len(files_removed)} files from {self.waveform_folder}")
 
         return 0
 
