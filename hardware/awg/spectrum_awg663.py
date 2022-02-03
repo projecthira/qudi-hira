@@ -341,10 +341,10 @@ class AWG663(Base, PulserInterface):
                 data_size = len(data)
                 if '_a_ch' in value:
                     chan_name = 'a_ch{0}'.format(value.rsplit('a_ch')[1])
-                    self.loaded_assets[chan_name] = value
+                    self.loaded_assets[chan_name] = value.rsplit("_")[0]
                 else:
                     chan_name = 'd_ch{0}'.format(value.rsplit('d_ch')[1])
-                    self.loaded_assets[chan_name] = value
+                    self.loaded_assets[chan_name] = value.rsplit("_")[0]
             else:
                 self.log.warn('Waveform {} not found in {}'.format(value, self.waveform_folder))
                 data_size = 0
