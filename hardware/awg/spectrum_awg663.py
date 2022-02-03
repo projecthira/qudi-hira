@@ -376,8 +376,8 @@ class AWG663(Base, PulserInterface):
         # data_list is a list of analog and digital values
         # data_list[0, 1, 4, 5, 6] goes to card 0
         # data_list[2, 3, 7, 8, 9] goes to card 1
-        waveform_set = list(self.loaded_assets)[0].rsplit('_')[0]
-        self.log.info(f'Uploading waveform set "{waveform_set}" from {self.waveform_folder} to AWG...')
+        self.log.info(f'Uploading waveform set "{list(self.loaded_assets.values())[0]}" from {self.waveform_folder} '
+                      f'to AWG...')
         if not data_size == 0:
             self.instance.upload(data_list, data_size, mem_offset=0)
             self.typeloaded = 'waveform'
