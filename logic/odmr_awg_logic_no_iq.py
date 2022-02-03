@@ -544,12 +544,12 @@ class AwgODMRLogicNoIQ(GenericLogic):
         laser_readout_pulse_sample = int(np.floor(self.laser_readout_length * self.sample_rate))
 
         # Set up empty sequences for channels (switch uses np.ones as channel HIGH is off and LOW is on)
-        mw_trig_samples = np.zeros(total_pulse_samples)
-        laser_samples = np.zeros(total_pulse_samples)
-        readout_samples = np.zeros(total_pulse_samples)
-        switch_samples = np.ones(total_pulse_samples)
+        mw_trig_samples = np.zeros(total_pulse_samples, dtype=bool)
+        laser_samples = np.zeros(total_pulse_samples, dtype=bool)
+        readout_samples = np.zeros(total_pulse_samples, dtype=bool)
+        switch_samples = np.zeros(total_pulse_samples, dtype=bool)
 
-        mw_trig_samples[0:mw_trig_pulse_sample] = 1
+        mw_trig_samples[0:mw_trig_pulse_sample] = np.ones(mw_trig_pulse_sample, dtype=bool)
 
         current_freq_idx = mw_trig_pulse_sample + 2 * null_pulse_sample
 
@@ -563,9 +563,9 @@ class AwgODMRLogicNoIQ(GenericLogic):
             switch_start = single_freq_start + delay_pulse_sample
             switch_stop = switch_start + switch_pulse_sample
 
-            laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
-            readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start)
-            switch_samples[switch_start:switch_stop] = np.zeros(switch_stop - switch_start)
+            laser_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start, dtype=bool)
+            readout_samples[laser_start:laser_stop] = np.ones(laser_stop - laser_start, dtype=bool)
+            switch_samples[switch_start:switch_stop] = np.ones(switch_stop - switch_start, dtype=bool)
 
             current_freq_idx += laser_readout_pulse_sample + delay_pulse_sample + switch_pulse_sample + \
                                 null_pulse_sample

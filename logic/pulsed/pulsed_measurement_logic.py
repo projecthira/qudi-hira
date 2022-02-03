@@ -49,6 +49,7 @@ class PulsedMeasurementLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
     fastcounter = Connector(interface='FastCounterInterface')
     microwave = Connector(interface='MicrowaveInterface')
+    laserlogic = Connector(interface='LaserLogic')
     pulsegenerator = Connector(interface='PulserInterface')
 
     # Config options
@@ -786,6 +787,8 @@ class PulsedMeasurementLogic(GenericLogic):
                 else:
                     self._recalled_raw_data_tag = None
 
+                # set laser to external state on
+                self.laserlogic().set_external_state(True)
                 # start microwave source
                 if self.__use_ext_microwave:
                     self.microwave_on()
@@ -833,6 +836,8 @@ class PulsedMeasurementLogic(GenericLogic):
                 # Turn off microwave source
                 if self.__use_ext_microwave:
                     self.microwave_off()
+                # turn off laser external state
+                self.laserlogic().set_external_state(False)
 
                 # stash raw data if requested
                 if stash_raw_data_tag:
@@ -877,6 +882,7 @@ class PulsedMeasurementLogic(GenericLogic):
                 self.pulse_generator_off()
                 if self.__use_ext_microwave:
                     self.microwave_off()
+                self.laserlogic().set_external_state(False)
 
                 # Set measurement paused flag
                 self.__is_paused = True
@@ -895,6 +901,7 @@ class PulsedMeasurementLogic(GenericLogic):
         """
         with self._threadlock:
             if self.module_state() == 'locked':
+                self.laserlogic().set_external_state(True)
                 if self.__use_ext_microwave:
                     self.microwave_on()
                 self.fast_counter_continue()
