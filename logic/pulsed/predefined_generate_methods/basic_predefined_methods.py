@@ -307,10 +307,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # create the elements
         waiting_element = self._get_idle_element(length=self.wait_time,
                                                  increment=0)
-        laser_element = self._get_laser_element(length=self.laser_length,
-                                                increment=0)
-
-        gate_sweep_element = self._get_gate_sweep_element(length=self.wait_time, increment=0)
+        laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
+        next_sweep_element = self._get_next_sweep_element(length=self.wait_time, increment=0)
         delay_element = self._get_delay_gate_element()
 
         # Create block and append to created_blocks list
@@ -328,7 +326,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                 pulsedodmr_block.append(delay_element)
                 pulsedodmr_block.append(waiting_element)
 
-            pulsedodmr_block.append(gate_sweep_element)
+            pulsedodmr_block.append(next_sweep_element)
             pulsedodmr_block.append(waiting_element)
 
         created_blocks.append(pulsedodmr_block)
