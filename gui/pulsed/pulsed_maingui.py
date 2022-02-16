@@ -377,6 +377,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.alt_fit_param_PushButton.clicked.connect(self.fit_clicked)
 
         self._pa.ext_control_use_mw_CheckBox.stateChanged.connect(self.microwave_settings_changed)
+        self._pa.ext_control_use_mw_sweep_CheckBox.stateChanged.connect(self.microwave_settings_changed)
         self._pa.ext_control_mw_freq_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
 
@@ -537,7 +538,8 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.fit_param_PushButton.clicked.disconnect()
         self._pa.alt_fit_param_PushButton.clicked.disconnect()
         self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
-        self._pa.ext_control_mw_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
+        self._pa.ext_control_use_mw_sweep_CheckBox.editingFinished.disconnect()
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.disconnect()
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.disconnect()
@@ -772,6 +774,7 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ana_param_num_laser_pulse_SpinBox.setEnabled(False)
             self._pa.ana_param_record_length_DoubleSpinBox.setEnabled(False)
             self._pa.ext_control_use_mw_CheckBox.setEnabled(False)
+            self._pa.ext_control_use_mw_sweep_CheckBox.setEnabled(False)
             self._pa.ana_param_fc_bins_ComboBox.setEnabled(False)
             self._pa.ana_param_ignore_first_CheckBox.setEnabled(False)
             self._pa.ana_param_ignore_last_CheckBox.setEnabled(False)
@@ -799,6 +802,7 @@ class PulsedMeasurementGui(GUIBase):
                 widget1.setEnabled(True)
                 widget2.setEnabled(True)
             self._pa.ext_control_use_mw_CheckBox.setEnabled(True)
+            self._pa.ext_control_use_mw_sweep_CheckBox.setEnabled(True)
             self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
             self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(True)
             self._pa.ana_param_fc_bins_ComboBox.setEnabled(True)
@@ -2552,9 +2556,11 @@ class PulsedMeasurementGui(GUIBase):
             return
 
         use_ext_microwave = self._pa.ext_control_use_mw_CheckBox.isChecked()
+        sweep_ext_microwave = self._pa.ext_control_use_mw_sweep_CheckBox.isChecked()
 
         settings_dict = dict()
         settings_dict['use_ext_microwave'] = use_ext_microwave
+        settings_dict['sweep_ext_microwave'] = sweep_ext_microwave
         settings_dict['frequency'] = self._pa.ext_control_mw_freq_DoubleSpinBox.value()
         settings_dict['power'] = self._pa.ext_control_mw_power_DoubleSpinBox.value()
 
@@ -2564,7 +2570,8 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ext_control_mw_power_Label.setVisible(True)
             self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(True)
             self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_use_mw_sweep_Label.setVisible(True)
+            self._pa.ext_control_use_mw_sweep_CheckBox.setEnabled(True)
         elif not use_ext_microwave and self._pa.ext_control_mw_freq_DoubleSpinBox.isVisible():
             self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(False)
             self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(False)
@@ -2572,6 +2579,8 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(False)
             self._pa.ext_control_mw_power_Label.setVisible(False)
             self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_use_mw_sweep_Label.setVisible(False)
+            self._pa.ext_control_use_mw_sweep_CheckBox.setEnabled(False)
 
         self.pulsedmasterlogic().set_ext_microwave_settings(settings_dict)
         return

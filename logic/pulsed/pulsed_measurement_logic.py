@@ -64,6 +64,7 @@ class PulsedMeasurementLogic(GenericLogic):
     __microwave_power = StatusVar(default=-30.0)
     __microwave_freq = StatusVar(default=2870e6)
     __use_ext_microwave = StatusVar(default=False)
+    __use_ext_sweep_microwave = StatusVar(default=False)
 
     # fast counter settings
     __fast_counter_record_length = StatusVar(default=3.0e-6)
@@ -195,9 +196,15 @@ class PulsedMeasurementLogic(GenericLogic):
         # Check and configure external microwave
         if self.__use_ext_microwave:
             self.microwave_off()
-            self.set_microwave_settings(frequency=self.__microwave_freq,
-                                        power=self.__microwave_power,
-                                        use_ext_microwave=True)
+            if self.__use_ext_sweep_microwave:
+                self.set_microwave_settings(frequency=self.__microwave_freq,
+                                            power=self.__microwave_power,
+                                            use_ext_microwave=True,
+                                            use_ext_sweep_microwave=True)
+            else:
+                self.set_microwave_settings(frequency=self.__microwave_freq,
+                                            power=self.__microwave_power,
+                                            use_ext_microwave=True)
 
         # Convert controlled variable list into numpy.ndarray
         self._controlled_variable = np.array(self._controlled_variable, dtype=float)
@@ -454,13 +461,28 @@ class PulsedMeasurementLogic(GenericLogic):
                 self.__microwave_freq = float(settings_dict['frequency'])
             if 'use_ext_microwave' in settings_dict:
                 self.__use_ext_microwave = bool(settings_dict['use_ext_microwave'])
+            if 'use_ext_sweep_microwave' in settings_dict:
+                self.__use_ext_sweep_microwave = bool(settings_dict['use_ext_sweep_microwave'])
 
             if self.__use_ext_microwave:
                 # Apply the settings to hardware
-                self.__microwave_freq, \
-                self.__microwave_power, \
-                dummy = self.microwave().set_cw(frequency=self.__microwave_freq,
-                                                power=self.__microwave_power)
+                if self.__use_ext_sweep_microwave:
+                    if 'controlled_variable' in settings_dict and settings_dict.get("units")[0] == "Hz":
+                        freq_list = np.array(settings_dict.get('controlled_variable'), dtype=float)
+                        freq_start = freq_list[0]
+                        freq_stop = freq_list[-1]
+                        freq_step = freq_list[1] - freq_list[0]
+
+                        _, _, _, self.__microwave_power, _ = \
+                            self.microwave().set_sweep(start=freq_start, stop=freq_stop, step=freq_step,
+                                                       power=self.__microwave_power)
+                    else:
+                        self.log.warn("Cannot use ext microwave sweep, skipping")
+                else:
+                    self.__microwave_freq, \
+                    self.__microwave_power, \
+                    dummy = self.microwave().set_cw(frequency=self.__microwave_freq,
+                                                    power=self.__microwave_power)
 
         # emit update signal for master (GUI or other logic module)
         self.sigExtMicrowaveSettingsUpdated.emit({'power': self.__microwave_power,
