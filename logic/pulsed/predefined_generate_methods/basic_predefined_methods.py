@@ -293,6 +293,67 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
+    def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2870.0e6, freq_step=0.2e6,
+                                 num_of_points=50):
+        """
+
+        """
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # Create frequency array
+        freq_array = freq_start + np.arange(num_of_points) * freq_step
+
+        # create the elements
+        waiting_element = self._get_idle_element(length=self.wait_time,
+                                                 increment=0)
+        laser_element = self._get_laser_element(length=self.laser_length,
+                                                increment=0)
+        gate_element = self._get_gate_element(length=self.wait_time, increment=0)
+
+        delay_element = self._get_delay_gate_element()
+
+        # Create block and append to created_blocks list
+        pulsedodmr_block = PulseBlock(name=name)
+        for mw_freq in freq_array:
+            mw_element = self._get_mw_element(length=self.rabi_period / 2,
+                                              increment=0,
+                                              amp=self.microwave_amplitude,
+                                              freq=mw_freq,
+                                              phase=0)
+
+            for _ in range(5000):
+                pulsedodmr_block.append(mw_element)
+                pulsedodmr_block.append(laser_element)
+                pulsedodmr_block.append(delay_element)
+                pulsedodmr_block.append(waiting_element)
+
+            pulsedodmr_block.append(gate_element)
+
+        created_blocks.append(pulsedodmr_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((pulsedodmr_block.name, 0))
+
+        # Create and append sync trigger block if needed
+        self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
+
+        # add metadata to invoke settings later on
+        block_ensemble.measurement_information['alternating'] = False
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = freq_array
+        block_ensemble.measurement_information['units'] = ('Hz', '')
+        block_ensemble.measurement_information['labels'] = ('Frequency', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = num_of_points
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+
+        # append ensemble to created ensembles
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+
     def generate_ramsey(self, name='ramsey', tau_start=1.0e-6, tau_step=1.0e-6, num_of_points=50,
                         alternating=True):
         """

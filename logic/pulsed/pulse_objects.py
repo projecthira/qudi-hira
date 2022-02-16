@@ -1219,6 +1219,11 @@ class PredefinedGeneratorBase:
                     voltage=self.analog_trigger_voltage)
         return laser_gate_element
 
+    def _get_gate_element(self, length, increment):
+        return self._get_trigger_element(length=length,
+                                         increment=increment,
+                                         channels=self.gate_channel)
+
     def _get_delay_element(self):
         """
         Creates an idle element of length of the laser delay
