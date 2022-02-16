@@ -538,7 +538,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.fit_param_PushButton.clicked.disconnect()
         self._pa.alt_fit_param_PushButton.clicked.disconnect()
         self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
-        self._pa.ext_control_use_mw_sweep_CheckBox.editingFinished.disconnect()
+        self._pa.ext_control_use_mw_sweep_CheckBox.stateChanged.disconnect()
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.disconnect()
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.disconnect()
