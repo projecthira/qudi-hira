@@ -1234,6 +1234,15 @@ class PredefinedGeneratorBase:
                                          increment=increment,
                                          channels=self.sweep_channel)
 
+    def _get_gate_sweep_element(self, length, increment):
+        gate_element = self._get_trigger_element(length=length,
+                                                 increment=increment,
+                                                 channels=self.gate_channel)
+        if self.sweep_channel:
+            gate_element.digital_high[self.sweep_channel] = True
+
+        return gate_element
+
     def _get_delay_element(self):
         """
         Creates an idle element of length of the laser delay
