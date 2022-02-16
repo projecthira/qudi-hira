@@ -327,6 +327,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.currentIndexChanged.connect(self.generation_parameters_changed)
         self._pg.gen_syncchannel_ComboBox.currentIndexChanged.connect(self.generation_parameters_changed)
         self._pg.gen_gatechannel_ComboBox.currentIndexChanged.connect(self.generation_parameters_changed)
+        self._pg.gen_sweepchannel_ComboBox.currentIndexChanged.connect(self.generation_parameters_changed)
 
         self._pg.sample_ensemble_PushButton.clicked.connect(self.sample_ensemble_clicked)
         self._pg.samplo_ensemble_PushButton.clicked.connect(self.samplo_ensemble_clicked)
@@ -486,6 +487,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.currentIndexChanged.disconnect()
         self._pg.gen_syncchannel_ComboBox.currentIndexChanged.disconnect()
         self._pg.gen_gatechannel_ComboBox.currentIndexChanged.disconnect()
+        self._pg.gen_sweepchannel_ComboBox.currentIndexChanged.disconnect()
 
         self._pg.sample_ensemble_PushButton.clicked.disconnect()
         self._pg.samplo_ensemble_PushButton.clicked.disconnect()
@@ -1410,6 +1412,8 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.blockSignals(True)
         self._pg.gen_syncchannel_ComboBox.blockSignals(True)
         self._pg.gen_gatechannel_ComboBox.blockSignals(True)
+        self._pg.gen_sweepchannel_ComboBox.blockSignals(True)
+
         if hasattr(self, '_channel_selection_comboboxes'):
             for widget in self._channel_selection_comboboxes:
                 widget.blockSignals(True)
@@ -1458,6 +1462,15 @@ class PulsedMeasurementGui(GUIBase):
             if former_gate_channel in settings_dict['activation_config'][1]:
                 index = self._pg.gen_gatechannel_ComboBox.findText(former_gate_channel)
                 self._pg.gen_gatechannel_ComboBox.setCurrentIndex(index)
+
+            former_sweep_channel = self._pg.gen_sweepchannel_ComboBox.currentText()
+            self._pg.gen_sweepchannel_ComboBox.clear()
+            self._pg.gen_sweepchannel_ComboBox.addItem('')
+            self._pg.gen_sweepchannel_ComboBox.addItems(digital_channels)
+            self._pg.gen_sweepchannel_ComboBox.addItems(analog_channels)
+            if former_sweep_channel in settings_dict['activation_config'][1]:
+                index = self._pg.gen_sweepchannel_ComboBox.findText(former_gate_channel)
+                self._pg.gen_sweepchannel_ComboBox.setCurrentIndex(index)
 
             if hasattr(self, '_channel_selection_comboboxes'):
                 for widget in self._channel_selection_comboboxes:
@@ -1539,6 +1552,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.blockSignals(False)
         self._pg.gen_syncchannel_ComboBox.blockSignals(False)
         self._pg.gen_gatechannel_ComboBox.blockSignals(False)
+        self._pg.gen_sweepchannel_ComboBox.blockSignals(False)
         if hasattr(self, '_channel_selection_comboboxes'):
             for widget in self._channel_selection_comboboxes:
                 widget.blockSignals(False)
@@ -1554,6 +1568,8 @@ class PulsedMeasurementGui(GUIBase):
         settings_dict['laser_channel'] = self._pg.gen_laserchannel_ComboBox.currentText()
         settings_dict['sync_channel'] = self._pg.gen_syncchannel_ComboBox.currentText()
         settings_dict['gate_channel'] = self._pg.gen_gatechannel_ComboBox.currentText()
+        settings_dict['sweep_channel'] = self._pg.gen_sweepchannel_ComboBox.currentText()
+
         # Add channel specifiers from predefined methods tab
         if hasattr(self, '_channel_selection_comboboxes'):
             for combobox in self._channel_selection_comboboxes:
@@ -1588,6 +1604,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.blockSignals(True)
         self._pg.gen_syncchannel_ComboBox.blockSignals(True)
         self._pg.gen_gatechannel_ComboBox.blockSignals(True)
+        self._pg.gen_sweepchannel_ComboBox.blockSignals(True)
 
         if 'laser_channel' in settings_dict:
             index = self._pg.gen_laserchannel_ComboBox.findText(settings_dict['laser_channel'])
@@ -1599,6 +1616,9 @@ class PulsedMeasurementGui(GUIBase):
         if 'gate_channel' in settings_dict:
             index = self._pg.gen_gatechannel_ComboBox.findText(settings_dict['gate_channel'])
             self._pg.gen_gatechannel_ComboBox.setCurrentIndex(index)
+        if 'sweep_channel' in settings_dict:
+            index = self._pg.gen_sweepchannel_ComboBox.findText(settings_dict['sweep_channel'])
+            self._pg.gen_sweepchannel_ComboBox.setCurrentIndex(index)
         if hasattr(self, '_channel_selection_comboboxes'):
             for combobox in self._channel_selection_comboboxes:
                 param_name = combobox.objectName()[13:]
@@ -1624,6 +1644,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pg.gen_laserchannel_ComboBox.blockSignals(False)
         self._pg.gen_syncchannel_ComboBox.blockSignals(False)
         self._pg.gen_gatechannel_ComboBox.blockSignals(False)
+        self._pg.gen_sweepchannel_ComboBox.blockSignals(False)
         return
 
     @QtCore.Slot()

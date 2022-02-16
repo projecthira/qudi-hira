@@ -83,6 +83,7 @@ class SequenceGeneratorLogic(GenericLogic):
     _generation_parameters = StatusVar(default=OrderedDict([('laser_channel', 'd_ch1'),
                                                             ('sync_channel', ''),
                                                             ('gate_channel', ''),
+                                                            ('sweep_channel', ''),
                                                             ('microwave_channel', 'a_ch1'),
                                                             ('microwave_frequency', 2.87e9),
                                                             ('microwave_amplitude', 0.0),
@@ -719,6 +720,13 @@ class SequenceGeneratorLogic(GenericLogic):
                                    ''.format(settings_dict['microwave_channel'],
                                              self.__activation_config[1]))
                     del settings_dict['microwave_channel']
+            if settings_dict.get('sweep_channel'):
+                if settings_dict['sweep_channel'] not in self.__activation_config[1]:
+                    self.log.error('Unable to set sweep channel "{0}".\nChannel to set is not '
+                                   'part of the current channel activation config ({1}).'
+                                   ''.format(settings_dict['sweep_channel'],
+                                             self.__activation_config[1]))
+                    del settings_dict['sweep_channel']
 
             # update settings dict
             self._generation_parameters.update(settings_dict)

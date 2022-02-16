@@ -311,7 +311,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         laser_element = self._get_laser_element(length=self.laser_length,
                                                 increment=0)
         gate_element = self._get_gate_element(length=self.wait_time, increment=0)
-
+        sweep_element = self._get_sweep_element(length=self.wait_time, increment=0)
         delay_element = self._get_delay_gate_element()
 
         # Create block and append to created_blocks list
@@ -323,12 +323,13 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=mw_freq,
                                               phase=0)
 
-            for _ in range(5000):
+            for _ in range(5):
                 pulsedodmr_block.append(mw_element)
                 pulsedodmr_block.append(laser_element)
                 pulsedodmr_block.append(delay_element)
                 pulsedodmr_block.append(waiting_element)
 
+            pulsedodmr_block.append(sweep_element)
             pulsedodmr_block.append(gate_element)
 
         created_blocks.append(pulsedodmr_block)
