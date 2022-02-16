@@ -378,6 +378,7 @@ class PulsedMeasurementLogic(GenericLogic):
         settings_dict['power'] = float(self.__microwave_power)
         settings_dict['frequency'] = float(self.__microwave_freq)
         settings_dict['use_ext_microwave'] = bool(self.__use_ext_microwave)
+        settings_dict['use_ext_sweep_microwave'] = bool(self.__use_ext_sweep_microwave)
         return settings_dict
 
     @ext_microwave_settings.setter
@@ -396,7 +397,10 @@ class PulsedMeasurementLogic(GenericLogic):
 
         :return int: error code (0:OK, -1:error)
         """
-        err = self.microwave().cw_on()
+        if self.__use_ext_sweep_microwave:
+            err = self.microwave().sweep_on()
+        else:
+            err = self.microwave().cw_on()
         if err < 0:
             self.log.error('Failed to turn on external CW microwave output.')
         self.sigExtMicrowaveRunningUpdated.emit(self.microwave().get_status()[1])
@@ -487,7 +491,8 @@ class PulsedMeasurementLogic(GenericLogic):
         # emit update signal for master (GUI or other logic module)
         self.sigExtMicrowaveSettingsUpdated.emit({'power': self.__microwave_power,
                                                   'frequency': self.__microwave_freq,
-                                                  'use_ext_microwave': self.__use_ext_microwave})
+                                                  'use_ext_microwave': self.__use_ext_microwave,
+                                                  'use_ext_sweep_microwave': self.__use_ext_sweep_microwave})
         return self.__microwave_freq, self.__microwave_power, self.__use_ext_microwave
     ############################################################################
 
