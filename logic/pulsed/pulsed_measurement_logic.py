@@ -471,11 +471,10 @@ class PulsedMeasurementLogic(GenericLogic):
             if self.__use_ext_microwave:
                 # Apply the settings to hardware
                 if self.__use_ext_sweep_microwave:
-                    if 'controlled_variable' in settings_dict and settings_dict.get("units")[0] == "Hz":
-                        freq_list = np.array(settings_dict.get('controlled_variable'), dtype=float)
-                        freq_start = freq_list[0]
-                        freq_stop = freq_list[-1]
-                        freq_step = freq_list[1] - freq_list[0]
+                    if self._data_units[0] == "Hz":
+                        freq_start = self._controlled_variable[0]
+                        freq_stop = self._controlled_variable[-1]
+                        freq_step = self._controlled_variable[1] - self._controlled_variable[0]
 
                         _, _, _, self.__microwave_power, _ = \
                             self.microwave().set_sweep(start=freq_start, stop=freq_stop, step=freq_step,
