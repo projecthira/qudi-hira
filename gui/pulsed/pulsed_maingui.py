@@ -538,7 +538,6 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.fit_param_PushButton.clicked.disconnect()
         self._pa.alt_fit_param_PushButton.clicked.disconnect()
         self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
-        self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
         self._pa.ext_control_use_mw_sweep_CheckBox.editingFinished.disconnect()
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.disconnect()
 
@@ -2609,12 +2608,14 @@ class PulsedMeasurementGui(GUIBase):
         if 'power' in settings_dict:
             self._pa.ext_control_mw_power_DoubleSpinBox.setValue(settings_dict['power'])
         if 'use_ext_sweep_microwave' in settings_dict:
-            use_ext_sweep_microwave
+            use_ext_sweep_microwave = settings_dict['use_ext_sweep_microwave']
+            self._pa.ext_control_use_mw_sweep_CheckBox.setChecked(use_ext_sweep_microwave)
 
         # unblock signals
         self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(False)
         self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(False)
         self._pa.ext_control_use_mw_CheckBox.blockSignals(False)
+        self._pa.ext_control_use_mw_sweep_CheckBox.blockSignals(False)
         return
 
     def toggle_microwave_settings_editor(self, show_editor):
