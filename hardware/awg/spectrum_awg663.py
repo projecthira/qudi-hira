@@ -188,7 +188,7 @@ class AWG663(Base, PulserInterface):
         constraints.a_ch_amplitude.min = self.__mV_to_V(80)
         constraints.a_ch_amplitude.max = self.__mV_to_V(2000)
         constraints.a_ch_amplitude.step = self.__mV_to_V(1)
-        constraints.a_ch_amplitude.default = self.__mV_to_V(500)
+        constraints.a_ch_amplitude.default = self.__mV_to_V(2000)
         constraints.a_ch_offset.min = 0
         constraints.a_ch_offset.max = 0
         constraints.a_ch_offset.default = 0
@@ -340,10 +340,10 @@ class AWG663(Base, PulserInterface):
                 data_size = len(data)
                 if '_a_ch' in value:
                     chan_name = 'a_ch{0}'.format(value.rsplit('a_ch')[1])
-                    self.loaded_assets[chan_name] = value.rsplit("_")[0]
+                    self.loaded_assets[chan_name] = value[:-6]
                 else:
                     chan_name = 'd_ch{0}'.format(value.rsplit('d_ch')[1])
-                    self.loaded_assets[chan_name] = value.rsplit("_")[0]
+                    self.loaded_assets[chan_name] = value[:-6]
             else:
                 self.log.warn('Waveform {} not found in {}'.format(value, self.waveform_folder))
                 data_size = 0
@@ -668,13 +668,8 @@ class AWG663(Base, PulserInterface):
         high_val = {}
 
         for ch in d_ch:
-            if ch == "d_ch2":
-                # Invert for the switch channel
-                low_val[ch] = 3.3
-                high_val[ch] = 0
-            else:
-                low_val[ch] = 0
-                high_val[ch] = 3.3
+            low_val[ch] = 0
+            high_val[ch] = 3.3
 
         return low_val, high_val
 
