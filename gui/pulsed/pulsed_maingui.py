@@ -2605,11 +2605,13 @@ class PulsedMeasurementGui(GUIBase):
         if 'power' in settings_dict:
             self._pa.ext_control_mw_power_DoubleSpinBox.setValue(settings_dict['power'])
         if 'use_ext_sweep_microwave' in settings_dict:
-            use_ext_sweep_microwave
+            use_ext_sweep_microwave = settings_dict['use_ext_sweep_microwave']
+            self._pa.ext_control_use_mw_sweep_CheckBox.setChecked(use_ext_sweep_microwave)
 
         # unblock signals
         self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(False)
         self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_use_mw_CheckBox.blockSignals(False)
         self._pa.ext_control_use_mw_CheckBox.blockSignals(False)
         return
 
