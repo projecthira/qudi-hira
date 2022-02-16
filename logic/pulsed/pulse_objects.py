@@ -1066,6 +1066,11 @@ class PredefinedGeneratorBase:
         return None if channel == '' else channel
 
     @property
+    def next_channel(self):
+        channel = self.generation_parameters.get('next_channel')
+        return None if channel == '' else channel
+
+    @property
     def analog_trigger_voltage(self):
         return self.generation_parameters.get('analog_trigger_voltage')
 
