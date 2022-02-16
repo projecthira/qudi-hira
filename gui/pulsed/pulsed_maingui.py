@@ -2564,15 +2564,18 @@ class PulsedMeasurementGui(GUIBase):
         settings_dict['frequency'] = self._pa.ext_control_mw_freq_DoubleSpinBox.value()
         settings_dict['power'] = self._pa.ext_control_mw_power_DoubleSpinBox.value()
 
-        if use_ext_microwave and not self._pa.ext_control_mw_freq_DoubleSpinBox.isVisible():
-            self._pa.ext_control_mw_freq_Label.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(True)
+        if use_ext_microwave and not self._pa.ext_control_mw_power_DoubleSpinBox.isVisible():
+            if use_ext_sweep_microwave:
+                self._pa.ext_control_mw_freq_Label.setVisible(False)
+                self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(False)
+            else:
+                self._pa.ext_control_mw_freq_Label.setVisible(True)
+                self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(True)
             self._pa.ext_control_mw_power_Label.setVisible(True)
             self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
             self._pa.ext_control_use_mw_sweep_Label.setVisible(True)
             self._pa.ext_control_use_mw_sweep_CheckBox.setEnabled(True)
-        elif not use_ext_microwave and self._pa.ext_control_mw_freq_DoubleSpinBox.isVisible():
+        elif not use_ext_microwave and self._pa.ext_control_mw_power_DoubleSpinBox.isVisible():
             self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(False)
             self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(False)
             self._pa.ext_control_mw_freq_Label.setVisible(False)
