@@ -2555,11 +2555,11 @@ class PulsedMeasurementGui(GUIBase):
             return
 
         use_ext_microwave = self._pa.ext_control_use_mw_CheckBox.isChecked()
-        sweep_ext_microwave = self._pa.ext_control_use_mw_sweep_CheckBox.isChecked()
+        use_ext_sweep_microwave = self._pa.ext_control_use_mw_sweep_CheckBox.isChecked()
 
         settings_dict = dict()
         settings_dict['use_ext_microwave'] = use_ext_microwave
-        settings_dict['sweep_ext_microwave'] = sweep_ext_microwave
+        settings_dict['use_ext_sweep_microwave'] = use_ext_sweep_microwave
         settings_dict['frequency'] = self._pa.ext_control_mw_freq_DoubleSpinBox.value()
         settings_dict['power'] = self._pa.ext_control_mw_power_DoubleSpinBox.value()
 
@@ -2604,6 +2604,8 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ext_control_mw_freq_DoubleSpinBox.setValue(settings_dict['frequency'])
         if 'power' in settings_dict:
             self._pa.ext_control_mw_power_DoubleSpinBox.setValue(settings_dict['power'])
+        if 'use_ext_sweep_microwave' in settings_dict:
+            use_ext_sweep_microwave
 
         # unblock signals
         self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(False)
