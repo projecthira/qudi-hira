@@ -1224,6 +1224,22 @@ class PredefinedGeneratorBase:
         if self.gate_channel:
             if self.gate_channel.startswith('d'):
                 laser_gate_element.digital_high[self.gate_channel] = True
+                laser_gate_element.digital_high[self.next_channel] = True
+            elif self.gate_channel.startswith('a'):
+                laser_gate_element.pulse_function[self.gate_channel] = SamplingFunctions.DC(
+                    voltage=self.analog_trigger_voltage)
+                laser_gate_element.pulse_function[self.next_channel] = SamplingFunctions.DC(
+                    voltage=self.analog_trigger_voltage)
+        return laser_gate_element
+
+    def _get_laser_start_element(self, length, increment):
+        """
+        """
+        laser_gate_element = self._get_laser_element(length=length,
+                                                     increment=increment)
+        if self.gate_channel:
+            if self.gate_channel.startswith('d'):
+                laser_gate_element.digital_high[self.gate_channel] = True
             elif self.gate_channel.startswith('a'):
                 laser_gate_element.pulse_function[self.gate_channel] = SamplingFunctions.DC(
                     voltage=self.analog_trigger_voltage)
