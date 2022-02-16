@@ -1196,7 +1196,7 @@ class PulsedMeasurementGui(GUIBase):
         for param, value in self.pulsedmasterlogic().generation_parameters.items():
             # Do not create widget for laser_channel since this widget is already part of the pulse
             # editor tab.
-            if param in ('laser_channel', 'sync_channel', 'gate_channel'):
+            if param in ('laser_channel', 'sync_channel', 'gate_channel', 'sweep_channel'):
                 continue
 
             # Create ComboBoxes for parameters ending on '_channel' to only be able to select
