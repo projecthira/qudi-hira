@@ -162,7 +162,6 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
-
     def generate_idle(self, name='idle', length=3.0e-6):
         """ Generate just a simple idle ensemble.
 
