@@ -293,7 +293,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         return created_blocks, created_ensembles, created_sequences
 
     def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2870.0e6, freq_step=0.2e6,
-                                 num_of_points=50):
+                                 num_of_points=50, freq_rep=5000):
         """
 
         """
@@ -307,7 +307,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # create the elements
         waiting_element = self._get_idle_element(length=self.wait_time,
                                                  increment=0)
-        laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
+        laser_element = self._get_laser_start_element(length=self.laser_length, increment=0)
         next_sweep_element = self._get_next_sweep_element(length=self.wait_time, increment=0)
         delay_element = self._get_delay_gate_element()
 
@@ -320,7 +320,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=mw_freq,
                                               phase=0)
 
-            for _ in range(5):
+            for _ in range(freq_rep):
                 pulsedodmr_block.append(mw_element)
                 pulsedodmr_block.append(laser_element)
                 pulsedodmr_block.append(delay_element)
