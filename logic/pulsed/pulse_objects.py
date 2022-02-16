@@ -1061,6 +1061,11 @@ class PredefinedGeneratorBase:
         return None if channel == '' else channel
 
     @property
+    def sweep_channel(self):
+        channel = self.generation_parameters.get('sweep_channel')
+        return None if channel == '' else channel
+
+    @property
     def analog_trigger_voltage(self):
         return self.generation_parameters.get('analog_trigger_voltage')
 
@@ -1223,6 +1228,11 @@ class PredefinedGeneratorBase:
         return self._get_trigger_element(length=length,
                                          increment=increment,
                                          channels=self.gate_channel)
+
+    def _get_sweep_element(self, length, increment):
+        return self._get_trigger_element(length=length,
+                                         increment=increment,
+                                         channels=self.sweep_channel)
 
     def _get_delay_element(self):
         """
