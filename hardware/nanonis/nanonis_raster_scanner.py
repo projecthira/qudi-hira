@@ -10,8 +10,6 @@ class NanonisRasterScanner(Base, MotorInterface):
     def on_activate(self):
         self.syncfile = self._sync_filepath
 
-        pass
-
     def on_deactivate(self):
         pass
 
