@@ -314,6 +314,9 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # Create block and append to created_blocks list
         pulsedodmr_block = PulseBlock(name=name)
         for mw_freq in freq_array:
+            pulsedodmr_block.append(sweep_element)
+            pulsedodmr_block.append(waiting_element)
+
             mw_element = self._get_mw_element(length=self.rabi_period / 2,
                                               increment=0,
                                               amp=self.microwave_amplitude,
@@ -330,9 +333,6 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
                 pulsedodmr_block.append(delay_element)
                 pulsedodmr_block.append(waiting_element)
-
-            pulsedodmr_block.append(sweep_element)
-            pulsedodmr_block.append(waiting_element)
 
         created_blocks.append(pulsedodmr_block)
 
