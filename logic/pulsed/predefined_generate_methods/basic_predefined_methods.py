@@ -305,10 +305,10 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         freq_array = freq_start + np.arange(num_of_points) * freq_step
 
         # create the elements
-        waiting_element = self._get_idle_element(length=self.wait_time,
-                                                 increment=0)
-        laser_element = self._get_laser_start_element(length=self.laser_length, increment=0)
-        next_sweep_element = self._get_next_sweep_element(length=self.wait_time, increment=0)
+        waiting_element = self._get_idle_element(length=self.wait_time, increment=0)
+        laser_start_element = self._get_laser_start_element(length=self.laser_length, increment=0)
+        laser_start_next_element = self._get_laser_start_next_element(length=self.laser_length, increment=0)
+        sweep_element = self._get_sweep_element(length=self.wait_time, increment=0)
         delay_element = self._get_delay_gate_element()
 
         # Create block and append to created_blocks list
@@ -320,13 +320,18 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=mw_freq,
                                               phase=0)
 
-            for _ in range(freq_rep):
-                pulsedodmr_block.append(mw_element)
-                pulsedodmr_block.append(laser_element)
+            for idx, _ in enumerate(range(freq_rep)):
+                if idx == 0:
+                    pulsedodmr_block.append(mw_element)
+                    pulsedodmr_block.append(laser_start_next_element)
+                else:
+                    pulsedodmr_block.append(mw_element)
+                    pulsedodmr_block.append(laser_start_element)
+
                 pulsedodmr_block.append(delay_element)
                 pulsedodmr_block.append(waiting_element)
 
-            pulsedodmr_block.append(next_sweep_element)
+            pulsedodmr_block.append(sweep_element)
             pulsedodmr_block.append(waiting_element)
 
         created_blocks.append(pulsedodmr_block)
