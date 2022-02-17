@@ -479,11 +479,11 @@ class PulsedMeasurementLogic(GenericLogic):
                         _, _, _, self.__microwave_power, _ = \
                             self.microwave().set_sweep(start=freq_start, stop=freq_stop, step=freq_step,
                                                        power=self.__microwave_power)
-                        self.log.info(f"Using MW sweep ({freq_start}, {freq_stop}, {freq_step})")
+                        self.log.info(f"Using MW sweep, Start={freq_start/1e9} GHz, Stop={freq_stop/1e9} GHz, "
+                                      f"{freq_step/1e6} MHz and Power={self.__microwave_power} dBm")
                     else:
-                        self.log.info(f"Cannot use ext microwave sweep, skipping "
-                                      f"{settings_dict.get('controlled_variable')}"
-                                      f"{settings_dict.get('units')[0]}")
+                        self.log.info(f"Cannot use ext microwave sweep, skipping")
+
                 else:
                     self.__microwave_freq, \
                     self.__microwave_power, \
