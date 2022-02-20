@@ -292,8 +292,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
-    def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2870.0e6, freq_step=0.2e6,
-                                 num_of_points=50, freq_rep=5000):
+    def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2840.0e6, freq_step=1e6,
+                                 num_of_points=50, freq_rep=3000):
         """
 
         """
@@ -313,26 +313,22 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # Create block and append to created_blocks list
         pulsedodmr_block = PulseBlock(name=name)
-        for mw_freq in freq_array:
-            pulsedodmr_block.append(sweep_element)
+
+        pulsedodmr_block.append(sweep_element)
+        pulsedodmr_block.append(waiting_element)
+        mw_element = self._get_mw_element(length=self.rabi_period / 2,
+                                          increment=0)
+
+        for idx, _ in enumerate(range(freq_rep)):
+            if idx == 0:
+                pulsedodmr_block.append(mw_element)
+                pulsedodmr_block.append(laser_start_next_element)
+            else:
+                pulsedodmr_block.append(mw_element)
+                pulsedodmr_block.append(laser_start_element)
+
+            pulsedodmr_block.append(delay_element)
             pulsedodmr_block.append(waiting_element)
-
-            mw_element = self._get_mw_element(length=self.rabi_period / 2,
-                                              increment=0,
-                                              amp=self.microwave_amplitude,
-                                              freq=mw_freq,
-                                              phase=0)
-
-            for idx, _ in enumerate(range(freq_rep)):
-                if idx == 0:
-                    pulsedodmr_block.append(mw_element)
-                    pulsedodmr_block.append(laser_start_next_element)
-                else:
-                    pulsedodmr_block.append(mw_element)
-                    pulsedodmr_block.append(laser_start_element)
-
-                pulsedodmr_block.append(delay_element)
-                pulsedodmr_block.append(waiting_element)
 
         created_blocks.append(pulsedodmr_block)
 
