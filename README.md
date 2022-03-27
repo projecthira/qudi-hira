@@ -1,5 +1,5 @@
 # qudi-hira
-Project forked from the excellent [Ulm-IQO/qudi](https://github.com/Ulm-IQO/qudi)
+Project built on top of the excellent [Ulm-IQO/qudi](https://github.com/Ulm-IQO/qudi)
 
 Qudi is a suite of tools for operating multi-instrument and multi-computer laboratory experiments.
 Originally built around a confocal fluorescence microscope experiments, it has grown to be a generally applicable framework for controlling experiments.
