@@ -292,8 +292,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
-    def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2840.0e6, freq_step=1e6,
-                                 num_of_points=50, freq_rep=3000):
+    def generate_pulsedodmr_list(self, name='pulsedODMRlist', freq_start=2.85e9, freq_step=1e6,
+                                 num_of_points=30, freq_rep=1e4):
         """
 
         """
