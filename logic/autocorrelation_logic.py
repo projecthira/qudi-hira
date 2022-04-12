@@ -61,8 +61,8 @@ class AutocorrelationLogic(GenericLogic):
         # locking for thread safety
         self.threadlock = Mutex()
 
-        self._count_length = 50
-        self._bin_width = 500
+        self._count_length = 400
+        self._bin_width = 5000 # in ps
         self._refresh_time = 1000  # in ms
         self._saving = False
 
