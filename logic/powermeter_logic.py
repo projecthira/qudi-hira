@@ -27,6 +27,7 @@ from qtpy import QtCore
 
 from core.connector import Connector
 from logic.generic_logic import GenericLogic
+from core.configoption import ConfigOption
 
 
 class PowermeterLogic(GenericLogic):
@@ -34,6 +35,9 @@ class PowermeterLogic(GenericLogic):
     """
 
     pm = Connector(interface='ProcessInterface')
+    calibration_param_uhv = ConfigOption("calibration_param_uhv", default=1, missing="warn")
+    calibration_param_rt = ConfigOption("calibration_param_rt", default=1, missing="warn")
+
     sigUpdate = QtCore.Signal()
 
     def on_activate(self):
@@ -54,49 +58,12 @@ class PowermeterLogic(GenericLogic):
         for i in range(5):
             QtCore.QCoreApplication.processEvents()
 
-    @staticmethod
-    def calibrated_value(power):
-        """
-        Calculate power at objective from power at beamsplitter.
-        Calibration extracted from fit up to 100 mW of laser power (20210610_OpticalAlignment.xlsx).
-
-        eg.
-            f(x) =  a*x + b
-            where,
-            a = 1.1773
-            b = 0.0786
-        @return: calibrated power value
-        """
-        # TODO: Repeat this measurement
-        power_mW = power * 1000
-        a = 1.1773
-        b = 0
-        return a * power_mW + b
-
-    @staticmethod
-    def calibrated_value_rt(power):
-        """
-        Calculate power at objective from power at beamsplitter.
-        Calibration extracted from fit up to 100 mW of laser power (20210816_Laser_power_at_RT.xlsx).
-
-        eg.
-            f(x) =  a*x + b
-            where,
-            a = 1.1773
-            b = 0.0786
-        @return: calibrated power value
-        """
-        power_mW = power * 1000
-        a = 5.5967
-        b = 0
-        return a * power_mW + b
-
     @QtCore.Slot(bool)
     def get_power(self, state):
         """ Switched external driving on or off. """
         self.power = self._pm.get_process_value()
-        self.calibrated_power_mW = self.calibrated_value(self.power)
-        self.calibrated_power_RT_mW = self.calibrated_value_rt(self.power)
+        self.calibrated_power_uhv = self.calibration_param_uhv * self.power
+        self.calibrated_power_rt = self.calibration_param_rt * self.power
 
         for k in self.data:
             self.data[k] = np.roll(self.data[k], -1)
