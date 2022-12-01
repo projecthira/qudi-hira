@@ -4,8 +4,7 @@ This file contains the PI Piezo hardware module for Qudi through official python
 author: Dinesh Pinto
 email: d.pinto@fkf.mpg.d
 
-* Requires PIPython: https://github.com/git-anonymous/PIPython
-* pip install --upgrade git+https://github.com/git-anonymous/PIPython.git
+* pip install PIPython
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -277,16 +276,16 @@ class PIPiezoController(Base, ConfocalScannerInterface):
                 # Transform x and y position
                 # x_pos = (x / 4) * 1e9
                 # y_pos = (y / 4) * 1e9
-                self.pidevice.MOV(axes=axes, values=[x * 1e6, y * 1e6])
+                self.pidevice.MOV(axes=axes, values=[x * 1e9, y * 1e9])
             else:
                 axes = [self._x_scanner, self._y_scanner, self._z_scanner]
                 # Axes will start moving to the new positions if ALL given targets are within the allowed ranges and
                 # ALL axes can move. All axes start moving simultaneously.
                 # Servo must be enabled for all commanded axes prior to using this command.
                 if self.fine_scanning_mode:
-                    pitools.moveandwait(self.pidevice, axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
+                    pitools.moveandwait(self.pidevice, axes=axes, values=[x * 1.e9, y * 1.e9, z * 1.e9])
                 else:
-                    self.pidevice.MOV(axes=axes, values=[x * 1.e6, y * 1.e6, z * 1.e6])
+                    self.pidevice.MOV(axes=axes, values=[x * 1.e9, y * 1.e9, z * 1.e9])
 
         except Exception as exc:
             self.log.error(f"Exception when moving: {exc}")
