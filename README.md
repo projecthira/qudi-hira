@@ -10,13 +10,14 @@ Originally built around a confocal fluorescence microscope experiments, it has g
   * XYZ piezo or galvo control for confocal fluorescence microscopy via **Physik Instrumente** or National Instruments X-Series devices
   * Position optimization for fluorescent spots
   * Tracking of fluorescent spots
-  * **Spectrum AWG** for pulsed microwave experiments
-  * **Pfeiffer pressure monitors**
-  * **Lakeshore temperature monitors**
-  * **Twickenham liquid Helium depth indicators**
-  * **LabVIEW VI control (experimental)**
-  * **Nanonis coarse and fine positioning (using LabVIEW VI)**
-  * **Toptica iBEAM laser control**
+  * Spectrum AWG for pulsed microwave experiments*
+  * Pfeiffer pressure monitors*
+  * Lakeshore temperature monitors*
+  * Twickenham liquid Helium depth indicators*
+  * LabVIEW VI control (experimental)*
+  * Nanonis coarse and fine positioning (using LabVIEW VI)*
+  * Toptica iBEAM laser control*
+  * Thorlabs power meters*
   * Tektronix AWG 5000 7000 and 70000 support for pulsed microwave experiments
   * Anritsu MG37022A, MG3696B and MG3961C, R&S SMIQ, R&S SMF 100A and SMR support for ODMR measurements
   * Getting spectra from the WinSpec32 spectroscopy software
@@ -24,7 +25,8 @@ Originally built around a confocal fluorescence microscope experiments, it has g
   * Magnetic field alignment for NV- in diamond via fluorescence, ODMR and nuclear spin
   * etc.
 
-**Bold** items are additional features in qudi-hira.
+
+\* items are additional features in qudi-hira
 
 ## Citation
 If you are publishing scientific results, mentioning Qudi in your methods description is the least you can do as good scientific practice.
