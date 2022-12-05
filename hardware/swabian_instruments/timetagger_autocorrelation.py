@@ -107,8 +107,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
             binwidth=int(self._bin_width),
             n_bins=int(self._count_length)
         )
-        # self.correlation.stop()
-        # self.correlation.clear()
+        self.correlation.clear()
         return 0
 
     def _reset_hardware(self):
@@ -130,7 +129,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
     def start_measure(self):
         """ Start the fast counter. """
         if self.module_state() != 'locked':
-            self.lock()
+            self.module_state.lock()
             self.correlation.clear()
             self.correlation.start()
             self.statusvar = 2
