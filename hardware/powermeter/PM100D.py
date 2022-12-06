@@ -77,11 +77,16 @@ class PM100D(Base, SimpleDataInterface, ProcessInterface):
 
     def get_power(self):
         """ Return the power read from the ThorlabsPM100 package (in W) """
-        power = float(self._power_meter.read)
-        if power < 0:
-            return 0
+        power = self._power_meter.read
+
+        if isinstance(power, float):
+            if power < 0:
+                return 0.0
+            else:
+                return power
         else:
-            return power
+            self.log.warning("Powermeter did not return a value")
+            return 0.0
 
     def get_process_value(self):
         """ Return a measured value """

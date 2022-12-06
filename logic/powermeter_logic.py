@@ -68,12 +68,9 @@ class PowermeterLogic(GenericLogic):
         for k in self.data:
             self.data[k] = np.roll(self.data[k], -1)
 
-        if isinstance(self.power, float):
-            self.data['power'][-1] = self.power
-            self.data['time'][-1] = time.time()
-        else:
-            self.log.warn("Powermeter did not return a number")
-            pass
+        self.data['power'][-1] = self.power
+        self.data['time'][-1] = time.time()
+
         self.sigUpdate.emit()
 
     def init_data_logging(self):
