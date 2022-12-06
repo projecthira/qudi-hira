@@ -60,6 +60,8 @@ class PM100D(Base, SimpleDataInterface, ProcessInterface):
             self.log.error('Could not connect to hardware. Please check the wires and the address.')
 
         self._power_meter = ThorlabsPM100(inst=self._inst)
+        # Configure powermeter to measure power
+        self._power_meter.configure.scalar.power()
 
     def on_deactivate(self):
         """ Stops the module """
