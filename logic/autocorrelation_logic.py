@@ -61,9 +61,9 @@ class AutocorrelationLogic(GenericLogic):
         # locking for thread safety
         self.threadlock = Mutex()
 
-        self._count_length = 400
-        self._bin_width = 5000 # in ps
-        self._refresh_time = 1000  # in ms
+        self._count_length = 2000
+        self._bin_width = 500  # in ps
+        self._refresh_time = 2000  # in ms
         self._saving = False
 
     def on_activate(self):
@@ -195,16 +195,16 @@ class AutocorrelationLogic(GenericLogic):
         return self._refresh_time
 
     def start_correlation(self):
-        # self._correlation_device.start_measure()
-
         with self.threadlock:
             # Lock module
             if self.module_state() != 'locked':
                 self.module_state.lock()
 
             # configure correlation device
-            correlation_status = self._correlation_device.set_up_correlation(bin_width=self._bin_width,
-                                                                             count_length=self._count_length)
+            correlation_status = self._correlation_device.set_up_correlation(
+                bin_width=self._bin_width,
+                count_length=self._count_length
+            )
 
             if correlation_status < 0:
                 self.module_state.unlock()
@@ -213,6 +213,8 @@ class AutocorrelationLogic(GenericLogic):
 
             self.rawdata = np.zeros((self.get_count_length(),))
             self.rawdata_norm = np.zeros((self.get_count_length(),))
+
+            self._correlation_device.start_measure()
 
             self.sigCorrelationStatusChanged.emit(True)
             self.sigCorrelationDataNext.emit()
@@ -238,15 +240,14 @@ class AutocorrelationLogic(GenericLogic):
         if self.module_state() == 'locked':
             with self.threadlock:
                 if self.stopRequested:
-                    self._correlation_device.close_correlation()
+                    self._correlation_device.stop_measure()
                     self.stopRequested = False
                     self.module_state.unlock()
                     self.sigCorrelationUpdated.emit()
                     return
+
                 time.sleep(self._refresh_time / 1000)  # sleep in seconds
-                # self.delay = np.arange(-1 * ((self.get_count_length() / 2) * self.get_bin_width() / 1e12),
-                #                            (self.get_count_length() / 2) * self.get_bin_width() / 1e12,
-                #                            self.get_bin_width() / 1e12)
+
                 self.delay = self._correlation_device.get_bin_times()
                 self.rawdata = self._correlation_device.get_data_trace()
                 self.rawdata_norm = self._correlation_device.get_normalized_data_trace()

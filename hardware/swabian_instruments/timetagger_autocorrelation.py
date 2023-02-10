@@ -21,11 +21,9 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import TimeTagger as tt
-import numpy as np
 
-from core.module import Base
 from core.configoption import ConfigOption
-
+from core.module import Base
 from interface.autocorrelation_interface import AutocorrelationConstraints
 from interface.autocorrelation_interface import AutocorrelationInterface
 
@@ -45,6 +43,12 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', missing='error')
 
+    _tagger = None
+    _count_length = None
+    _bin_width = None
+    correlation = None
+    statusvar = None
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
@@ -52,7 +56,6 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
         self._count_length = 1000
         self._bin_width = 1000  # bin width in ps
-        self._tagger.reset()
         self.correlation = None
 
         self.statusvar = 0
@@ -64,7 +67,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
             self.correlation.stop()
             self.correlation.clear()
         self.correlation = None
-        self._tagger.reset()
+        self._reset_hardware()
         return 0
 
     def get_constraints(self):
@@ -76,7 +79,7 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         constraints.max_channels = 2
         constraints.min_channels = 2
         constraints.min_count_length = 1
-        constraints.min_bin_width = 0
+        constraints.min_bin_width = 0  # ps
 
         return constraints
 
@@ -95,9 +98,9 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
         self._count_length = count_length
 
         self.statusvar = 1
-        if self.correlation != None:
-            self._reset_hardware()
-        if self._tagger == None:
+        if self.correlation is not None:
+            self.correlation.clear()
+        if self._tagger is None:
             return -1
 
         self.correlation = tt.Correlation(
@@ -107,11 +110,10 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
             binwidth=int(self._bin_width),
             n_bins=int(self._count_length)
         )
-        self.correlation.clear()
         return 0
 
     def _reset_hardware(self):
-        self.correlation.clear()
+        self._tagger.reset()
         return 0
 
     def get_status(self):
@@ -203,5 +205,5 @@ class TimeTaggerAutocorrelation(Base, AutocorrelationInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._tagger.reset()
+        self.correlation.clear()
         return 0

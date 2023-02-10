@@ -90,16 +90,10 @@ class AutocorrelationGui(GUIBase):
         self._pw.setLabel('left', 'Counts', units='')
         self._pw.setLabel('bottom', 'Delay', units='s')
         self.curves = []
-        self.curves.append(
-                    pg.PlotDataItem(
-                        pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
-                        symbol='s',
-                        symbolPen=palette.c1,
-                        symbolBrush=palette.c1,
-                        symbolSize=5))
+        self.curves.append(pg.PlotDataItem(pen=pg.mkPen(palette.c1, width=3), symbol=None))
 
         self._pw.addItem(self.curves[0])
-        # setting the x axis length correctly
+        # setting the x-axis length correctly
         xmin, xmax = self.get_x_range()
         self._pw.setXRange(xmin, xmax)
 
@@ -202,7 +196,6 @@ class AutocorrelationGui(GUIBase):
         """
         if self._correlation_logic.module_state() == 'locked':
             self.curves[0].setData(y=self._correlation_logic.rawdata_norm, x=self._correlation_logic.delay/1e12)
-
         return
 
     def start_clicked(self):
