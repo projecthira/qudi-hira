@@ -68,6 +68,9 @@ class PowermeterGUI(GUIBase):
         self.sigMeasure.connect(self._pm_logic.get_power)
         self._pm_logic.sigUpdate.connect(self.updateGui)
 
+        self._mw.calibration_uhv.setText("Calibration = {0:.1f}".format(self._pm_logic.calibration_param_uhv))
+        self._mw.calibration_rt.setText("Calibration = {0:.1f}".format(self._pm_logic.calibration_param_rt))
+
     def on_deactivate(self):
         """ Deactivate the module properly.
         """
@@ -92,10 +95,20 @@ class PowermeterGUI(GUIBase):
     def updateGui(self):
         """ Update labels, the plot and button states with new data. """
         if isinstance(self._pm_logic.power, float):
-            power_in_mW = self._pm_logic.power * 1000
-            self._mw.powerValue.setText('{0:6.2f} mW (0.02)'.format(power_in_mW))
-            self._mw.calibratedPowerValue.setText('{0:6.2f} mW (0.02)'.format(self._pm_logic.calibrated_power_mW))
-            self._mw.calibratedPowerValueRT.setText('{0:6.2f} mW(0.02)'.format(self._pm_logic.calibrated_power_RT_mW))
+            power = self._pm_logic.power
+            power_uhv = self._pm_logic.calibrated_power_uhv
+            power_rt = self._pm_logic.calibrated_power_rt
+
+            if power >= 1e-3:
+                unit = "mW"
+                multiplier = 1e3
+            else:
+                unit = "μW"
+                multiplier = 1e6
+
+            self._mw.powerValue.setText('{0:6.2f} {1}'.format(power * multiplier, unit))
+            self._mw.calibratedPowerValue.setText('{0:6.2f} {1}'.format(power_uhv * multiplier, unit))
+            self._mw.calibratedPowerValueRT.setText('{0:6.2f} {1}'.format(power_rt * multiplier, unit))
         else:
             self._mw.powerValue.setText('{}'.format(self._pm_logic.power))
         self._mw.powerMeasureButton.setEnabled(True)

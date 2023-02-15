@@ -40,7 +40,7 @@ p_char = re.compile(r"'(\\.[^\\]*|[^\\])'")
 
 p_hex = re.compile(r"0x([0-9a-fA-F]+)L?")
 
-filedict = {}
+filedict = {} # type: dict
 importable = {}
 
 try:
@@ -135,7 +135,7 @@ def process(fp, outfp, env = {}):
             ok = 0
             stmt = '%s = %s\n' % (name, body)
             try:
-                exec stmt in env
+                exec(stmt, env)
             except:
                 sys.stderr.write('Skipping: %s' % stmt)
             else:
@@ -147,7 +147,7 @@ def process(fp, outfp, env = {}):
             body = pytify(body)
             stmt = 'def %s(%s): return %s\n' % (macro, arg, body)
             try:
-                exec stmt in env
+                exec(stmt, env)
             except:
                 sys.stderr.write('Skipping: %s' % stmt)
             else:
