@@ -569,6 +569,7 @@ class CounterLogic(GenericLogic):
         if self._saving:
              # if oversampling is necessary
             if self._counting_samples > 1:
+                # TODO: Incorrect time and count rate for first point in oversampled series
                 chans = self.get_channels()
                 self._sampling_data = np.empty([len(chans) + 1, self._counting_samples])
                 self._sampling_data[0, :] = time.time() - self._saving_start_time

@@ -105,7 +105,8 @@ class TimeTaggerPixelCounter(Base):
 
     def clear_counter(self):
         """Clear the current measurement in the Time Tagger"""
-        self.triggered_counter.clear()
+        if self.triggered_counter:
+            self.triggered_counter.clear()
         return 0
 
     def reset_tagger(self):
