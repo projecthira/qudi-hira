@@ -25,7 +25,6 @@ class TimeTaggerPixelCounter(Base, SlowCounterInterface):
     def on_deactivate(self):
         """ Shut down the TimeTagger.
         """
-        self.clear_counter()
         self._tagger.reset()
         return 0
 

@@ -3,6 +3,8 @@ from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.ndimage import gaussian_filter, percentile_filter
 
 from core.connector import Connector
 from logic.generic_logic import GenericLogic
@@ -62,7 +64,7 @@ class PixelCounterLogic(GenericLogic):
         """ Get the count rate from the pixel counter and clean it up. """
 
         # Get raw count rates
-        count_rates = self.get_counter()
+        count_rates = self._counting_device.get_counter()
 
         # Add last data point to the end of the array to get an N*N array
         count_rates = np.append(count_rates, count_rates[-1])
@@ -91,27 +93,36 @@ class PixelCounterLogic(GenericLogic):
         forward = data["Forward Counts (cps)"].reshape(pixels, pixels)
         backward = data["Backward Counts (cps)"].reshape(pixels, pixels)
 
-        fig, (ax, ax1, ax2, ax3) = plt.subplots(ncols=4, sharey="row")
+        fig, axes = plt.subplots(ncols=3, nrows=2, figsize=(13, 8))
+        origin = "lower"
+        cmap = "Spectral_r"
+        sigma = 2
+        percentile = 20
+        size = 15
 
-        img_forward = ax.imshow(forward, origin="lower", interpolation="hanning")
-        ax.set_title("Forward")
-        fig.colorbar(img_forward, ax=ax, shrink=0.4)
+        for idx, scan in enumerate((forward, backward)):
+            scan /= 1e3
+            title = "Forward" if idx == 0 else "Backward"
 
-        img_backward = ax1.imshow(backward, origin="lower", interpolation="hanning")
-        ax1.set_title("Backward")
-        fig.colorbar(img_backward, ax=ax1, shrink=0.4)
+            cax0 = make_axes_locatable(axes[idx, 0]).append_axes('right', size='5%', pad=0.05)
+            img = axes[idx, 0].imshow(scan, origin=origin, cmap=cmap)
+            axes[idx, 0].set_title(f"{title} - Raw")
+            fig.colorbar(img, cax=cax0)
 
-        img_sum = ax2.imshow(forward + backward, origin="lower", interpolation="hanning")
-        ax2.set_title("Sum")
-        fig.colorbar(img_sum, ax=ax2, shrink=0.4)
+            cax1 = make_axes_locatable(axes[idx, 1]).append_axes('right', size='5%', pad=0.05)
+            img_gaussian = axes[idx, 1].imshow(gaussian_filter(scan, sigma=sigma), origin=origin, cmap=cmap)
+            axes[idx, 1].set_title(f"Gaussian(sigma={sigma})")
+            fig.colorbar(img_gaussian, cax=cax1)
 
-        img_mean = ax3.imshow((forward + backward) / 2, origin="lower", interpolation="hanning")
-        ax3.set_title("Mean")
-        fig.colorbar(img_mean, ax=ax3, shrink=0.4)
+            cax2 = make_axes_locatable(axes[idx, 2]).append_axes('right', size='5%', pad=0.05)
+            img_percentile = axes[idx, 2].imshow(percentile_filter(scan, percentile=percentile, size=size),
+                                                 origin=origin, cmap=cmap)
+            axes[idx, 2].set_title(f"Percentile(percentile={percentile}, size={size})")
+            fig.colorbar(img_percentile, cax=cax2)
 
         return fig
 
-    def save_data(self, tag=None):
+    def save_data(self, tag=None, fig=None):
         timestamp = datetime.datetime.now()
 
         filepath = self._save_logic.get_path_for_module(module_name='PixelScanner')
@@ -131,7 +142,8 @@ class PixelCounterLogic(GenericLogic):
         data['Forward Counts (cps)'] = self.forward_counts.flatten()
         data['Backward Counts (cps)'] = self.backward_counts.flatten()
 
-        fig = self.draw_figure(data=data, parameters=parameters)
+        if not fig:
+            fig = self.draw_figure(data=data, parameters=parameters)
 
         self._save_logic.save_data(
             data,
