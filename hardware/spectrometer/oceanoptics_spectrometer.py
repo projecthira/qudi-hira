@@ -24,7 +24,7 @@ from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
 from interface.spectrometer_interface import SpectrometerInterface
 import numpy as np
-import seabreeze.spectrometers as sb
+from seabreeze.spectrometers import Spectrometer
 
 
 class OceanOptics(Base, SpectrometerInterface):
@@ -44,9 +44,9 @@ class OceanOptics(Base, SpectrometerInterface):
         """ Activate module.
         """
 
-        self.spec = sb.Spectrometer.from_serial_number(self._serial)
+        self.spec = Spectrometer.from_serial_number(self._serial)
         self.log.info(''.format(self.spec.model, self.spec.serial_number))
-        self.spec.integration_time_micros(self._integration_time)
+        self.setExposure(self._integration_time)
         self.log.info('Exposure set to {} microseconds'.format(self._integration_time))
 
     def on_deactivate(self):
@@ -80,5 +80,5 @@ class OceanOptics(Base, SpectrometerInterface):
             @param float exposureTime: exposure time in microseconds
 
         """
-        self._integration_time = exposureTime
+        self._integration_time = int(exposureTime)
         self.spec.integration_time_micros(self._integration_time)

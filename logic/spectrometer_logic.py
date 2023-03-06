@@ -31,7 +31,7 @@ from core.util.network import netobtain
 from logic.generic_logic import GenericLogic
 
 
-class SpectrumLogic(GenericLogic):
+class SpectrometerLogic(GenericLogic):
 
     """This logic module gathers data from the spectrometer.
 
@@ -275,7 +275,7 @@ class SpectrumLogic(GenericLogic):
             This ordered dictionary is added to the default data file header. It allows arbitrary
             additional experimental information to be included in the saved data file header.
         """
-        filepath = self._save_logic.get_path_for_module(module_name='spectra')
+        filepath = self._save_logic.get_path_for_module(module_name='Spectrometry')
         if background:
             filelabel = 'background'
             spectrum_data = self._spectrum_background
