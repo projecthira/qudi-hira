@@ -290,6 +290,7 @@ class SpectrometerLogic(GenericLogic):
         # write experimental parameters
         parameters = OrderedDict()
         parameters['Spectrometer acquisition repetitions'] = self.repetition_count
+        parameters['Exposure time'] = self._spectrometer_device.getExposure()
 
         # add all fit parameter to the saved data:
         if self.fc.current_fit_result is not None:
