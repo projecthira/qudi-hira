@@ -893,7 +893,7 @@ class ConfocalLogic(GenericLogic):
         @param: bool block (optional) If False, return immediately; if True, block until save completes."""
 
         if block:
-            self._save_xy_data(colorscale_range, percentile_range)
+            self._save_xy_data(colorscale_range, percentile_range, filetag)
         else:
             self._signal_save_xy.emit(colorscale_range, percentile_range, filetag)
 
